@@ -1,6 +1,40 @@
-phase: 'Phase S1 — Shorts Mode Formalization + OBS WebSocket Integration'
-certified_floor: 107/0/10
-what_is_next: 'Phase S2 — Dave the Diver Shorts Production Run'
+phase: 'Phase E1 — OpenAgent Legacy Extraction'
+certified_floor: 128/0/10
+what_is_next: 'Phase E2 — Aider Bot Pipeline'
+
+## Phase E1 — OpenAgent Legacy Extraction (2026-05-18)
+
+### Completed
+- **Extracted core/scanner.py** from OpenAgent legacy (stdlib only, no external dependencies)
+  - File tree scanning with smart truncation (60 file limit)
+  - AST extraction for class detection
+  - Test collection via pytest
+  - Returns dict format: file_tree, ast_summary, test_list
+- **Created core/model_router.py** with routing logic from OpenAgent legacy
+  - Task type to model mapping: inventory (deepseek), directive (haiku), assembly (sonnet), fallback (free)
+  - Pure routing only — no API calls, no business logic
+  - llm_client.py receives model string and makes the call
+- **Created core/repo_assessor.py** with two-stage pattern from assessor.py + writer.py
+  - Stage 1: Cheap model (deepseek) structures assessment from scan result
+  - Stage 2: Capable model (haiku) writes directive using assessment
+  - Uses llm_client.py instead of raw requests.post
+  - Robust JSON parsing with markdown fence stripping and ast.literal_eval fallback
+- **Created comprehensive test suite** (17 new tests, all passing)
+  - test_scanner.py: 6 tests for scanner functionality
+  - test_repo_assessor.py: 6 tests for two-stage assessment pattern
+  - test_model_router.py: 5 tests for routing logic
+
+### Certified Floor Achievement
+- Baseline: 111/0/10
+- Target: 124/0/10
+- Actual: 128/0/10 (exceeded target by 4 tests)
+
+### Key Design Decisions
+- Pure stdlib for scanner.py — no external dependencies
+- Two-stage routing pattern preserved from OpenAgent legacy
+- Integration with existing llm_client.py instead of raw HTTP requests
+- All API calls mocked in tests — no real LLM calls during test runs
+- No google-adk dependency introduced
 
 ## Recent Work (Post-S1)
 
