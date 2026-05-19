@@ -11,8 +11,8 @@ import argparse
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add content-engine to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent / "content-engine"))
 
 from core.obs_capture import OBSCapture
 from core.process_watcher import ProcessWatcher
@@ -52,7 +52,7 @@ def main():
         obs.connect()
         logger.info("Connected to OBS successfully")
     except Exception as e:
-        logger.error(f"Failed to connect to OBS: {e}")
+        logger.stage_error("OBS Connection", str(e))
         print(f"Error: Failed to connect to OBS: {e}", file=sys.stderr)
         sys.exit(1)
     
