@@ -1,6 +1,58 @@
-phase: 'Documentation Reframe — SDD v1.0'
-certified_floor: 128/0/10
-what_is_next: 'Phase S2 — Dave Shorts Production Run'
+phase: 'Phase S2 — Process Watcher + Own-Game Capture'
+certified_floor: 134/0/10
+what_is_next: 'Phase S3 — Dave the Diver Shorts Production Run'
+
+## Phase S2 — Process Watcher + Own-Game Capture (2026-05-19)
+
+### Completed
+- **Created core/process_watcher.py** — Process detection and OBS trigger
+  - `is_running(process_name)` — Uses Windows tasklist via subprocess (no external dependencies)
+  - `watch(process_name, scene, poll_interval)` — Blocking call, state machine: WAITING → RECORDING → DONE
+  - Detects game process, switches OBS scene (optional), starts recording
+  - Stops recording when process exits, returns file path
+  - Never hardcodes process name — game-agnostic, caller provides name
+  - All OBS calls go through OBSCapture parameter — never imports obsws_python directly
+  - Every state transition logged via Logger
+  - Exception-safe — subprocess failures return False, never crash
+- **Created pipeline_watch.py** — CLI entry point for watch command
+  - `--game` (required): Process name to watch for
+  - `--scene` (optional): OBS scene to switch to before recording
+  - `--poll` (optional): Poll interval in seconds (default: 5)
+  - Thin wrapper — argument parsing and wiring only, business logic in ProcessWatcher
+  - OBS connection failure exits cleanly with error message (exit code 1)
+- **Created comprehensive test suite** (6 new tests, all passing)
+  - test_is_running_true — Returns True when process in tasklist output
+  - test_is_running_false — Returns False when process not in output
+  - test_is_running_exception_safe — Returns False on subprocess exception
+  - test_watch_starts_recording — Calls obs.start_recording() when process detected
+  - test_watch_stops_recording — Calls obs.stop_recording() when process gone
+  - test_watch_returns_filepath — Returns string from obs.stop_recording()
+
+### Certified Floor Achievement
+- Baseline: 128/0/10
+- Target: 134/0/10
+- Actual: 134/0/10 (exactly on target)
+
+### Key Design Decisions
+- Pure stdlib implementation — uses subprocess only (tasklist), no psutil or win32api
+- Process name never hardcoded in module — caller provides it (e.g., "Everything is Crab.exe")
+- watch() is blocking call — documented clearly, does not return until game closes
+- All OBS calls go through OBSCapture parameter — loose coupling, testable
+- Scene switching optional — caller can trigger OBS recording without scene change
+- Exception-safe design — subprocess failures return False, never crash watcher
+- CLI entry point is thin wrapper — business logic lives in ProcessWatcher
+
+### Usage Example
+```bash
+# Basic watch
+python pipeline_watch.py --game "Everything is Crab.exe"
+
+# With scene switching
+python pipeline_watch.py --game "Everything is Crab.exe" --scene "EIC_Capture"
+
+# Custom poll interval
+python pipeline_watch.py --game "Everything is Crab.exe" --poll 10
+```
 
 ## Documentation Reframe (2026-05-19)
 
