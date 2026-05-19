@@ -1,6 +1,31 @@
-phase: 'Phase E1 — OpenAgent Legacy Extraction'
+phase: 'Documentation Reframe — SDD v1.0'
 certified_floor: 128/0/10
-what_is_next: 'Phase E2 — Aider Bot Pipeline'
+what_is_next: 'Phase S2 — Dave Shorts Production Run'
+
+## Documentation Reframe (2026-05-19)
+
+### Completed
+- **Created SDD v1.0** — Primary project documentation defining GameReviewAgent as a Video to YouTube pipeline
+  - Purpose: Given game analysis observation, produce YouTube Short (muted gameplay + lower third text + background music)
+  - Primary loop: Observation → Script segmentation → Clip sourcing → Assembly → Review → YouTube publish
+  - Two production paths: Analysis (sourced clips) and Own-game (OBS capture)
+  - Core infrastructure table with module status
+  - Phase map reflecting actual project state
+- **ADR-009** — Aider integration deferred to separate project
+- **ADR-010** — Two production paths locked (Analysis primary, Own-game secondary)
+- **ADR-011** — scanner.py and repo_assessor.py documented as dormant
+- **Project scope clarified** — Video to YouTube pipeline only, not Aider bot pipeline
+
+### Key Decisions
+- Aider integration is a separate project, not in scope for GameReviewAgent
+- scanner.py and repo_assessor.py remain dormant with passing tests (17 tests)
+- model_router.py routing logic remains active (used by llm_client.py)
+- Next phase is S2 — Dave the Diver Shorts Production Run (3 shorts)
+- clip_sourcer.py extraction planned for Phase S2
+- P9 YouTube publish planned for Phase S3
+
+### Project Identity
+GameReviewAgent is a Video to YouTube pipeline that produces YouTube Shorts from game analysis observations. It runs on a local tower, requires no face/voice/live presence, and has two production paths: Analysis (sourced YouTube clips) and Own-game (OBS capture of running software).
 
 ## Phase E1 — OpenAgent Legacy Extraction (2026-05-18)
 
