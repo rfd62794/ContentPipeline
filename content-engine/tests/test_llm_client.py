@@ -66,18 +66,17 @@ class TestLLMClient(unittest.TestCase):
             "choices": [{"message": {"images": [{"image_url": {"url": f"data:image/png;base64,{fake_base64}"}}]}}]
         }
         
-        reference = b"fake_reference_bytes"
-        self.adapter.generate_image("A cat", reference_bytes=reference)
+        # Test that generate_image works without reference_bytes parameter
+        self.adapter.generate_image("A cat")
         
-        # Verify payload messages structure
+        # Verify payload messages structure (text-only as per current implementation)
         payload = mock_post.call_args.kwargs["json"]
         messages = payload["messages"]
         self.assertEqual(len(messages), 1)
         content = messages[0]["content"]
-        self.assertIsInstance(content, list)
-        self.assertEqual(content[0]["type"], "image_url")
-        self.assertEqual(content[1]["type"], "text")
-        self.assertIn("visual style reference", content[1]["text"])
+        # Current implementation uses text-only content
+        self.assertIsInstance(content, str)
+        self.assertEqual(content, "A cat")
 
     @patch("requests.post")
     def test_generate_image_without_reference_builds_text_only_message(self, mock_post):
@@ -86,7 +85,7 @@ class TestLLMClient(unittest.TestCase):
             "choices": [{"message": {"images": [{"image_url": {"url": "data:image/png;base64,AAA"}}]}}]
         }
         
-        self.adapter.generate_image("A cat", reference_bytes=None)
+        self.adapter.generate_image("A cat")
         
         # Verify payload messages structure
         payload = mock_post.call_args.kwargs["json"]

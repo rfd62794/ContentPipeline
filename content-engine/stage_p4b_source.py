@@ -45,8 +45,8 @@ def main():
         label = "HOOK" if seg["segment_index"] == 0 else f"BODY {seg['segment_index']}"
         print(f"  > Seg {seg['segment_index']} ({label})")
         
-        # 1. Source Asset
-        result = source_asset_for_segment(seg)
+        # 1. Source Asset (pass config)
+        result = source_asset_for_segment(seg, config)
         
         # 2. Build Prompts & Overlays
         key_phrase = extract_key_phrase(seg["segment_text"])

@@ -13,14 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.db import get_connection
 from core.mechanic_extractor import extract as extract_mechanic
+from core.logger import Logger
 
 SCRIPT_ID = 1
 
 def main():
-    print("=" * 70)
-    print("ContentEngine P4 — Mechanic Extraction")
-    print("=" * 70)
-    print()
+    logger = Logger()
+    logger.stage_start("P4 — Mechanic Extraction")
 
     conn = get_connection()
     conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
@@ -33,14 +32,14 @@ def main():
     segments = cursor.fetchall()
     
     if not segments:
-        print(f"✓ No pending segments for Script ID {SCRIPT_ID} (already extracted or none found).")
+        logger.info(f"No pending segments for Script ID {SCRIPT_ID} (already extracted or none found).")
         conn.close()
         return
 
-    print(f"[1/2] Extracting metadata for {len(segments)} segments...")
+    logger.info(f"Extracting metadata for {len(segments)} segments...")
 
     for seg in segments:
-        print(f"  > seg {seg['segment_index']}: ", end="", flush=True)
+        logger.info(f"Processing seg {seg['segment_index']}")
         
         # Call core module
         extracted = extract_mechanic(seg["segment_text"])
@@ -52,7 +51,7 @@ def main():
         queries    = extracted.get("search_queries", [])
         game_title = games[0] if games else None
         
-        print(f"game={game_title!r} mechanic={mechanic!r}")
+        logger.info(f"Extracted: game={game_title!r} mechanic={mechanic!r}")
 
         # Update DB
         conn.execute(
@@ -69,9 +68,7 @@ def main():
         conn.commit()
 
     conn.close()
-    print()
-    print("[2/2] Extraction Complete.")
-    print("=" * 70)
+    logger.stage_complete("P4", {"segments_processed": len(segments)})
 
 if __name__ == "__main__":
     main()

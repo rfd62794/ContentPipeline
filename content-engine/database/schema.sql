@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS asset_briefs (
     segment_index   INTEGER NOT NULL,
     segment_text    TEXT    NOT NULL,
     estimated_duration_s INTEGER NOT NULL,
-    visual_type     TEXT    NOT NULL CHECK (visual_type IN ('gameplay_clip', 'stock_still', 'stock_clip', 'ai_image')),
+    visual_type     TEXT CHECK (visual_type IN ('gameplay_clip', 'stock_still', 'stock_clip', 'ai_image') OR visual_type IS NULL),
     search_query    TEXT    NOT NULL,
     ai_image_prompt TEXT,
     game_title      TEXT,   -- from mechanic_extractor games[0]

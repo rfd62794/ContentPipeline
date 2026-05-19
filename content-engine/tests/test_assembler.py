@@ -6,7 +6,7 @@ import json
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from core.assembler import preprocess_segment, _format_timestamp
+from core.assembler import preprocess_segment, _format_timestamp, assemble_video
 
 class TestAssembler(unittest.TestCase):
     def test_format_timestamp(self):
@@ -16,6 +16,11 @@ class TestAssembler(unittest.TestCase):
     @patch("subprocess.run")
     @patch("shutil.move")
     def test_ken_burns_cycling_calculates_correct_intervals(self, mock_move, mock_run):
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
         segment = {
             "segment_index": 0,
             "estimated_duration_s": 25,
@@ -40,6 +45,11 @@ class TestAssembler(unittest.TestCase):
     @patch("subprocess.run")
     @patch("shutil.move")
     def test_cycling_wraps_images(self, mock_move, mock_run):
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
         segment = {
             "segment_index": 1,
             "estimated_duration_s": 30,
@@ -64,6 +74,139 @@ class TestAssembler(unittest.TestCase):
             for i in range(3):
                 cmd = calls[i][0][0]
                 self.assertIn("only_one.png", cmd)
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_shorts_mode_vertical(self, mock_copy, mock_run):
+        """shorts_mode=True passes 1080x1920 to FFmpeg."""
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test segment text"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()  # Create dummy audio file
+            config = {
+                "shorts_music_path": None,
+                "shorts_text_font": "monospace",
+                "shorts_text_size": 48,
+                "shorts_text_color": "white",
+                "shorts_lower_third_height_pct": 0.25
+            }
+            
+            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
+            
+            # Verify that FFmpeg was called with vertical resolution
+            calls = mock_run.call_args_list
+            # Check that scale filter includes 1080x1920
+            scale_call_found = False
+            for call in calls:
+                cmd = call[0][0] if call[0] else []
+                if "scale=1080:1920" in " ".join(cmd):
+                    scale_call_found = True
+                    break
+            self.assertTrue(scale_call_found, "FFmpeg scale call should include 1080x1920")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_shorts_mode_mutes_clip(self, mock_copy, mock_run):
+        """shorts_mode=True includes -an flag on input clip."""
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {"shorts_music_path": None}
+            
+            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
+            
+            # Verify that -an flag is used (no audio)
+            calls = mock_run.call_args_list
+            audio_flag_found = False
+            for call in calls:
+                cmd = call[0][0] if call[0] else []
+                if "-an" in cmd:
+                    audio_flag_found = True
+                    break
+            self.assertTrue(audio_flag_found, "FFmpeg should include -an flag to mute audio")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_horizontal_unchanged(self, mock_copy, mock_run):
+        """shorts_mode=False produces 1920x1080 as before."""
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {}
+            
+            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=False)
+            
+            # Verify that horizontal path is used (no vertical scaling)
+            calls = mock_run.call_args_list
+            vertical_scale_found = False
+            for call in calls:
+                cmd = call[0][0] if call[0] else []
+                if "1080:1920" in " ".join(cmd):
+                    vertical_scale_found = True
+                    break
+            self.assertFalse(vertical_scale_found, "Horizontal mode should not use vertical scaling")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_music_missing_no_halt(self, mock_copy, mock_run):
+        """Missing music path logs warning, continues."""
+        # Configure mock to return successful results
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {"shorts_music_path": "nonexistent.mp3"}  # Missing file
+            
+            # Should not raise exception despite missing music
+            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
+            
+            # Verify it completed without error
+            self.assertTrue(mock_copy.called, "Should copy output despite missing music")
 
 if __name__ == "__main__":
     unittest.main()

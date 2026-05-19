@@ -13,14 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.db import get_connection
 from core.segmentation import segment_script
+from core.logger import Logger
 
 SCRIPT_ID = 1
 
 def main():
-    print("=" * 70)
-    print("ContentEngine P3b — Transcript Segmentation")
-    print("=" * 70)
-    print()
+    logger = Logger()
+    logger.stage_start("P3b — Transcript Segmentation")
 
     conn = get_connection()
     row = conn.execute(
@@ -30,10 +29,10 @@ def main():
     ).fetchone()
 
     if not row:
-        print(f"✗ Script ID {SCRIPT_ID} not found.")
+        logger.stage_error("P3b", f"Script ID {SCRIPT_ID} not found.")
         sys.exit(1)
 
-    print(f"[1/3] Loaded script {SCRIPT_ID}")
+    logger.info(f"Loaded script {SCRIPT_ID}")
     
     tags = []
     try:
@@ -41,7 +40,7 @@ def main():
     except:
         pass
 
-    print("[2/3] Segmenting text...")
+    logger.info("Segmenting text...")
     segments = segment_script(
         script_id=row["id"],
         hook_text=row["hook_short_script"],
@@ -49,7 +48,7 @@ def main():
         tags=tags
     )
 
-    print(f"      Created {len(segments)} segments. Inserting into database...")
+    logger.info(f"Created {len(segments)} segments. Inserting into database...")
     
     # Clear existing briefs for this script to allow safe re-runs
     conn.execute("DELETE FROM asset_briefs WHERE script_id = ?", (SCRIPT_ID,))
@@ -59,8 +58,8 @@ def main():
             """
             INSERT INTO asset_briefs 
             (script_id, segment_index, segment_text, estimated_duration_s,
-             visual_type, search_query, status)
-            VALUES (?, ?, ?, ?, 'stock_clip', '', 'pending')
+             search_query, status)
+            VALUES (?, ?, ?, ?, '', 'pending')
             """,
             (
                 seg["script_id"],
@@ -73,10 +72,7 @@ def main():
     conn.commit()
     conn.close()
 
-    print("[3/3] Segmentation Complete.")
-    print("-" * 70)
-    print(f"Total segments created: {len(segments)}")
-    print("=" * 70)
+    logger.stage_complete("P3b", {"segments_created": len(segments)})
 
 if __name__ == "__main__":
     main()

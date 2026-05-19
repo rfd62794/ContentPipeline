@@ -13,12 +13,14 @@ import yaml
 from pathlib import Path
 from core.db import get_connection
 from core.inventory_manager import increment_usage
+from core.logger import Logger
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.assembler import preprocess_segment, assemble_video, get_ffmpeg_path
 
 def main():
+    logger = Logger()
     parser = argparse.ArgumentParser(description="ContentEngine P7 — Visual Assembly")
     parser.add_argument("--script_id", type=int, default=1, help="Script ID to assemble")
     parser.add_argument("--output_name", type=str, default=None, help="Base name for output files (e.g. video_2)")
@@ -27,10 +29,7 @@ def main():
     script_id = args.script_id
     output_base = args.output_name if args.output_name else f"video_{script_id}"
 
-    print("=" * 70)
-    print(f"ContentEngine P7 — FFmpeg Assembly (Script {script_id})")
-    print("=" * 70)
-    print()
+    logger.stage_start(f"P7 — FFmpeg Assembly (Script {script_id})")
 
     # Paths
     engine_root = Path(__file__).resolve().parent
@@ -49,6 +48,9 @@ def main():
     with open(config_path, "r", encoding="utf-8") as f:
         config_full = yaml.safe_load(f)
         config = config_full.get("assembly", {})
+    
+    # Check shorts mode
+    shorts_mode = config.get("shorts_mode", False)
 
     # Cleanup temp
     if temp_dir.exists(): shutil.rmtree(temp_dir)
@@ -65,26 +67,26 @@ def main():
     conn.close()
 
     if not segments:
-        print(f"✗ No sourced segments found for Script ID {script_id}.")
+        logger.stage_error("P7", f"No sourced segments found for Script ID {script_id}.")
         sys.exit(1)
 
-    print(f"[1/4] Preprocessing {len(segments)} visual segments...")
+    logger.info(f"Preprocessing {len(segments)} visual segments...")
     proc_segments = []
     
     for seg in segments:
         label = "HOOK" if seg["segment_index"] == 0 else f"BODY {seg['segment_index']}"
-        print(f"  > Processing {label} ({seg['estimated_duration_s']}s) ... ", end="", flush=True)
+        logger.info(f"Processing {label} ({seg['estimated_duration_s']}s)")
         
         out_file = preprocess_segment(seg, temp_dir, config)
         if out_file:
-            print(f"✓ {out_file.name}")
+            logger.info(f"Preprocessed: {out_file.name}")
             seg["temp_file"] = out_file
             proc_segments.append(seg)
         else:
-            print("✗ FAILED")
+            logger.stage_error("P7", f"Failed to preprocess segment {seg['segment_index']}")
             sys.exit(1)
 
-    print("\n[2/4] Preparing audio track...")
+    logger.info("Preparing audio track...")
     # Find hook + body audio
     hook_audio = None
     body_audio = None
@@ -95,7 +97,7 @@ def main():
         if b.exists(): body_audio = b
         
     if not hook_audio or not body_audio:
-        print(f"✗ Audio files not found for Script {script_id} (Looked in: {[str(d) for d in audio_search_dirs]})")
+        logger.stage_error("P7", f"Audio files not found for Script {script_id}")
         sys.exit(1)
         
     full_audio = temp_dir / "full_audio.mp3"
@@ -109,27 +111,30 @@ def main():
         "-c", "copy", str(full_audio)
     ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
-    print(f"      ✓ Audio concatenated: {hook_audio.name} + {body_audio.name}")
+    logger.info(f"Audio concatenated: {hook_audio.name} + {body_audio.name}")
 
-    print("\n[3/4] Assembling final video...")
+    logger.info("Assembling final video...")
     output_video = output_dir / f"{output_base}.mp4"
-    assemble_video(proc_segments, full_audio, output_video, temp_dir, config)
+    if shorts_mode:
+        # Output to shorts subdirectory
+        shorts_dir = output_dir / "shorts"
+        shorts_dir.mkdir(parents=True, exist_ok=True)
+        output_video = shorts_dir / f"{output_base}.mp4"
     
-    print(f"      ✓ Assembled: {output_video.name}")
+    assemble_video(proc_segments, full_audio, output_video, temp_dir, config, shorts_mode=shorts_mode)
+    
+    logger.info(f"Assembled: {output_video.name}")
     if (output_dir / f"{output_base}.srt").exists():
-        print(f"      ✓ Subtitles: {output_base}.srt")
+        logger.info(f"Subtitles: {output_base}.srt")
         
     # --- INVENTORY USAGE UPDATE ---
-    print("\n[4/4] Updating inventory usage stats...")
+    logger.info("Updating inventory usage stats...")
     for seg in proc_segments:
         if seg.get("selected_asset"):
             increment_usage(seg["selected_asset"])
-    print("      ✓ Usage stats updated")
+    logger.info("Usage stats updated")
 
-    print("\n" + "=" * 70)
-    print("ASSEMBLY COMPLETE")
-    print(f"Output: {output_video}")
-    print("=" * 70)
+    logger.stage_complete("P7", {"output": str(output_video)})
 
 if __name__ == "__main__":
     main()

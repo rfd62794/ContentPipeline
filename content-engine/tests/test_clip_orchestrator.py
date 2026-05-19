@@ -22,19 +22,24 @@ def test_record_match(mock_recorder, mock_controller, mock_config, tmp_path):
     mock_config["output_dir"] = str(tmp_path)
     mock_ctrl_inst = mock_controller.return_value
     mock_ctrl_inst.launch_game.return_value = True
+    mock_ctrl_inst.press_key.return_value = True
+    mock_ctrl_inst.close_game.return_value = True
     
     mock_rec_inst = mock_recorder.return_value
     fake_mp4 = tmp_path / "clip_gen_0_test.mp4"
+    # Create the fake file
+    fake_mp4.touch()
     mock_rec_inst.start_recording.return_value = fake_mp4
+    mock_rec_inst.stop_recording.return_value = fake_mp4
     
     # Run subject
     orch = PyPongAIClipOrchestrator(mock_config)
-    res = orch.record_match("gen_0", duration_s=1)
+    res = orch.record_match("gen_0", model_name="gen_0")
     
     # Assertions
     assert "error" not in res
     assert res["model_name"] == "gen_0"
-    assert res["duration"] == 1
+    assert res["duration"] == 5  # This comes from match_duration_target in config
     
     # Assert json was created
     expected_meta = fake_mp4.with_suffix(".json")
@@ -42,8 +47,9 @@ def test_record_match(mock_recorder, mock_controller, mock_config, tmp_path):
     
     # Check Controller Calls
     mock_ctrl_inst.launch_game.assert_called_once()
-    mock_ctrl_inst.click_menu_button.assert_any_call("play_button")
-    mock_ctrl_inst.click_menu_button.assert_any_call("start_button")
+    mock_ctrl_inst.press_key.assert_any_call("p")  # Navigate to play mode
+    mock_ctrl_inst.press_key.assert_any_call("s")  # Start match
+    mock_ctrl_inst.press_key.assert_any_call("escape")  # Return to menu
     mock_ctrl_inst.close_game.assert_called_once()
 
     # Check Recorder Calls

@@ -22,17 +22,6 @@ LOCAL_GAMEPLAY_DIR.mkdir(parents=True, exist_ok=True)
 DL_DIR.mkdir(parents=True, exist_ok=True)
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Config flags ---
-_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
-try:
-    with open(_CONFIG_PATH, "r", encoding="utf-8") as _f:
-        _cfg = yaml.safe_load(_f)
-    CONFIG = _cfg.get("assembly", {})
-except Exception:
-    CONFIG = {}
-
-YOUTUBE_CLIP_ENABLED = CONFIG.get("youtube_clip_enabled", True)
-
 import core.wiki_sourcer as wiki
 from core.youtube_sourcer import source_for_segment as yt_source
 from core.db import get_connection
@@ -151,15 +140,15 @@ from core.db import get_connection
 from core.prompt_engineer import generate_visual_prompt
 from core.wiki_sourcer import find_game_slug, search_game_page, get_page_images, download_image
 
-def generate_ai_image(prompt: str, segment_id: int, game_title: Optional[str] = None, mechanic: Optional[str] = None, moment: Optional[str] = None) -> Dict[str, Any] | None:
+def generate_ai_image(prompt: str, segment_id: int, config: Dict[str, Any], game_title: Optional[str] = None, mechanic: Optional[str] = None, moment: Optional[str] = None) -> Dict[str, Any] | None:
     """
     Generate image(s) using OpenRouter text-to-image.
     Strictly for abstract concepts or last-resort fallback. No grounding.
     """
-    # Load config
+    # Load config from parameter
     model = "google/gemini-2.5-flash-image"
     aspect_ratio = "16:9"
-    variant_count = CONFIG.get("image_variant_count", 1)
+    variant_count = config.get("image_variant_count", 1)
     
     _models_path = Path(__file__).resolve().parent.parent / "models.yaml"
     try:
@@ -250,11 +239,14 @@ def source_wiki_screenshot(game_title: str, mechanic: str, segment_id: int) -> s
     return None
 
 
-def source_asset_for_segment(segment: dict) -> dict:
+def source_asset_for_segment(segment: dict, config: Dict[str, Any] = None) -> dict:
     """
     Route to the best available asset based on context.
     Priority: Local -> YouTube -> Wiki -> AI Fallback.
     """
+    if config is None:
+        config = {}
+    
     game_title = segment.get("game_title")
     mechanic = segment.get("mechanic")
     moment = segment.get("moment")
@@ -300,7 +292,7 @@ def source_asset_for_segment(segment: dict) -> dict:
         # d) AI Fallback (Game context, but last resort)
         print(f"  [ROUTING] Real assets failed. Falling back to AI...")
         prompt = f"{game_title} {mechanic}, {moment}, game screenshot style"
-        res = generate_ai_image(prompt, seg_id, game_title, mechanic, moment)
+        res = generate_ai_image(prompt, seg_id, config, game_title, mechanic, moment)
         if res:
             return {"path": res["paths"][0], "source": "ai_generated", "paths": res["paths"]}
 
@@ -308,7 +300,7 @@ def source_asset_for_segment(segment: dict) -> dict:
     else:
         print(f"  [ROUTING] Abstract segment. Starting with AI generation...")
         prompt = segment.get("ai_image_prompt") or build_infographic_prompt(segment.get("segment_text"))
-        res = generate_ai_image(prompt, seg_id)
+        res = generate_ai_image(prompt, seg_id, config)
         if res:
             return {"path": res["paths"][0], "source": "ai_generated", "paths": res["paths"]}
             
