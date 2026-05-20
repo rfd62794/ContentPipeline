@@ -257,6 +257,13 @@ def main():
         logger.info(f"Processing {short_config['name']}")
         
         segments = short_config["segments"]
+        
+        # Add stacking text accumulation
+        accumulated_lines = []
+        for segment in segments:
+            accumulated_lines.append(segment["segment_text"])
+            segment["segment_text"] = "\n".join(accumulated_lines)
+        
         output_path = output_dir / f"{short_config['name']}.mp4"
         
         # Assemble as short (no attribution for own footage)
