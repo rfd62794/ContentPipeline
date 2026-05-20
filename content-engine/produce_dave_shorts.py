@@ -13,7 +13,6 @@ Three Shorts to produce:
 import sys
 import logging
 from pathlib import Path
-from core.clip_sourcer import ClipSourcer
 from core.assembler import assemble_video
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -37,8 +36,7 @@ def main():
         "shorts_lower_third_height_pct": 0.25
     }
     
-    # YouTube source
-    youtube_url = "https://www.youtube.com/watch?v=LUTPCMkA7xQ"
+    # Attribution text
     attribution = "Gameplay via: CohhCarnage"
     
     # Output directory
@@ -48,9 +46,6 @@ def main():
     # Temp directory for processing (separate from output to avoid path duplication)
     temp_dir = Path("temp/dave_shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Clip sourcer
-    clip_sourcer = ClipSourcer(str(output_dir / "clips"), logger)
     
     # Define the three shorts with timestamps (these would need to be determined from the video)
     # For now, using placeholder timestamps - these would need to be adjusted based on actual content
@@ -75,22 +70,24 @@ def main():
         }
     ]
     
-    # Download clips and assemble shorts
+    # Use existing downloaded clips
+    existing_clips = {
+        "dave_short_1_stat": "output/dave_shorts/clips/LUTPCMkA7xQ_598_632.mp4",
+        "dave_short_2_diagram": "output/dave_shorts/clips/LUTPCMkA7xQ_898_932.mp4",
+        "dave_short_3_reveal": "output/dave_shorts/clips/LUTPCMkA7xQ_1198_1232.mp4"
+    }
+    
+    # Assemble shorts from existing clips
     for short in shorts:
         logger.info(f"Processing {short['name']}")
         
-        # Download clip
-        clip_path = clip_sourcer.download_clip(
-            youtube_url,
-            short["start"],
-            short["end"]
-        )
-        
-        if not clip_path:
-            logger.error(f"Failed to download clip for {short['name']}")
+        # Use existing clip
+        clip_path = existing_clips.get(short['name'])
+        if not clip_path or not Path(clip_path).exists():
+            logger.error(f"Clip not found for {short['name']}: {clip_path}")
             continue
         
-        logger.info(f"Downloaded clip to {clip_path}")
+        logger.info(f"Using existing clip: {clip_path}")
         
         # Create segment for assembler (use absolute path)
         segments = [{

@@ -19,16 +19,13 @@ def sanitize_drawtext(text: str) -> str:
     """Escape characters that break FFmpeg filter syntax on Windows."""
     if not text:
         return ""
-    # Smart apostrophe to avoid escaping headaches with single quotes
-    text = text.replace("'", "\u2019")
-    # Only escape characters that are special in FFmpeg filter syntax
-    # Colons are fine inside single quotes - they're only special as separators
-    # Commas are fine inside single quotes - they're only special as separators
-    # Brackets need escaping as they have special meaning in filters
+    # Escape backslashes first to prevent double-escaping
+    text = text.replace("\\", "\\\\")
+    # Escape special FFmpeg filter characters
+    text = text.replace(":", "\\:")
+    text = text.replace("'", "\\'")
     text = text.replace("[", "\\[")
     text = text.replace("]", "\\]")
-    # Escape backslashes to prevent Windows path issues
-    text = text.replace("\\", "\\\\")
     return text
     text = text.replace("\\", "/")
     return text
@@ -423,7 +420,7 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     # Build FFmpeg command with attribution text
     result_text = subprocess.run([
         get_ffmpeg_path(), "-y", "-i", str(input_video),
-        "-vf", f"drawtext=text='{safe_text}':fontcolor={text_color}:fontsize={font_size}:"
+        "-vf", f"drawtext=text={safe_text}:fontcolor={text_color}:fontsize={font_size}:"
                f"x=(w-text_w)/2:y={y_pos}:alpha={opacity}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
     ], capture_output=True, text=True)
