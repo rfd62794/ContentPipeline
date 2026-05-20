@@ -1,5 +1,17 @@
 {
-  "Everything is Crab.exe": "Everything Is Crab",
-  "Dave the Diver.exe": "Dave the Diver",
-  "VoidDrift.exe": "VoidDrift"
+  "Everything is Crab.exe": {
+    "folder": "Everything Is Crab",
+    "steam_id": "2627510",
+    "executable": null
+  },
+  "Dave the Diver.exe": {
+    "folder": "Dave the Diver",
+    "steam_id": "1868140",
+    "executable": null
+  },
+  "VoidDrift.exe": {
+    "folder": "VoidDrift",
+    "steam_id": null,
+    "executable": "C:/Github/VoidDrift/target/release/VoidDrift.exe"
+  }
 }

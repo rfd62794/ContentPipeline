@@ -144,6 +144,27 @@ class ProcessWatcher:
         """Stop the watch loop cleanly."""
         self._stop_flag.set()
     
+    def _get_folder(self, entry) -> str:
+        """
+        Extract folder name from mapping entry, handling both v1 and v2 schema.
+        
+        Args:
+            entry: Mapping entry (string for v1, dict for v2)
+            
+        Returns:
+            Folder name as string, or empty string if resolution fails
+        """
+        if isinstance(entry, str):
+            # v1 format: flat string
+            self.logger.warning("ProcessWatcher: v1 schema detected (flat string), consider migrating to v2 dict format")
+            return entry
+        elif isinstance(entry, dict):
+            # v2 format: dict with 'folder' key
+            return entry.get('folder', '')
+        else:
+            self.logger.warning(f"ProcessWatcher: Unknown schema format for entry: {type(entry)}")
+            return ""
+    
     def resolve_recording_path(self, raw_path: str, process_name: str, mapping_path: str = 'config/game_folders.json') -> str:
         """
         Resolve recording path to correct subfolder based on game mapping.
@@ -171,9 +192,15 @@ class ProcessWatcher:
                 mapping = json.load(f)
             
             # Look up process name in mapping
-            subfolder = mapping.get(process_name)
-            if not subfolder:
+            entry = mapping.get(process_name)
+            if not entry:
                 self.logger.info(f"ProcessWatcher: No folder mapping for {process_name}")
+                return raw_path
+            
+            # Extract folder name (handles both v1 and v2 schema)
+            subfolder = self._get_folder(entry)
+            if not subfolder:
+                self.logger.info(f"ProcessWatcher: No folder name found for {process_name}")
                 return raw_path
             
             # Extract filename from raw_path

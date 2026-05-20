@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "content-engine"))
 from core.obs_capture import OBSCapture
 from core.process_watcher import ProcessWatcher
 from core.focus_watcher import FocusWatcher
+from core.game_launcher import GameLauncher
 from core.logger import Logger
 
 
@@ -47,6 +48,12 @@ def main():
         default=False,
         help='Pause recording when game loses focus. Resume when game regains focus.'
     )
+    parser.add_argument(
+        '--launch',
+        action='store_true',
+        default=False,
+        help='Launch the game before watching for it. Requires steam_id or executable in config/game_folders.json.'
+    )
     
     args = parser.parse_args()
     
@@ -70,6 +77,14 @@ def main():
     focus_watcher = None
     if args.focus_pause:
         focus_watcher = FocusWatcher(logger=logger)
+    
+    # Launch game if --launch flag is set
+    if args.launch:
+        launcher = GameLauncher(logger=logger)
+        success = launcher.launch(args.game)
+        if not success:
+            logger.info("Launch failed or not configured — watching anyway")
+
     
     # Watch for process
     try:
