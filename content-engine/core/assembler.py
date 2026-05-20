@@ -301,81 +301,92 @@ def assemble_video(segments: List[Dict[str, Any]], audio_path: Path, output_path
 
 def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir: Path, config: Dict[str, Any], attribution: str = None):
     """
-    Assemble video in Shorts mode (vertical 1080x1920).
+    Assemble video in Shorts mode (vertical 1080x1920) with multi-segment support.
     
-    - Muted gameplay clips as background
-    - Attribution text overlay (top 20%) if provided
-    - Lower third text overlay with segment text
+    - Each segment: own clip window, own text, own duration
+    - Segments concatenated into single output MP4
+    - Text appears for exactly its segment duration
+    - Attribution remains for full video duration
     - Optional background music at 0.25 volume
     - No voice audio
     
     Args:
-        segments: List of segment dictionaries
+        segments: List of segment dictionaries with temp_file, segment_text, duration, source_url, source_timestamp_start, source_timestamp_end
         output_path: Output file path
         temp_dir: Temporary directory for processing
         config: Configuration dictionary
         attribution: Optional attribution string (e.g., "Gameplay via: CohhCarnage")
     """
-    concat_file = temp_dir / "concat.txt"
-    with open(concat_file, "w") as f:
-        for seg in segments:
-            f.write(f"file '{seg['temp_file']}'\n")
+    processed_clips = []
     
-    # Concatenate visuals
-    visuals_only = temp_dir / "visuals_no_audio.mp4"
-    result_vconcat = subprocess.run([
-        get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file),
-        "-c", "copy", str(visuals_only)
-    ], capture_output=True, text=True)
-    if result_vconcat.returncode != 0:
-        logger.error(f"FFmpeg Visual Concat failed: {result_vconcat.stderr[-500:]}")
-        raise subprocess.CalledProcessError(result_vconcat.returncode, "ffmpeg_visual_concat", output=result_vconcat.stdout, stderr=result_vconcat.stderr)
+    # Process each segment individually
+    for i, segment in enumerate(segments):
+        # Step 1: Get clip file
+        clip_path = _get_clip_for_segment(segment, temp_dir, i)
+        if not clip_path:
+            logger.error(f"Segment {i}: No clip available — skipping")
+            continue
+        
+        # Step 2: Scale to fit 1080x1920 with exact positioning
+        # Frame: 1080 x 1920
+        # Attribution zone: y=20 to y=80 (60px, centered at y=50)
+        # Clip: starts at y=50 (just below attribution), width=1080px, height=607px (16:9), ends at y=657
+        # Text zone: y=657 to y=1920 = 1263px, text centered at y≈1290
+        
+        target_width = 1080
+        target_height = 1920
+        clip_start_y = 50  # Just below attribution zone
+        scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
+        clip_end_y = clip_start_y + scaled_height  # 657
+        
+        # Calculate text zone positions
+        analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # ~1290
+        
+        scaled = temp_dir / f"scaled_{i}.mp4"
+        scale_cmd = [
+            get_ffmpeg_path(), "-y", "-i", str(clip_path),
+            "-vf", f"scale={target_width}:{scaled_height},pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(scaled)
+        ]
+        logger.info(f"FFmpeg Scale Command (segment {i}): {' '.join(scale_cmd)}")
+        result_scale = subprocess.run(scale_cmd, capture_output=True, text=True)
+        
+        if result_scale.returncode != 0:
+            logger.error(f"FFmpeg Scale failed (segment {i}): {result_scale.stderr[-500:]}")
+            continue
+        
+        # Step 3: Add lower third text for this segment
+        # Text persists for exactly segment["duration"]
+        segment_text = segment.get("segment_text", "")
+        duration = segment.get("duration", 5.0)  # Default 5 seconds if not specified
+        
+        text_clip = temp_dir / f"text_{i}.mp4"
+        _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center)
+        
+        processed_clips.append(text_clip)
     
-    # Scale to vertical resolution (1080x1920) with exact positioning
-    # Frame: 1080 x 1920
-    # Attribution zone: y=20 to y=80 (60px, centered at y=50)
-    # Clip: starts at y=50 (just below attribution), width=1080px, height=607px (16:9), ends at y=657
-    # Text zone: y=657 to y=1920 = 1263px, text centered at y≈1290
+    if not processed_clips:
+        logger.error("No segments processed successfully")
+        raise ValueError("No segments processed successfully")
     
-    target_width = 1080
-    target_height = 1920
-    clip_start_y = 50  # Just below attribution zone
-    scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
-    clip_end_y = clip_start_y + scaled_height  # 657
+    # Step 4: Concatenate all segments
+    combined = _concatenate_clips(processed_clips, temp_dir)
     
-    # Calculate text zone positions
-    attribution_zone_center = 50  # Centered in y=20 to y=80
-    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # ~1290
+    # Step 5: Add attribution over full duration
+    if attribution and config.get("shorts_attribution_enabled", True):
+        attribution_zone_center = 50  # Centered in y=20 to y=80
+        final = temp_dir / "final_with_attribution.mp4"
+        _add_attribution_text(combined, final, attribution, config, attribution_zone_center)
+    else:
+        final = combined
     
-    vertical_visuals = temp_dir / "vertical_visuals.mp4"
-    scale_cmd = [
-        get_ffmpeg_path(), "-y", "-i", str(visuals_only),
-        "-vf", f"scale={target_width}:{scaled_height},pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(vertical_visuals)
-    ]
-    logger.info(f"FFmpeg Scale Command: {' '.join(scale_cmd)}")
-    result_scale = subprocess.run(scale_cmd, capture_output=True, text=True)
-    if result_scale.returncode != 0:
-        logger.error(f"FFmpeg Scale failed: {result_scale.stderr[-500:]}")
-        raise subprocess.CalledProcessError(result_scale.returncode, "ffmpeg_scale", output=result_scale.stdout, stderr=result_scale.stderr)
-    
-    # Add attribution text overlay if provided (positioned above clip)
-    attribution_visuals = vertical_visuals
-    if attribution and config.get("shorts_attribution_enabled", False):
-        attribution_visuals = temp_dir / "attribution_overlay.mp4"
-        _add_attribution_text(vertical_visuals, attribution_visuals, attribution, config, attribution_zone_center)
-    
-    # Add lower third text overlay for each segment (positioned below clip)
-    text_overlay = temp_dir / "text_overlay.mp4"
-    _add_lower_third_text(attribution_visuals, text_overlay, segments, temp_dir, config, analysis_zone_center)
-    
-    # Add background music if configured
+    # Step 6: Add background music if configured
     music_path = config.get("shorts_music_path")
     if music_path and Path(music_path).exists():
         # Mix music at 0.25 volume
         music_input = Path(music_path)
         result_music = subprocess.run([
-            get_ffmpeg_path(), "-y", "-i", str(text_overlay), "-i", str(music_input),
+            get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
             "-filter_complex", "[1:a]volume=0.25[music];[0:a][music]amix=inputs=2:duration=first",
             "-c:v", "copy", "-c:a", "aac", "-shortest", str(output_path)
         ], capture_output=True, text=True)
@@ -383,14 +394,16 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             logger.error(f"FFmpeg Music Mix failed: {result_music.stderr[-500:]}")
             raise subprocess.CalledProcessError(result_music.returncode, "ffmpeg_music_mix", output=result_music.stdout, stderr=result_music.stderr)
     else:
-        # No music, just copy the text overlay video
-        shutil.copy(str(text_overlay), str(output_path))
+        # No music, just copy the final video
+        shutil.copy(str(final), str(output_path))
         if music_path:
             logger.warning(f"Music file not found: {music_path}, assembling without music")
+    
+    logger.info(f"Multi-segment assembly complete: {output_path}")
 
 
-def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[Dict[str, Any]], temp_dir: Path, config: Dict[str, Any], y_center: int):
-    """Add lower third text overlay to video (positioned below gameplay clip)."""
+def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: str, duration: float, temp_dir: Path, config: Dict[str, Any], y_center: int):
+    """Add lower third text overlay to video (positioned below gameplay clip) with timing."""
     # Get text styling from config
     font = config.get("shorts_text_font", "monospace")
     font_size = config.get("shorts_text_size", 48)
@@ -399,39 +412,32 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
     # Use calculated center position for analysis text zone
     y_pos = y_center
     
-    # Build drawtext filter for each segment
-    # For simplicity, we'll add a single text overlay for the first segment
-    if segments:
-        segment_text = segments[0].get("segment_text", "")
-        
-        # Write segment text to a temporary file (FFmpeg textfile approach)
-        textfile = output_video.parent / "segment_text.txt"
-        with open(textfile, 'w', encoding='utf-8') as f:
-            f.write(segment_text)
-        
-        # Convert to absolute path and escape special characters for FFmpeg
-        textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
-        
-        # Build FFmpeg command with lower third text (no drawbox - text in letterboxed space)
-        cmd = [
-            get_ffmpeg_path(), "-y", "-i", str(input_video),
-            "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
-                   f"x=(w-text_w)/2:y={y_pos}",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
-        ]
-        logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
-        result_text = subprocess.run(cmd, capture_output=True, text=True)
-        
-        # Clean up textfile
-        if textfile.exists():
-            textfile.unlink()
-        
-        if result_text.returncode != 0:
-            logger.error(f"FFmpeg Text Overlay failed: {result_text.stderr[-500:]}")
-            raise subprocess.CalledProcessError(result_text.returncode, "ffmpeg_text_overlay", output=result_text.stdout, stderr=result_text.stderr)
-    else:
-        # No segments, just copy input
-        shutil.copy(str(input_video), str(output_video))
+    # Write segment text to a temporary file (FFmpeg textfile approach)
+    textfile = output_video.parent / "segment_text.txt"
+    with open(textfile, 'w', encoding='utf-8') as f:
+        f.write(segment_text)
+    
+    # Convert to absolute path and escape special characters for FFmpeg
+    textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
+    
+    # Build FFmpeg command with lower third text and timing
+    # Use enable='between(t,0,duration)' to show text only for specified duration
+    cmd = [
+        get_ffmpeg_path(), "-y", "-i", str(input_video),
+        "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
+               f"x=(w-text_w)/2:y={y_pos}:enable='between(t,0,{duration})'",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
+    ]
+    logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
+    result_text = subprocess.run(cmd, capture_output=True, text=True)
+    
+    # Clean up textfile
+    if textfile.exists():
+        textfile.unlink()
+    
+    if result_text.returncode != 0:
+        logger.error(f"FFmpeg Text Overlay failed: {result_text.stderr[-500:]}")
+        raise subprocess.CalledProcessError(result_text.returncode, "ffmpeg_text_overlay", output=result_text.stdout, stderr=result_text.stderr)
 
 
 def _add_attribution_text(input_video: Path, output_video: Path, attribution: str, config: Dict[str, Any], y_center: int):
@@ -470,3 +476,185 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     if result_text.returncode != 0:
         logger.error(f"FFmpeg Attribution Overlay failed: {result_text.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_text.returncode, "ffmpeg_attribution_overlay", output=result_text.stdout, stderr=result_text.stderr)
+
+
+def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -> Optional[Path]:
+    """
+    Get clip file for a segment, using temp_file if available or downloading via ClipSourcer/FFmpeg.
+    
+    Args:
+        segment: Segment dictionary with temp_file, source_url, source_timestamp_start, source_timestamp_end
+        temp_dir: Temporary directory for processing
+        index: Segment index for naming
+        
+    Returns:
+        Path to clip file, or None if unavailable
+    """
+    # If temp_file exists on disk → use it directly
+    if "temp_file" in segment and segment["temp_file"]:
+        temp_file = Path(segment["temp_file"])
+        if temp_file.exists():
+            logger.info(f"Using existing clip for segment {index}: {temp_file}")
+            return temp_file
+        else:
+            logger.warning(f"temp_file specified but not found: {temp_file}")
+    
+    # Elif source_url and timestamps present → download or extract
+    if "source_url" in segment and segment["source_url"]:
+        if "source_timestamp_start" in segment and "source_timestamp_end" in segment:
+            # Check if source_url is a local file
+            source_path = Path(segment["source_url"])
+            if source_path.exists() and source_path.suffix in ['.mp4', '.mkv', '.mov', '.avi']:
+                # Local file: extract clip using FFmpeg
+                return _extract_clip_from_local(source_path, segment["source_timestamp_start"], 
+                                                   segment["source_timestamp_end"], temp_dir, index)
+            else:
+                # YouTube URL: download via ClipSourcer
+                try:
+                    from core.clip_sourcer import ClipSourcer
+                    
+                    clip_sourcer = ClipSourcer(logger)
+                    output_path = temp_dir / f"segment_{index}.mp4"
+                    
+                    # Download clip window
+                    result = clip_sourcer.download_clip(
+                        segment["source_url"],
+                        segment["source_timestamp_start"],
+                        segment["source_timestamp_end"],
+                        str(output_path.parent)
+                    )
+                    
+                    if result:
+                        logger.info(f"Downloaded clip for segment {index}: {result}")
+                        return Path(result)
+                    else:
+                        logger.error(f"Failed to download clip for segment {index}")
+                        return None
+                except Exception as e:
+                    logger.error(f"ClipSourcer failed for segment {index}: {e}")
+                    return None
+        else:
+            logger.error(f"source_url present but missing timestamps for segment {index}")
+            return None
+    
+    # No clip available
+    logger.error(f"No clip available for segment {index} (no temp_file, no source_url/timestamps)")
+    return None
+
+
+def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str, 
+                            temp_dir: Path, index: int) -> Optional[Path]:
+    """
+    Extract clip from local video file using FFmpeg.
+    
+    Args:
+        source_path: Path to source video file
+        start_time: Start timestamp in "MM:SS" or "HH:MM:SS" format
+        end_time: End timestamp in "MM:SS" or "HH:MM:SS" format
+        temp_dir: Temporary directory for processing
+        index: Segment index for naming
+        
+    Returns:
+        Path to extracted clip, or None if extraction fails
+    """
+    try:
+        # Parse timestamps
+        start_seconds = _parse_timestamp(start_time)
+        end_seconds = _parse_timestamp(end_time)
+        
+        if start_seconds is None or end_seconds is None:
+            logger.error(f"Invalid timestamp format: {start_time} - {end_time}")
+            return None
+        
+        # Calculate duration
+        duration = end_seconds - start_seconds
+        if duration <= 0:
+            logger.error(f"Invalid duration: {duration} seconds")
+            return None
+        
+        # Add buffer
+        buffer = 2
+        s = max(0, start_seconds - buffer)
+        duration = duration + (2 * buffer)
+        
+        output_path = temp_dir / f"segment_{index}.mp4"
+        
+        # Use FFmpeg to extract clip
+        cmd = [
+            get_ffmpeg_path(), "-y", "-ss", str(s), "-i", str(source_path),
+            "-t", str(duration), "-c", "copy", str(output_path)
+        ]
+        
+        logger.info(f"Extracting clip {index} from local file: {s}s for {duration}s")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            logger.error(f"FFmpeg extract failed: {result.stderr[-500:]}")
+            return None
+        
+        if output_path.exists():
+            logger.info(f"Extracted clip for segment {index}: {output_path}")
+            return output_path
+        else:
+            logger.error(f"Extracted clip not found: {output_path}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Local file extraction failed: {e}")
+        return None
+
+
+def _parse_timestamp(timestamp: str) -> Optional[int]:
+    """
+    Parse timestamp string to seconds.
+    
+    Args:
+        timestamp: Timestamp in "MM:SS" or "HH:MM:SS" format
+        
+    Returns:
+        Seconds as integer, or None if parsing fails
+    """
+    try:
+        parts = timestamp.split(":")
+        if len(parts) == 2:
+            minutes, seconds = map(int, parts)
+            return minutes * 60 + seconds
+        elif len(parts) == 3:
+            hours, minutes, seconds = map(int, parts)
+            return hours * 3600 + minutes * 60 + seconds
+        else:
+            return None
+    except (ValueError, AttributeError):
+        return None
+
+
+def _concatenate_clips(clip_paths: List[Path], temp_dir: Path) -> Path:
+    """
+    Concatenate multiple clips into single video using FFmpeg concat demuxer.
+    
+    Args:
+        clip_paths: List of clip file paths to concatenate
+        temp_dir: Temporary directory for processing
+        
+    Returns:
+        Path to concatenated output file
+    """
+    concat_file = temp_dir / "concat_segments.txt"
+    with open(concat_file, "w") as f:
+        for clip_path in clip_paths:
+            f.write(f"file '{clip_path}'\n")
+    
+    combined_output = temp_dir / "combined_segments.mp4"
+    
+    # Use -c copy to avoid re-encoding (all clips must have identical codec/resolution/framerate)
+    result_concat = subprocess.run([
+        get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file),
+        "-c", "copy", str(combined_output)
+    ], capture_output=True, text=True)
+    
+    if result_concat.returncode != 0:
+        logger.error(f"FFmpeg Concat Segments failed: {result_concat.stderr[-500:]}")
+        raise subprocess.CalledProcessError(result_concat.returncode, "ffmpeg_concat_segments", output=result_concat.stdout, stderr=result_concat.stderr)
+    
+    logger.info(f"Concatenated {len(clip_paths)} segments into {combined_output}")
+    return combined_output

@@ -1,13 +1,17 @@
 """
-Produce three Dave the Diver Shorts with attribution layer.
+Produce three Dave the Diver Shorts with multi-segment assembly and attribution layer.
 
 Source: https://www.youtube.com/watch?v=LUTPCMkA7xQ (CohhCarnage Dave the Diver Episode 1)
 Attribution: "Gameplay via: CohhCarnage"
 
+⚠️ NOTE: Timestamps below are ESTIMATES based on typical Dave the Diver Episode 1 pacing.
+Do NOT download clips from CohhCarnage until Director confirms timestamps.
+Using existing pre-downloaded clips for now.
+
 Three Shorts to produce:
-1. Stat (displacement wall)
-2. Diagram (loop chains)
-3. Reveal (loop colonization)
+1. The Stat (displacement wall)
+2. The Diagram (loop chains)
+3. The Reveal (loop colonization)
 """
 
 import sys
@@ -39,64 +43,152 @@ def main():
     # Attribution text
     attribution = "Gameplay via: CohhCarnage"
     
+    # CohhCarnage source URL (for future use when timestamps confirmed)
+    COHH_URL = "https://www.youtube.com/watch?v=LUTPCMkA7xQ"
+    
     # Output directory
     output_dir = Path("output/dave_shorts")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Temp directory for processing (separate from output to avoid path duplication)
+    # Temp directory for processing
     temp_dir = Path("temp/dave_shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
     
-    # Define the three shorts with timestamps (these would need to be determined from the video)
-    # For now, using placeholder timestamps - these would need to be adjusted based on actual content
-    shorts = [
+    # Define the three shorts with multi-segment structure
+    # ⚠️ TIMESTAMPS ARE ESTIMATES — do not download until Director confirms
+    
+    # Short 1 — The Stat
+    short_1_segments = [
         {
-            "name": "dave_short_1_stat",
-            "start": "10:00",
-            "end": "10:30",
-            "segment_text": "Dave the Diver: Displacement mechanics"
+            "source_url": COHH_URL,
+            "source_timestamp_start": "08:00",
+            "source_timestamp_end": "08:06",
+            "duration": 6,
+            "segment_text": "50% of players reached\nthe Sea People Village."
         },
         {
-            "name": "dave_short_2_diagram",
-            "start": "15:00",
-            "end": "15:30",
-            "segment_text": "Dave the Diver: Loop chains explained"
+            "source_url": COHH_URL,
+            "source_timestamp_start": "08:06",
+            "source_timestamp_end": "08:10",
+            "duration": 4,
+            "segment_text": "4% made it past it."
         },
         {
-            "name": "dave_short_3_reveal",
-            "start": "20:00",
-            "end": "20:30",
-            "segment_text": "Dave the Diver: Loop colonization reveal"
-        }
+            "source_url": COHH_URL,
+            "source_timestamp_start": "08:10",
+            "source_timestamp_end": "08:15",
+            "duration": 5,
+            "segment_text": "That's not a difficulty wall."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "08:15",
+            "source_timestamp_end": "08:21",
+            "duration": 6,
+            "segment_text": "That's a displacement wall."
+        },
     ]
     
-    # Use existing downloaded clips
+    # Short 2 — The Diagram
+    short_2_segments = [
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "05:00",
+            "source_timestamp_end": "05:05",
+            "duration": 5,
+            "segment_text": "Dave's loop:\nA → B → C → seaweed farm"
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "05:05",
+            "source_timestamp_end": "05:10",
+            "duration": 5,
+            "segment_text": "Each loop feeds forward.\nNever back."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "10:00",
+            "source_timestamp_end": "10:06",
+            "duration": 6,
+            "segment_text": "Stardew's loop:\nA ↔ B ↔ C ↔ D"
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "10:06",
+            "source_timestamp_end": "10:12",
+            "duration": 6,
+            "segment_text": "Everything feeds everything.\nNothing becomes optional."
+        },
+    ]
+    
+    # Short 3 — The Reveal
+    short_3_segments = [
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "15:00",
+            "source_timestamp_end": "15:06",
+            "duration": 6,
+            "segment_text": "Balatro is a literal\nplayable minigame in Dave."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "15:06",
+            "source_timestamp_end": "15:11",
+            "duration": 5,
+            "segment_text": "Not a mental model.\nAn actual card game."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "15:11",
+            "source_timestamp_end": "15:17",
+            "duration": 6,
+            "segment_text": "The host loop was\nalready exhausted."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "15:17",
+            "source_timestamp_end": "15:23",
+            "duration": 6,
+            "segment_text": "The guest loop\ndidn't need to fight."
+        },
+        {
+            "source_url": COHH_URL,
+            "source_timestamp_start": "15:23",
+            "source_timestamp_end": "15:28",
+            "duration": 5,
+            "segment_text": "That's loop colonization."
+        },
+    ]
+    
+    # For now, use existing pre-downloaded clips as temp_file
+    # This allows testing multi-segment assembly without downloading from CohhCarnage
+    # ⚠️ Remove temp_file entries when Director confirms timestamps for actual downloads
     existing_clips = {
-        "dave_short_1_stat": "output/dave_shorts/clips/LUTPCMkA7xQ_598_632.mp4",
-        "dave_short_2_diagram": "output/dave_shorts/clips/LUTPCMkA7xQ_898_932.mp4",
-        "dave_short_3_reveal": "output/dave_shorts/clips/LUTPCMkA7xQ_1198_1232.mp4"
+        "short_1": "output/dave_shorts/clips/LUTPCMkA7xQ_598_632.mp4",
+        "short_2": "output/dave_shorts/clips/LUTPCMkA7xQ_898_932.mp4",
+        "short_3": "output/dave_shorts/clips/LUTPCMkA7xQ_1198_1232.mp4"
     }
     
-    # Assemble shorts from existing clips
-    for short in shorts:
-        logger.info(f"Processing {short['name']}")
+    # Add temp_file to segments for testing (use same clip for all segments in each short)
+    for segment in short_1_segments:
+        segment["temp_file"] = existing_clips["short_1"]
+    for segment in short_2_segments:
+        segment["temp_file"] = existing_clips["short_2"]
+    for segment in short_3_segments:
+        segment["temp_file"] = existing_clips["short_3"]
+    
+    shorts_config = [
+        {"name": "dave_short_1_stat", "segments": short_1_segments},
+        {"name": "dave_short_2_diagram", "segments": short_2_segments},
+        {"name": "dave_short_3_reveal", "segments": short_3_segments}
+    ]
+    
+    # Assemble shorts with multi-segment structure
+    for short_config in shorts_config:
+        logger.info(f"Processing {short_config['name']}")
         
-        # Use existing clip
-        clip_path = existing_clips.get(short['name'])
-        if not clip_path or not Path(clip_path).exists():
-            logger.error(f"Clip not found for {short['name']}: {clip_path}")
-            continue
-        
-        logger.info(f"Using existing clip: {clip_path}")
-        
-        # Create segment for assembler (use absolute path)
-        segments = [{
-            "temp_file": str(Path(clip_path).resolve()),
-            "segment_text": short["segment_text"]
-        }]
-        
-        # Output path
-        output_path = output_dir / f"{short['name']}.mp4"
+        segments = short_config["segments"]
+        output_path = output_dir / f"{short_config['name']}.mp4"
         
         # Assemble as short with attribution (no voice audio in shorts mode)
         try:
@@ -109,7 +201,7 @@ def main():
                 shorts_mode=True,
                 attribution=attribution
             )
-            logger.info(f"Assembled {short['name']}.mp4")
+            logger.info(f"Assembled {short_config['name']}.mp4")
             
             # Verify file size
             if output_path.exists():
@@ -121,7 +213,7 @@ def main():
                 logger.error(f"Output file not created: {output_path}")
                 
         except Exception as e:
-            logger.error(f"Failed to assemble {short['name']}: {e}")
+            logger.error(f"Failed to assemble {short_config['name']}: {e}")
     
     logger.info("Dave the Diver Shorts production complete")
 
