@@ -406,7 +406,6 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
             "-vf", f"drawbox=y={lower_third_y}:h={lower_third_height}:color=black@0.7:t=fill,"
                    f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
                    f"x=(w-text_w)/2:y={lower_third_y + lower_third_height/2}",
-            "-t", str(duration),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
         ]
         logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
