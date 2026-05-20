@@ -104,16 +104,16 @@ class TestAssembler(unittest.TestCase):
             
             assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
             
-            # Verify that FFmpeg was called with vertical resolution
+            # Verify that FFmpeg was called with new layout scaling
             calls = mock_run.call_args_list
-            # Check that scale filter includes 1080x1920
+            # Check that scale filter includes 1080:607 with padding to 1920
             scale_call_found = False
             for call in calls:
                 cmd = call[0][0] if call[0] else []
-                if "scale=1080:1920" in " ".join(cmd):
+                if "scale=1080:607,pad=1080:1920:(ow-iw)/2:50" in " ".join(cmd):
                     scale_call_found = True
                     break
-            self.assertTrue(scale_call_found, "FFmpeg scale call should include 1080x1920")
+            self.assertTrue(scale_call_found, "FFmpeg scale call should use new layout with 1080:607 scaling")
     
     @patch("core.assembler.subprocess.run")
     @patch("core.assembler.shutil.copy")
@@ -306,17 +306,16 @@ class TestAssembler(unittest.TestCase):
             assemble_video(segments, audio_path, output_path, temp_dir, config, 
                          shorts_mode=True, attribution="Test attribution")
             
-            # Verify that the custom y_pct (0.1 = 10%) is used in calculation
-            # 1920 * 0.1 = 192 pixels from top
+            # Verify that attribution uses fixed y=50 position (new layout)
             calls = mock_run.call_args_list
             y_position_found = False
             for call in calls:
                 cmd = call[0] if call[0] else []
                 cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "y=192" in cmd_str:  # 1920 * 0.1 = 192
+                if "y=50" in cmd_str:  # Fixed position for attribution zone
                     y_position_found = True
                     break
-            self.assertTrue(y_position_found, "Should use custom y position from config")
+            self.assertTrue(y_position_found, "Should use fixed y=50 position for attribution")
 
 if __name__ == "__main__":
     unittest.main()
