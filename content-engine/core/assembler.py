@@ -401,14 +401,16 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
         textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
         
         # Build FFmpeg command with lower third text
-        result_text = subprocess.run([
+        cmd = [
             get_ffmpeg_path(), "-y", "-i", str(input_video),
             "-vf", f"drawbox=y={lower_third_y}:h={lower_third_height}:color=black@0.7:t=fill,"
                    f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
                    f"x=(w-text_w)/2:y={lower_third_y + lower_third_height/2}",
             "-t", str(duration),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
-        ], capture_output=True, text=True)
+        ]
+        logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
+        result_text = subprocess.run(cmd, capture_output=True, text=True)
         
         # Clean up textfile
         if textfile.exists():
@@ -443,12 +445,14 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
     
     # Build FFmpeg command with textfile parameter
-    result_text = subprocess.run([
+    cmd = [
         get_ffmpeg_path(), "-y", "-i", str(input_video),
         "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
                f"x=(w-text_w)/2:y={y_pos}:alpha={opacity}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
-    ], capture_output=True, text=True)
+    ]
+    logger.info(f"FFmpeg Attribution Command: {' '.join(cmd)}")
+    result_text = subprocess.run(cmd, capture_output=True, text=True)
     
     # Clean up textfile
     if textfile.exists():
