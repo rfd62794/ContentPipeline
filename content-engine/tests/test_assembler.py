@@ -211,7 +211,7 @@ class TestAssembler(unittest.TestCase):
     @patch("core.assembler.subprocess.run")
     @patch("core.assembler.shutil.copy")
     def test_assembler_attribution_renders(self, mock_copy, mock_run):
-        """shorts_mode with attribution passes attribution string to FFmpeg."""
+        """shorts_mode with attribution passes attribution string to FFmpeg via textfile."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         
         segments = [{
@@ -236,17 +236,16 @@ class TestAssembler(unittest.TestCase):
             assemble_video(segments, audio_path, output_path, temp_dir, config, 
                          shorts_mode=True, attribution="Gameplay via: CohhCarnage")
             
-            # Verify that drawtext was called with attribution text
-            # Note: sanitize_drawtext escapes ":" as "\\:", so check for "CohhCarnage" instead
+            # Verify that drawtext was called with textfile parameter (ADR-012)
             calls = mock_run.call_args_list
-            attribution_found = False
+            textfile_found = False
             for call in calls:
                 cmd = call[0] if call[0] else []
                 cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "CohhCarnage" in cmd_str:
-                    attribution_found = True
+                if "textfile=" in cmd_str and "attribution_text.txt" in cmd_str:
+                    textfile_found = True
                     break
-            self.assertTrue(attribution_found, "FFmpeg should include attribution text")
+            self.assertTrue(textfile_found, "FFmpeg should use textfile parameter for attribution")
     
     @patch("core.assembler.subprocess.run")
     @patch("core.assembler.shutil.copy")

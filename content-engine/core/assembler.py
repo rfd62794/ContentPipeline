@@ -169,11 +169,17 @@ def preprocess_segment(segment: Dict[str, Any], temp_dir: Path, config: Dict[str
                 # Actually, if it's a filter, it was likely correctly escaped by the extractor.
                 filt_text = drawtext_filter
             else:
-                # It's raw text, apply the production Title Slide template
-                safe_text = sanitize_drawtext(drawtext_filter)
+                # It's raw text, apply the production Title Slide template using textfile approach
+                textfile = temp_dir / f"seg_{idx}_interval_{i}_text.txt"
+                with open(textfile, 'w', encoding='utf-8') as f:
+                    f.write(drawtext_filter)
+                
+                # Convert to absolute path and escape special characters for FFmpeg
+                textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
+                
                 filt_text = (
                     f"drawbox=y=ih*0.7:h=ih*0.2:color=black@0.6:t=fill,"
-                    f"drawtext=text='{safe_text}':fontcolor=white:fontsize=64:"
+                    f"drawtext=textfile='{textfile_abs}':fontcolor=white:fontsize=64:"
                     f"x=(w-text_w)/2:y=ih*0.75+(ih*0.1-text_h)/2"
                 )
             
@@ -184,6 +190,11 @@ def preprocess_segment(segment: Dict[str, Any], temp_dir: Path, config: Dict[str
             ]
             
             result_text = subprocess.run(cmd_text, capture_output=True, text=True)
+            
+            # Clean up textfile if it was created
+            if 'textfile' in locals() and textfile.exists():
+                textfile.unlink()
+            
             if result_text.returncode != 0:
                 logger.error(f"FFmpeg Pass 2 (Text) failed for seg {idx}: {result_text.stderr[-500:]}")
                 raise subprocess.CalledProcessError(result_text.returncode, cmd_text, output=result_text.stdout, stderr=result_text.stderr)
