@@ -206,3 +206,135 @@ class TestProcessWatcher:
         
         # Should return raw_path unchanged
         assert result == raw_path
+    
+    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    def test_watch_pauses_on_focus_loss(self, mock_is_running):
+        """watch() calls obs.pause_record() when focus lost."""
+        # Simulate process running, then focus lost, then process ends
+        mock_is_running.side_effect = [True, True, True, False]
+        
+        obs = Mock()
+        obs.start_recording.return_value = None
+        obs.stop_recording.return_value = "/path/to/recording.mp4"
+        obs.pause_record.return_value = None
+        obs.resume_record.return_value = None
+        
+        focus_watcher = Mock()
+        focus_watcher.is_process_focused.side_effect = [True, False, False, False]
+        
+        logger = Mock()
+        watcher = ProcessWatcher(obs=obs, logger=logger)
+        
+        # Start watch in a thread with very short poll interval
+        def run_watch():
+            return watcher.watch("Everything is Crab.exe", poll_interval=0.1, focus_watcher=focus_watcher)
+        
+        thread = threading.Thread(target=run_watch)
+        thread.start()
+        
+        # Wait for watch to detect focus loss and pause
+        time.sleep(0.3)
+        
+        # Stop the watch
+        watcher.stop()
+        thread.join(timeout=2)
+        
+        # Should have called pause_record when focus lost
+        obs.pause_record.assert_called_once()
+    
+    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    def test_watch_resumes_on_focus_gain(self, mock_is_running):
+        """watch() calls obs.resume_record() when focus regained."""
+        # Simulate process running, focus lost, focus regained, then process ends
+        mock_is_running.side_effect = [True, True, True, True, False]
+        
+        obs = Mock()
+        obs.start_recording.return_value = None
+        obs.stop_recording.return_value = "/path/to/recording.mp4"
+        obs.pause_record.return_value = None
+        obs.resume_record.return_value = None
+        
+        focus_watcher = Mock()
+        focus_watcher.is_process_focused.side_effect = [True, False, True, True, False]
+        
+        logger = Mock()
+        watcher = ProcessWatcher(obs=obs, logger=logger)
+        
+        # Start watch in a thread with very short poll interval
+        def run_watch():
+            return watcher.watch("Everything is Crab.exe", poll_interval=0.1, focus_watcher=focus_watcher)
+        
+        thread = threading.Thread(target=run_watch)
+        thread.start()
+        
+        # Wait for watch to detect focus changes
+        time.sleep(0.4)
+        
+        # Stop the watch
+        watcher.stop()
+        thread.join(timeout=2)
+        
+        # Should have called both pause and resume
+        obs.pause_record.assert_called_once()
+        obs.resume_record.assert_called_once()
+    
+    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    def test_watch_no_focus_watcher_unchanged(self, mock_is_running):
+        """watch() with focus_watcher=None behaves identically to pre-S4."""
+        # Simulate process running then stopping
+        mock_is_running.side_effect = [False, True, False]
+        
+        obs = Mock()
+        obs.start_recording.return_value = None
+        obs.stop_recording.return_value = "/path/to/recording.mp4"
+        
+        logger = Mock()
+        watcher = ProcessWatcher(obs=obs, logger=logger)
+        
+        # Start watch in a thread with very short poll interval
+        def run_watch():
+            return watcher.watch("Everything is Crab.exe", poll_interval=0.1, focus_watcher=None)
+        
+        thread = threading.Thread(target=run_watch)
+        thread.start()
+        
+        # Wait for watch to complete
+        thread.join(timeout=2)
+        
+        # Should not call pause or resume
+        obs.pause_record.assert_not_called()
+        obs.resume_record.assert_not_called()
+        obs.stop_recording.assert_called_once()
+    
+    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    def test_watch_resume_before_stop_if_paused(self, mock_is_running):
+        """watch() calls resume then stop when game closes while paused."""
+        # Simulate process running, focus lost, then process ends while paused
+        mock_is_running.side_effect = [True, True, True, False]
+        
+        obs = Mock()
+        obs.start_recording.return_value = None
+        obs.stop_recording.return_value = "/path/to/recording.mp4"
+        obs.pause_record.return_value = None
+        obs.resume_record.return_value = None
+        
+        focus_watcher = Mock()
+        focus_watcher.is_process_focused.side_effect = [True, False, False, False]
+        
+        logger = Mock()
+        watcher = ProcessWatcher(obs=obs, logger=logger)
+        
+        # Start watch in a thread with very short poll interval
+        def run_watch():
+            return watcher.watch("Everything is Crab.exe", poll_interval=0.1, focus_watcher=focus_watcher)
+        
+        thread = threading.Thread(target=run_watch)
+        thread.start()
+        
+        # Wait for watch to complete
+        thread.join(timeout=2)
+        
+        # Should have called pause, resume, and stop
+        obs.pause_record.assert_called_once()
+        obs.resume_record.assert_called_once()
+        obs.stop_recording.assert_called_once()

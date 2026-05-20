@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "content-engine"))
 
 from core.obs_capture import OBSCapture
 from core.process_watcher import ProcessWatcher
+from core.focus_watcher import FocusWatcher
 from core.logger import Logger
 
 
@@ -40,6 +41,12 @@ def main():
         default=5,
         help='Poll interval in seconds (default: 5)'
     )
+    parser.add_argument(
+        '--focus-pause',
+        action='store_true',
+        default=False,
+        help='Pause recording when game loses focus. Resume when game regains focus.'
+    )
     
     args = parser.parse_args()
     
@@ -59,12 +66,18 @@ def main():
     # Create process watcher
     watcher = ProcessWatcher(obs=obs, logger=logger)
     
+    # Create focus watcher if --focus-pause flag is set
+    focus_watcher = None
+    if args.focus_pause:
+        focus_watcher = FocusWatcher(logger=logger)
+    
     # Watch for process
     try:
         filepath = watcher.watch(
             process_name=args.game,
             scene=args.scene,
-            poll_interval=args.poll
+            poll_interval=args.poll,
+            focus_watcher=focus_watcher
         )
         
         if filepath:

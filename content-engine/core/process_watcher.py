@@ -54,7 +54,7 @@ class ProcessWatcher:
             # Never crash on subprocess errors
             return False
     
-    def watch(self, process_name: str, scene: Optional[str] = None, poll_interval: int = 5) -> str:
+    def watch(self, process_name: str, scene: Optional[str] = None, poll_interval: int = 5, focus_watcher = None) -> str:
         """
         Watch for process and trigger OBS recording.
         
@@ -67,12 +67,14 @@ class ProcessWatcher:
             process_name: Name of the process to watch for
             scene: Optional OBS scene to switch to before recording
             poll_interval: Seconds between process checks (default: 5)
+            focus_watcher: Optional FocusWatcher for pause/resume on focus loss
             
         Returns:
             File path of recorded video, or empty string if stopped manually
         """
         self._stop_flag.clear()
         state = "WAITING"
+        paused = False
         
         self.logger.info(f"ProcessWatcher: Waiting for {process_name}...")
         
@@ -98,6 +100,11 @@ class ProcessWatcher:
                     if not self.is_running(process_name):
                         self.logger.info(f"ProcessWatcher: Process {process_name} no longer running")
                         
+                        # Resume before stopping if paused
+                        if paused:
+                            self.obs.resume_record()
+                            self.logger.info(f"ProcessWatcher: Recording resumed before stop")
+                        
                         # Stop recording
                         filepath = self.obs.stop_recording()
                         self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
@@ -107,6 +114,20 @@ class ProcessWatcher:
                         
                         state = "DONE"
                         return filepath
+                    
+                    # Focus detection if focus_watcher provided
+                    if focus_watcher:
+                        focused = focus_watcher.is_process_focused(process_name)
+                        
+                        if focused and paused:
+                            self.obs.resume_record()
+                            self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
+                            paused = False
+                        
+                        elif not focused and not paused:
+                            self.obs.pause_record()
+                            self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
+                            paused = True
                 
                 # Wait before next poll
                 time.sleep(poll_interval)
