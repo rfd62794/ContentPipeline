@@ -21,9 +21,9 @@ def sanitize_drawtext(text: str) -> str:
         return ""
     # Escape backslashes first to prevent double-escaping
     text = text.replace("\\", "\\\\")
+    # Escape single quotes (since we use single quotes around the text)
+    text = text.replace("'", "'\\''")
     # Escape special FFmpeg filter characters
-    text = text.replace(":", "\\:")
-    text = text.replace("'", "\\'")
     text = text.replace("[", "\\[")
     text = text.replace("]", "\\]")
     return text
@@ -381,18 +381,27 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
         word_count = len(segment_text.split())
         duration = word_count / 2.5
         
-        # Escape text for FFmpeg
-        safe_text = sanitize_drawtext(segment_text)
+        # Write segment text to a temporary file (FFmpeg textfile approach)
+        textfile = output_video.parent / "segment_text.txt"
+        with open(textfile, 'w', encoding='utf-8') as f:
+            f.write(segment_text)
+        
+        # Convert to absolute path and escape special characters for FFmpeg
+        textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
         
         # Build FFmpeg command with lower third text
         result_text = subprocess.run([
             get_ffmpeg_path(), "-y", "-i", str(input_video),
             "-vf", f"drawbox=y={lower_third_y}:h={lower_third_height}:color=black@0.7:t=fill,"
-                   f"drawtext=text='{safe_text}':fontcolor={text_color}:fontsize={font_size}:"
+                   f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
                    f"x=(w-text_w)/2:y={lower_third_y + lower_third_height/2}",
             "-t", str(duration),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
         ], capture_output=True, text=True)
+        
+        # Clean up textfile
+        if textfile.exists():
+            textfile.unlink()
         
         if result_text.returncode != 0:
             logger.error(f"FFmpeg Text Overlay failed: {result_text.stderr[-500:]}")
@@ -414,16 +423,25 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     # Calculate attribution position (top 5% of frame)
     y_pos = int(1920 * y_pct)
     
-    # Escape text for FFmpeg
-    safe_text = sanitize_drawtext(attribution)
+    # Write attribution text to a temporary file (FFmpeg textfile approach)
+    textfile = output_video.parent / "attribution_text.txt"
+    with open(textfile, 'w', encoding='utf-8') as f:
+        f.write(attribution)
     
-    # Build FFmpeg command with attribution text
+    # Convert to absolute path and escape special characters for FFmpeg
+    textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
+    
+    # Build FFmpeg command with textfile parameter
     result_text = subprocess.run([
         get_ffmpeg_path(), "-y", "-i", str(input_video),
-        "-vf", f"drawtext=text={safe_text}:fontcolor={text_color}:fontsize={font_size}:"
+        "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
                f"x=(w-text_w)/2:y={y_pos}:alpha={opacity}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
     ], capture_output=True, text=True)
+    
+    # Clean up textfile
+    if textfile.exists():
+        textfile.unlink()
     
     if result_text.returncode != 0:
         logger.error(f"FFmpeg Attribution Overlay failed: {result_text.stderr[-500:]}")
