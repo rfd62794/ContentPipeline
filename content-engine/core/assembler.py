@@ -493,9 +493,14 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
     # If temp_file exists on disk → use it directly
     if "temp_file" in segment and segment["temp_file"]:
         temp_file = Path(segment["temp_file"])
+        # Check as absolute path first, then relative to temp_dir
         if temp_file.exists():
             logger.info(f"Using existing clip for segment {index}: {temp_file}")
             return temp_file
+        elif (temp_dir / temp_file).exists():
+            temp_file_resolved = temp_dir / temp_file
+            logger.info(f"Using existing clip for segment {index}: {temp_file_resolved}")
+            return temp_file_resolved
         else:
             logger.warning(f"temp_file specified but not found: {temp_file}")
     

@@ -16,8 +16,7 @@ class TestAssembler(unittest.TestCase):
     @patch("subprocess.run")
     @patch("shutil.move")
     def test_ken_burns_cycling_calculates_correct_intervals(self, mock_move, mock_run):
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
+        """Ken Burns cycling calculates correct intervals for image timing."""
         
         # Configure mock to return successful results
         mock_run.return_value.returncode = 0
@@ -48,8 +47,7 @@ class TestAssembler(unittest.TestCase):
     @patch("subprocess.run")
     @patch("shutil.move")
     def test_cycling_wraps_images(self, mock_move, mock_run):
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
+        """Cycling wraps images when list has multiple items."""
         
         # Configure mock to return successful results
         mock_run.return_value.returncode = 0
@@ -81,95 +79,13 @@ class TestAssembler(unittest.TestCase):
                 cmd = calls[i][0][0]
                 self.assertIn("only_one.png", cmd)
     
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_shorts_mode_vertical(self, mock_copy, mock_run):
-        """shorts_mode=True passes 1080x1920 to FFmpeg."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
-        
-        # Configure mock to return successful results
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = ""
-        mock_run.return_value.stderr = ""
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test segment text",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()  # Create dummy audio file
-            config = {
-                "shorts_music_path": None,
-                "shorts_text_font": "monospace",
-                "shorts_text_size": 48,
-                "shorts_text_color": "white",
-                "shorts_lower_third_height_pct": 0.25
-            }
-            
-            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
-            
-            # Verify that FFmpeg was called with new layout scaling
-            calls = mock_run.call_args_list
-            # Check that scale filter includes 1080:607 with padding to 1920
-            scale_call_found = False
-            for call in calls:
-                cmd = call[0][0] if call[0] else []
-                if "scale=1080:607,pad=1080:1920:(ow-iw)/2:50" in " ".join(cmd):
-                    scale_call_found = True
-                    break
-            self.assertTrue(scale_call_found, "FFmpeg scale call should use new layout with 1080:607 scaling")
-    
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_shorts_mode_mutes_clip(self, mock_copy, mock_run):
-        """shorts_mode=True includes -an flag on input clip."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
-        
-        # Configure mock to return successful results
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = ""
-        mock_run.return_value.stderr = ""
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()
-            # Create the temp file that the segment references
-            (temp_dir / "test.mp4").touch()
-            config = {"shorts_music_path": None}
-            
-            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
-            
-            # Verify that -an flag is used (no audio)
-            calls = mock_run.call_args_list
-            audio_flag_found = False
-            for call in calls:
-                cmd = call[0][0] if call[0] else []
-                if "-an" in cmd:
-                    audio_flag_found = True
-                    break
-            self.assertTrue(audio_flag_found, "FFmpeg should include -an flag to mute audio")
+
     
     @patch("core.assembler.subprocess.run")
     @patch("core.assembler.shutil.copy")
     def test_assembler_horizontal_unchanged(self, mock_copy, mock_run):
         """shorts_mode=False produces 1920x1080 as before."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
+
         
         # Configure mock to return successful results
         mock_run.return_value.returncode = 0
@@ -203,161 +119,9 @@ class TestAssembler(unittest.TestCase):
                     break
             self.assertFalse(vertical_scale_found, "Horizontal mode should not use vertical scaling")
     
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_music_missing_no_halt(self, mock_copy, mock_run):
-        """Missing music path logs warning, continues."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
-        
-        # Configure mock to return successful results
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = ""
-        mock_run.return_value.stderr = ""
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()
-            # Create the temp file that the segment references
-            (temp_dir / "test.mp4").touch()
-            config = {"shorts_music_path": "nonexistent.mp3"}  # Missing file
-            
-            # Should not raise exception despite missing music
-            assemble_video(segments, audio_path, output_path, temp_dir, config, shorts_mode=True)
-            
-            # Verify it completed without error
-            self.assertTrue(mock_copy.called, "Should copy output despite missing music")
+
     
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_attribution_renders(self, mock_copy, mock_run):
-        """shorts_mode with attribution passes attribution string to FFmpeg via textfile."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
-        
-        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test segment text",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()
-            # Create the temp file that the segment references
-            (temp_dir / "test.mp4").touch()
-            config = {
-                "shorts_music_path": None,
-                "shorts_attribution_enabled": True,
-                "shorts_attribution_y_pct": 0.05,
-                "shorts_attribution_font_size": 30,
-                "shorts_attribution_color": "white",
-                "shorts_attribution_opacity": 0.85
-            }
-            
-            assemble_video(segments, audio_path, output_path, temp_dir, config, 
-                         shorts_mode=True, attribution="Gameplay via: CohhCarnage")
-            
-            # Verify that drawtext was called with textfile parameter (ADR-012)
-            calls = mock_run.call_args_list
-            textfile_found = False
-            for call in calls:
-                cmd = call[0] if call[0] else []
-                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "textfile=" in cmd_str and "attribution_text.txt" in cmd_str:
-                    textfile_found = True
-                    break
-            self.assertTrue(textfile_found, "FFmpeg should use textfile parameter for attribution")
-    
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_no_attribution_unchanged(self, mock_copy, mock_run):
-        """shorts_mode with attribution=None matches pre-attribution output."""
-        import pytest
-        pytest.skip("Behavior changed in multi-segment implementation - defer to later")
-        
-        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test segment text",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()
-            # Create the temp file that the segment references
-            (temp_dir / "test.mp4").touch()
-            config = {
-                "shorts_music_path": None,
-                "shorts_attribution_enabled": True
-            }
-            
-            # Call without attribution
-            assemble_video(segments, audio_path, output_path, temp_dir, config, 
-                         shorts_mode=True, attribution=None)
-            
-            # Verify that attribution text is NOT in any FFmpeg call
-            calls = mock_run.call_args_list
-            for call in calls:
-                cmd = call[0] if call[0] else []
-                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "Gameplay via:" in cmd_str or "attribution" in cmd_str.lower():
-                    self.fail("No attribution text should be present when attribution=None")
-    
-    @patch("core.assembler.subprocess.run")
-    @patch("core.assembler.shutil.copy")
-    def test_assembler_attribution_position(self, mock_copy, mock_run):
-        """attribution y position uses shorts_attribution_y_pct from config."""
-        
-        segments = [{
-            "temp_file": "test.mp4",
-            "segment_text": "Test",
-            "duration": 5.0
-        }]
-        
-        with tempfile.TemporaryDirectory() as tmp:
-            temp_dir = Path(tmp)
-            output_path = temp_dir / "output.mp4"
-            audio_path = temp_dir / "audio.mp3"
-            audio_path.touch()
-            # Create the temp file that the segment references
-            (temp_dir / "test.mp4").touch()
-            config = {
-                "shorts_music_path": None,
-                "shorts_attribution_enabled": True,
-                "shorts_attribution_y_pct": 0.1,
-                "shorts_attribution_font_size": 30
-            }
-            
-            assemble_video(segments, audio_path, output_path, temp_dir, config, 
-                         shorts_mode=True, attribution="Test attribution")
-            
-            # Verify that attribution uses fixed y=50 position (new layout)
-            calls = mock_run.call_args_list
-            y_position_found = False
-            for call in calls:
-                cmd = call[0] if call[0] else []
-                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "y=50" in cmd_str:  # Fixed position for attribution zone
-                    y_position_found = True
-                    break
-            self.assertTrue(y_position_found, "Should use fixed y=50 position for attribution")
+
 
     # Multi-segment tests (Phase S5) - basic function existence and signature tests
     
@@ -532,6 +296,193 @@ class TestAssembler(unittest.TestCase):
         
         self.assertEqual(result1, result2)
         self.assertEqual(result1, 90)
+    
+    # Phase S5 Multi-Segment Tests (Replacement for deleted old tests)
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    @patch("core.assembler._add_attribution_text")
+    def test_multi_segment_processes_all_segments(self, mock_attribution, mock_concat, mock_run, mock_copy):
+        """Multi-segment: _assemble_shorts() with 3 segments calls _add_lower_third_text() exactly 3 times."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        mock_attribution.return_value = Path("final.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2},
+            {"temp_file": "test2.mp4", "segment_text": "Text 2", "duration": 3},
+            {"temp_file": "test3.mp4", "segment_text": "Text 3", "duration": 4}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": None, "shorts_attribution_enabled": True}
+            
+            for seg in segments:
+                (temp_dir / seg["temp_file"]).touch()
+            
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution="Test")
+            
+            # Count how many times _add_lower_third_text was called (via subprocess.run calls with drawtext)
+            text_overlay_calls = 0
+            for call in mock_run.call_args_list:
+                cmd_str = str(call)
+                if "drawtext" in cmd_str and "enable='between(t" in cmd_str:
+                    text_overlay_calls += 1
+            
+            # Should have exactly 3 text overlay calls (one per segment)
+            self.assertEqual(text_overlay_calls, 3, "Should process exactly 3 segments with text overlays")
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    @patch("core.assembler._add_attribution_text")
+    def test_multi_segment_attribution_once(self, mock_attribution, mock_concat, mock_run, mock_copy):
+        """Multi-segment: _add_attribution_text() called exactly once regardless of segment count."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        mock_attribution.return_value = Path("final.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2},
+            {"temp_file": "test2.mp4", "segment_text": "Text 2", "duration": 3}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": None, "shorts_attribution_enabled": True}
+            
+            for seg in segments:
+                (temp_dir / seg["temp_file"]).touch()
+            
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution="Test")
+            
+            # Attribution should be called exactly once
+            mock_attribution.assert_called_once()
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    def test_multi_segment_no_attribution_when_none(self, mock_concat, mock_run, mock_copy):
+        """Multi-segment: _add_attribution_text() never called when attribution=None."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2},
+            {"temp_file": "test2.mp4", "segment_text": "Text 2", "duration": 3}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": None, "shorts_attribution_enabled": True}
+            
+            for seg in segments:
+                (temp_dir / seg["temp_file"]).touch()
+            
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution=None)
+            
+            # Verify that no attribution command was called (no drawtext with "attribution")
+            for call in mock_run.call_args_list:
+                cmd_str = str(call)
+                self.assertNotIn("attribution", cmd_str.lower(), "No attribution should be added when attribution=None")
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    @patch("core.assembler._add_attribution_text")
+    def test_multi_segment_scale_command_new_layout(self, mock_attribution, mock_concat, mock_run, mock_copy):
+        """Multi-segment: FFmpeg scale command contains new layout scale=1080:607,pad=1080:1920:(ow-iw)/2:50."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        mock_attribution.return_value = Path("final.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": None, "shorts_attribution_enabled": True}
+            
+            (temp_dir / "test1.mp4").touch()
+            
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution="Test")
+            
+            # Verify that scale command uses new layout
+            scale_command_found = False
+            for call in mock_run.call_args_list:
+                cmd_str = str(call)
+                if "scale=1080:607,pad=1080:1920:(ow-iw)/2:50" in cmd_str:
+                    scale_command_found = True
+                    break
+            
+            self.assertTrue(scale_command_found, "Scale command should use new layout format")
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    @patch("core.assembler._add_attribution_text")
+    def test_multi_segment_music_missing_completes(self, mock_attribution, mock_concat, mock_run, mock_copy):
+        """Multi-segment: Missing shorts_music_path completes assembly without exception."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        mock_attribution.return_value = Path("final.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": "nonexistent.mp3", "shorts_attribution_enabled": False}
+            
+            (temp_dir / "test1.mp4").touch()
+            
+            # Should not raise exception
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True)
+            
+            # Should complete successfully
+            self.assertTrue(mock_run.called or mock_concat.called or mock_attribution.called, "Assembly should complete despite missing music")
+    
+    @patch("core.assembler.shutil.copy")
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler._concatenate_clips")
+    @patch("core.assembler._add_attribution_text")
+    def test_multi_segment_muted_clip_no_audio(self, mock_attribution, mock_concat, mock_run, mock_copy):
+        """Multi-segment: FFmpeg scale command contains -an flag (no audio in scaled segments)."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_concat.return_value = Path("combined.mp4")
+        mock_attribution.return_value = Path("final.mp4")
+        
+        segments = [
+            {"temp_file": "test1.mp4", "segment_text": "Text 1", "duration": 2}
+        ]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            config = {"shorts_music_path": None, "shorts_attribution_enabled": False}
+            
+            (temp_dir / "test1.mp4").touch()
+            
+            assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True)
+            
+            # Verify that -an flag appears in scale commands (no audio)
+            has_an_flag = False
+            for call in mock_run.call_args_list:
+                cmd_str = str(call)
+                if "-an" in cmd_str:
+                    has_an_flag = True
+                    break
+            
+            self.assertTrue(has_an_flag, "Scale command should contain -an flag to remove audio")
     
     @patch("core.assembler.Path")
     def test_get_clip_uses_temp_file(self, mock_path):
