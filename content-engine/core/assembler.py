@@ -383,12 +383,13 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     # Step 6: Add background music if configured
     music_path = config.get("shorts_music_path")
     if music_path and Path(music_path).exists():
-        # Mix music at 0.25 volume
+        # Add music as audio track (video has no audio in shorts mode)
+        # Use -shortest to match video duration, music at 0.25 volume
         music_input = Path(music_path)
         result_music = subprocess.run([
             get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
-            "-filter_complex", "[1:a]volume=0.25[music];[0:a][music]amix=inputs=2:duration=first",
-            "-c:v", "copy", "-c:a", "aac", "-shortest", str(output_path)
+            "-filter_complex", "[1:a]volume=0.25[audio]",
+            "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "[audio]", "-shortest", str(output_path)
         ], capture_output=True, text=True)
         if result_music.returncode != 0:
             logger.error(f"FFmpeg Music Mix failed: {result_music.stderr[-500:]}")
