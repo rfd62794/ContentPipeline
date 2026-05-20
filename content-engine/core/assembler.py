@@ -334,24 +334,23 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     # Scale to vertical resolution (1080x1920) with exact positioning
     # Frame: 1080 x 1920
     # Attribution zone: y=20 to y=80 (60px, centered at y=50)
-    # Gap: 20px
-    # Clip: starts at y=100, width=1080px, height=607px, ends at y=707
-    # Remaining space: y=707 to y=1920 = 1213px, analysis text centered at y=1313
+    # Clip: starts at y=50 (just below attribution), width=1080px, height=607px (16:9), ends at y=657
+    # Text zone: y=657 to y=1920 = 1263px, text centered at y≈1290
     
     target_width = 1080
     target_height = 1920
-    clip_start_y = 100  # Fixed position below attribution
-    scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio)
-    clip_end_y = clip_start_y + scaled_height  # 707
+    clip_start_y = 50  # Just below attribution zone
+    scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
+    clip_end_y = clip_start_y + scaled_height  # 657
     
     # Calculate text zone positions
     attribution_zone_center = 50  # Centered in y=20 to y=80
-    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # 1313
+    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # ~1290
     
     vertical_visuals = temp_dir / "vertical_visuals.mp4"
     scale_cmd = [
         get_ffmpeg_path(), "-y", "-i", str(visuals_only),
-        "-vf", f"scale={target_width}:{scaled_height}:force_original_aspect_ratio=decrease,pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
+        "-vf", f"scale={target_width}:{scaled_height},pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(vertical_visuals)
     ]
     logger.info(f"FFmpeg Scale Command: {' '.join(scale_cmd)}")
