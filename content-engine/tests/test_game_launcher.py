@@ -134,11 +134,42 @@ class TestGameLauncher:
             Path(config_path).unlink()
     
     @patch('core.game_launcher.subprocess.Popen')
-    @patch('core.game_launcher.Path')
-    def test_launch_executable(self, mock_path, mock_popen):
+    @patch('core.game_launcher.Path.exists')
+    def test_launch_executable(self, mock_exists, mock_popen):
         """launch() calls _launch_executable() when steam_id null and executable present."""
-        import pytest
-        pytest.skip("Path mocking complexity - defer to later")
+        # Create temporary config file with v2 schema
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            config_data = {
+                "VoidDrift.exe": {
+                    "folder": "VoidDrift",
+                    "steam_id": None,
+                    "executable": "C:/Github/VoidDrift/target/release/VoidDrift.exe"
+                }
+            }
+            json.dump(config_data, f)
+            config_path = f.name
+        
+        try:
+            # Mock Path.exists() to return True for both config file and executable
+            mock_exists.return_value = True
+            
+            mock_popen.return_value = MagicMock()
+            
+            logger = Mock()
+            launcher = GameLauncher(logger, config_path)
+            
+            result = launcher.launch("VoidDrift.exe")
+            
+            # Should return True on successful executable launch
+            assert result is True
+            mock_popen.assert_called_once()
+            # Verify executable path
+            call_args = mock_popen.call_args[0][0]
+            assert call_args == ["C:/Github/VoidDrift/target/release/VoidDrift.exe"]
+            logger.info.assert_called()
+            
+        finally:
+            Path(config_path).unlink()
     
     def test_resolver_v1_backward_compat(self):
         """resolve_recording_path() handles flat string v1 format with warning."""
