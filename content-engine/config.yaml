@@ -15,7 +15,7 @@ assembly:
   youtube_clip_buffer_s: 2
   youtube_clip_enabled: true
   shorts_mode: false
-  shorts_music_path: assets/music/background.mp3
+  shorts_music_path: assets/music/Pixelated_Passion.mp3
   shorts_text_font: monospace
   shorts_text_size: 48
   shorts_text_color: white

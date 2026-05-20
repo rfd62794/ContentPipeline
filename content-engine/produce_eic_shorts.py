@@ -23,7 +23,7 @@ def main():
     
     # Configuration (matching config.yaml values)
     config = {
-        "shorts_music_path": "assets/music/background.mp3",
+        "shorts_music_path": "assets/music/Pixelated_Passion.mp3",
         "shorts_attribution_enabled": False,  # No attribution for own footage
         "shorts_attribution_y_pct": 0.05,
         "shorts_attribution_font_size": 30,
@@ -206,11 +206,11 @@ def main():
     
     shorts_config = [
         {"name": "eic_short_1_evolution", "segments": short_1_segments},
-        {"name": "eic_short_2_predator", "segments": short_2_segments},
-        {"name": "eic_short_3_decisions", "segments": short_3_segments}
+        # {"name": "eic_short_2_predator", "segments": short_2_segments},  # Disabled - produce one at a time
+        # {"name": "eic_short_3_decisions", "segments": short_3_segments}  # Disabled - produce one at a time
     ]
     
-    # Assemble shorts with multi-segment structure
+    # Assemble shorts with multi-segment structure (one at a time for visual confirmation)
     for short_config in shorts_config:
         logger.info(f"Processing {short_config['name']}")
         
@@ -230,12 +230,29 @@ def main():
             )
             logger.info(f"Assembled {short_config['name']}.mp4")
             
-            # Verify file size
+            # Verify file size and get duration
             if output_path.exists():
                 size_kb = output_path.stat().st_size / 1024
                 logger.info(f"File size: {size_kb:.2f} KB")
                 if size_kb < 500:
                     logger.warning(f"File size below 500 KB threshold: {size_kb:.2f} KB")
+                
+                # Get video duration using ffprobe
+                try:
+                    import subprocess
+                    result = subprocess.run([
+                        "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                        "-of", "default=noprint_wrappers=1:nokey=1", str(output_path)
+                    ], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        duration = float(result.stdout.strip())
+                        logger.info(f"Duration: {duration:.2f} seconds")
+                    else:
+                        logger.warning(f"Could not get duration: ffprobe error")
+                except Exception as e:
+                    logger.warning(f"Could not get duration: {e}")
+                    
+                logger.info(f"Output file: {output_path}")
             else:
                 logger.error(f"Output file not created: {output_path}")
                 
