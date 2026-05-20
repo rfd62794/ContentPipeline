@@ -1,5 +1,5 @@
 phase: 'Phase S7 — TBD'
-certified_floor: 185/0/10
+certified_floor: 195/0/10
 what_is_next: 'Phase S7 — TBD'
 
 ## Phase S6 — YAML Short Runner (2026-05-20)
@@ -45,7 +45,7 @@ what_is_next: 'Phase S7 — TBD'
 ### Certified Floor Achievement
 - Baseline: 181/0/10
 - Target: 185/0/10
-- Actual: 185/0/10 (10 new tests added to test_produce_short.py, all passing, skipped count maintained at 10)
+- Actual: 195/0/10 (10 new tests added to test_produce_short.py, all passing, skipped count maintained at 10)
 
 ### Key Design Decisions
 - YAML-driven configuration — All short definitions in YAML files, not Python code
