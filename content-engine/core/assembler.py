@@ -336,8 +336,8 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         target_width = 1080
         target_height = 1920
         clip_start_y = 50  # Just below attribution zone
-        scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
-        clip_end_y = clip_start_y + scaled_height  # 657
+        scaled_height = 608  # 1080 * 9/16 + 1 (divisible by 2 for libx264 compatibility)
+        clip_end_y = clip_start_y + scaled_height  # 658
         
         # Calculate text zone positions (fixed gap below clip)
         analysis_zone_center = clip_end_y + 40  # 40px gap below clip
