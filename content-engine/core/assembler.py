@@ -508,8 +508,9 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
         # Extract clip from source file if valid
         if source_file and source_file.exists() and source_file.suffix in ['.mp4', '.mkv', '.mov', '.avi']:
             logger.info(f"Extracting timestamp window for segment {index}: {source_file}")
+            segment_duration = segment.get("duration")
             return _extract_clip_from_local(source_file, segment["source_timestamp_start"], 
-                                               segment["source_timestamp_end"], temp_dir, index)
+                                               segment["source_timestamp_end"], temp_dir, index, segment_duration)
     
     # Only use temp_file directly if no timestamps given
     if segment.get("temp_file") and segment["temp_file"]:
@@ -566,7 +567,7 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
 
 
 def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str, 
-                            temp_dir: Path, index: int) -> Optional[Path]:
+                            temp_dir: Path, index: int, duration: Optional[float] = None) -> Optional[Path]:
     """
     Extract clip from local video file using FFmpeg.
     
@@ -576,6 +577,7 @@ def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str,
         end_time: End timestamp in "MM:SS" or "HH:MM:SS" format
         temp_dir: Temporary directory for processing
         index: Segment index for naming
+        duration: Optional final duration to trim to (overrides timestamp window duration)
         
     Returns:
         Path to extracted clip, or None if extraction fails
@@ -589,38 +591,65 @@ def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str,
             logger.error(f"Invalid timestamp format: {start_time} - {end_time}")
             return None
         
-        # Calculate duration
-        duration = end_seconds - start_seconds
-        if duration <= 0:
-            logger.error(f"Invalid duration: {duration} seconds")
+        # Calculate duration from timestamp window
+        window_duration = end_seconds - start_seconds
+        if window_duration <= 0:
+            logger.error(f"Invalid duration: {window_duration} seconds")
             return None
         
-        # Add buffer
+        # Add buffer for keyframe alignment
         buffer = 2
         s = max(0, start_seconds - buffer)
-        duration = duration + (2 * buffer)
+        extract_duration = window_duration + (2 * buffer)
         
         output_path = temp_dir / f"segment_{index}.mp4"
         
-        # Use FFmpeg to extract clip
+        # Use FFmpeg to extract clip with buffer
         cmd = [
             get_ffmpeg_path(), "-y", "-ss", str(s), "-i", str(source_path),
-            "-t", str(duration), "-c", "copy", str(output_path)
+            "-t", str(extract_duration), "-c", "copy", str(output_path)
         ]
         
-        logger.info(f"Extracting clip {index} from local file: {s}s for {duration}s")
+        logger.info(f"Extracting clip {index} from local file: {s}s for {extract_duration}s")
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode != 0:
             logger.error(f"FFmpeg extract failed: {result.stderr[-500:]}")
             return None
         
-        if output_path.exists():
-            logger.info(f"Extracted clip for segment {index}: {output_path}")
-            return output_path
-        else:
+        if not output_path.exists():
             logger.error(f"Extracted clip not found: {output_path}")
             return None
+        
+        # Trim to specified duration if provided
+        if duration and duration > 0:
+            trimmed_path = temp_dir / f"trimmed_{index}.mp4"
+            trim_cmd = [
+                get_ffmpeg_path(), "-y",
+                "-i", str(output_path),
+                "-t", str(duration),
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-preset", "fast",
+                "-an",
+                str(trimmed_path)
+            ]
+            logger.info(f"Trimming clip {index} to {duration}s")
+            result_trim = subprocess.run(trim_cmd, capture_output=True, text=True)
+            
+            if result_trim.returncode != 0:
+                logger.error(f"FFmpeg trim failed: {result_trim.stderr[-500:]}")
+                output_path.unlink()
+                return None
+            
+            # Replace original with trimmed
+            output_path.unlink()
+            trimmed_path.rename(output_path)
+            logger.info(f"Trimmed clip for segment {index}: {output_path}")
+        else:
+            logger.info(f"Extracted clip for segment {index}: {output_path}")
+        
+        return output_path
             
     except Exception as e:
         logger.error(f"Local file extraction failed: {e}")
