@@ -570,7 +570,12 @@ def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
         Path to scaled output file
     """
     output = temp_dir / f"scaled_{index}.mp4"
-    filter_complex = "[0:v]scale=1080:1920,boxblur=20:5,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];[0:v]scale=1080:607[fg];[bg][fg]overlay=(W-w)/2:50"
+    filter_complex = (
+        f"[0:v]scale=1080:1920,boxblur=20:5,"
+        f"colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];"
+        f"[0:v]scale=1080:607[fg];"
+        f"[bg][fg]overlay=(W-w)/2:50"
+    )
     cmd = [
         get_ffmpeg_path(), "-y", "-i", str(clip_path),
         "-filter_complex", filter_complex,
