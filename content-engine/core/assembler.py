@@ -331,26 +331,44 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         logger.error(f"FFmpeg Visual Concat failed: {result_vconcat.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_vconcat.returncode, "ffmpeg_visual_concat", output=result_vconcat.stdout, stderr=result_vconcat.stderr)
     
-    # Scale to vertical resolution (1080x1920)
+    # Scale to vertical resolution (1080x1920) and calculate clip position
+    # For 1920x1080 source scaled to fit 1080 wide in 1920 tall frame:
+    # Scaled clip height = 1080 * (1080/1920) = 607px
+    # Clip starts at y = (1920 - 607) / 2 = 656px
+    # Clip ends at y = 656 + 607 = 1263px
+    # Space above clip: 0 to 656px → attribution centered here
+    # Space below clip: 1263 to 1920px → analysis text centered here
+    
+    target_width = 1080
+    target_height = 1920
+    source_aspect = 1920 / 1080  # Assuming 16:9 source
+    scaled_height = int(target_width / source_aspect)  # 607px
+    clip_start_y = (target_height - scaled_height) // 2  # 656px
+    clip_end_y = clip_start_y + scaled_height  # 1263px
+    
+    # Calculate text zone positions
+    attribution_zone_center = clip_start_y // 2  # Center of space above clip
+    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # Center of space below clip
+    
     vertical_visuals = temp_dir / "vertical_visuals.mp4"
     result_scale = subprocess.run([
         get_ffmpeg_path(), "-y", "-i", str(visuals_only),
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
+        "-vf", f"scale={target_width}:{scaled_height}:force_original_aspect_ratio=decrease,pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(vertical_visuals)
     ], capture_output=True, text=True)
     if result_scale.returncode != 0:
         logger.error(f"FFmpeg Scale failed: {result_scale.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_scale.returncode, "ffmpeg_scale", output=result_scale.stdout, stderr=result_scale.stderr)
     
-    # Add attribution text overlay if provided
+    # Add attribution text overlay if provided (positioned above clip)
     attribution_visuals = vertical_visuals
     if attribution and config.get("shorts_attribution_enabled", False):
         attribution_visuals = temp_dir / "attribution_overlay.mp4"
-        _add_attribution_text(vertical_visuals, attribution_visuals, attribution, config)
+        _add_attribution_text(vertical_visuals, attribution_visuals, attribution, config, attribution_zone_center)
     
-    # Add lower third text overlay for each segment
+    # Add lower third text overlay for each segment (positioned below clip)
     text_overlay = temp_dir / "text_overlay.mp4"
-    _add_lower_third_text(attribution_visuals, text_overlay, segments, temp_dir, config)
+    _add_lower_third_text(attribution_visuals, text_overlay, segments, temp_dir, config, analysis_zone_center)
     
     # Add background music if configured
     music_path = config.get("shorts_music_path")
@@ -372,25 +390,20 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             logger.warning(f"Music file not found: {music_path}, assembling without music")
 
 
-def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[Dict[str, Any]], temp_dir: Path, config: Dict[str, Any]):
-    """Add lower third text overlay to video."""
+def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[Dict[str, Any]], temp_dir: Path, config: Dict[str, Any], y_center: int):
+    """Add lower third text overlay to video (positioned below gameplay clip)."""
     # Get text styling from config
     font = config.get("shorts_text_font", "monospace")
     font_size = config.get("shorts_text_size", 48)
     text_color = config.get("shorts_text_color", "white")
-    lower_third_height_pct = config.get("shorts_lower_third_height_pct", 0.25)
     
-    # Calculate lower third position (bottom 25% of frame)
-    lower_third_y = int(1920 * (1 - lower_third_height_pct))
-    lower_third_height = int(1920 * lower_third_height_pct)
+    # Use calculated center position for analysis text zone
+    y_pos = y_center
     
     # Build drawtext filter for each segment
     # For simplicity, we'll add a single text overlay for the first segment
     if segments:
         segment_text = segments[0].get("segment_text", "")
-        # Calculate duration based on reading speed (2.5 words per second)
-        word_count = len(segment_text.split())
-        duration = word_count / 2.5
         
         # Write segment text to a temporary file (FFmpeg textfile approach)
         textfile = output_video.parent / "segment_text.txt"
@@ -400,12 +413,11 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
         # Convert to absolute path and escape special characters for FFmpeg
         textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
         
-        # Build FFmpeg command with lower third text
+        # Build FFmpeg command with lower third text (no drawbox - text in letterboxed space)
         cmd = [
             get_ffmpeg_path(), "-y", "-i", str(input_video),
-            "-vf", f"drawbox=y={lower_third_y}:h={lower_third_height}:color=black@0.7:t=fill,"
-                   f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
-                   f"x=(w-text_w)/2:y={lower_third_y + lower_third_height/2}",
+            "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
+                   f"x=(w-text_w)/2:y={y_pos}",
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
         ]
         logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
@@ -423,17 +435,16 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
         shutil.copy(str(input_video), str(output_video))
 
 
-def _add_attribution_text(input_video: Path, output_video: Path, attribution: str, config: Dict[str, Any]):
-    """Add attribution text overlay to video (top 20% of frame)."""
+def _add_attribution_text(input_video: Path, output_video: Path, attribution: str, config: Dict[str, Any], y_center: int):
+    """Add attribution text overlay to video (positioned above gameplay clip)."""
     # Get attribution styling from config
     font = config.get("shorts_text_font", "monospace")
     font_size = config.get("shorts_attribution_font_size", 30)
     text_color = config.get("shorts_attribution_color", "white")
-    y_pct = config.get("shorts_attribution_y_pct", 0.05)
     opacity = config.get("shorts_attribution_opacity", 0.85)
     
-    # Calculate attribution position (top 5% of frame)
-    y_pos = int(1920 * y_pct)
+    # Use calculated center position for attribution zone
+    y_pos = y_center
     
     # Write attribution text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "attribution_text.txt"
