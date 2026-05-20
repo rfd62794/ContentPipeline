@@ -45,6 +45,10 @@ def main():
     output_dir = Path("output/dave_shorts")
     output_dir.mkdir(parents=True, exist_ok=True)
     
+    # Temp directory for processing (separate from output to avoid path duplication)
+    temp_dir = Path("temp/dave_shorts")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
     # Clip sourcer
     clip_sourcer = ClipSourcer(str(output_dir / "clips"), logger)
     
@@ -88,9 +92,9 @@ def main():
         
         logger.info(f"Downloaded clip to {clip_path}")
         
-        # Create segment for assembler
+        # Create segment for assembler (use absolute path)
         segments = [{
-            "temp_file": clip_path,
+            "temp_file": str(Path(clip_path).resolve()),
             "segment_text": short["segment_text"]
         }]
         
@@ -98,7 +102,7 @@ def main():
         output_path = output_dir / f"{short['name']}.mp4"
         
         # Use a dummy audio path (since we're not using voice audio in shorts mode)
-        audio_path = output_dir / "dummy_audio.mp3"
+        audio_path = temp_dir / "dummy_audio.mp3"
         audio_path.touch()
         
         # Assemble as short with attribution
@@ -107,7 +111,7 @@ def main():
                 segments,
                 audio_path,
                 output_path,
-                output_dir,
+                temp_dir,
                 config,
                 shorts_mode=True,
                 attribution=attribution

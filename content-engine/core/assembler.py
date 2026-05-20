@@ -21,12 +21,15 @@ def sanitize_drawtext(text: str) -> str:
         return ""
     # Smart apostrophe to avoid escaping headaches with single quotes
     text = text.replace("'", "\u2019")
-    # Escaping for filter syntax
-    text = text.replace(":", "\\:")
-    text = text.replace(",", "\\,")
+    # Only escape characters that are special in FFmpeg filter syntax
+    # Colons are fine inside single quotes - they're only special as separators
+    # Commas are fine inside single quotes - they're only special as separators
+    # Brackets need escaping as they have special meaning in filters
     text = text.replace("[", "\\[")
     text = text.replace("]", "\\]")
-    # Convert backslashes for Windows paths in filters
+    # Escape backslashes to prevent Windows path issues
+    text = text.replace("\\", "\\\\")
+    return text
     text = text.replace("\\", "/")
     return text
 
