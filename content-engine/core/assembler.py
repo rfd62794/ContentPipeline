@@ -589,7 +589,7 @@ def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
     fg = temp_dir / f"fg_{index}.mp4"
     fg_cmd = [
         get_ffmpeg_path(), "-y", "-i", str(clip_path),
-        "-vf", "scale=1080:607",
+        "-vf", f"scale={target_width}:{scaled_height}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(fg)
     ]
     logger.info(f"FFmpeg Sharp Foreground (segment {index}): {' '.join(fg_cmd)}")
