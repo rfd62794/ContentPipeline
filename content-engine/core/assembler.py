@@ -331,31 +331,31 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         logger.error(f"FFmpeg Visual Concat failed: {result_vconcat.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_vconcat.returncode, "ffmpeg_visual_concat", output=result_vconcat.stdout, stderr=result_vconcat.stderr)
     
-    # Scale to vertical resolution (1080x1920) and calculate clip position
-    # For 1920x1080 source scaled to fit 1080 wide in 1920 tall frame:
-    # Scaled clip height = 1080 * (1080/1920) = 607px
-    # Clip starts at y = (1920 - 607) / 2 = 656px
-    # Clip ends at y = 656 + 607 = 1263px
-    # Space above clip: 0 to 656px → attribution centered here
-    # Space below clip: 1263 to 1920px → analysis text centered here
+    # Scale to vertical resolution (1080x1920) with exact positioning
+    # Frame: 1080 x 1920
+    # Attribution zone: y=20 to y=80 (60px, centered at y=50)
+    # Gap: 20px
+    # Clip: starts at y=100, width=1080px, height=607px, ends at y=707
+    # Remaining space: y=707 to y=1920 = 1213px, analysis text centered at y=1313
     
     target_width = 1080
     target_height = 1920
-    source_aspect = 1920 / 1080  # Assuming 16:9 source
-    scaled_height = int(target_width / source_aspect)  # 607px
-    clip_start_y = (target_height - scaled_height) // 2  # 656px
-    clip_end_y = clip_start_y + scaled_height  # 1263px
+    clip_start_y = 100  # Fixed position below attribution
+    scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio)
+    clip_end_y = clip_start_y + scaled_height  # 707
     
     # Calculate text zone positions
-    attribution_zone_center = clip_start_y // 2  # Center of space above clip
-    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # Center of space below clip
+    attribution_zone_center = 50  # Centered in y=20 to y=80
+    analysis_zone_center = clip_end_y + (target_height - clip_end_y) // 2  # 1313
     
     vertical_visuals = temp_dir / "vertical_visuals.mp4"
-    result_scale = subprocess.run([
+    scale_cmd = [
         get_ffmpeg_path(), "-y", "-i", str(visuals_only),
         "-vf", f"scale={target_width}:{scaled_height}:force_original_aspect_ratio=decrease,pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(vertical_visuals)
-    ], capture_output=True, text=True)
+    ]
+    logger.info(f"FFmpeg Scale Command: {' '.join(scale_cmd)}")
+    result_scale = subprocess.run(scale_cmd, capture_output=True, text=True)
     if result_scale.returncode != 0:
         logger.error(f"FFmpeg Scale failed: {result_scale.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_scale.returncode, "ffmpeg_scale", output=result_scale.stdout, stderr=result_scale.stderr)
