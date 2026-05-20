@@ -570,15 +570,14 @@ def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
         Path to scaled output file
     """
     output = temp_dir / f"scaled_{index}.mp4"
+    filter_complex = "[0:v]scale=1080:1920,boxblur=20:5,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];[0:v]scale=1080:607[fg];[bg][fg]overlay=(W-w)/2:50"
     cmd = [
         get_ffmpeg_path(), "-y", "-i", str(clip_path),
-        "-filter_complex",
-        "[0:v]scale=1080:1920,boxblur=20:5,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];"
-        "[0:v]scale=1080:607[fg];"
-        "[bg][fg]overlay=(W-w)/2:50",
+        "-filter_complex", filter_complex,
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(output)
     ]
     logger.info(f"FFmpeg Blur Fill Scale Command (segment {index}): {' '.join(cmd)}")
+    logger.info(f"Filter complex string: {filter_complex}")
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
