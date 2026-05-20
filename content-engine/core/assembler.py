@@ -327,11 +327,11 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             logger.error(f"Segment {i}: No clip available — skipping")
             continue
         
-        # Step 2: Scale to fit 1080x1920 with exact positioning
+        # Step 2: Scale to fit 1080x1920 with blur fill background
         # Frame: 1080 x 1920
         # Attribution zone: y=20 to y=80 (60px, centered at y=50)
         # Clip: starts at y=50 (just below attribution), width=1080px, height=607px (16:9), ends at y=657
-        # Text zone: y=657 to y=1920 = 1263px, text centered at y≈1290
+        # Text zone: y=657 to y=1920 = 1263px, text at y=697 (40px below clip)
         
         target_width = 1080
         target_height = 1920
@@ -342,18 +342,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         # Calculate text zone positions (fixed gap below clip)
         analysis_zone_center = clip_end_y + 40  # 40px gap below clip
         
-        scaled = temp_dir / f"scaled_{i}.mp4"
-        scale_cmd = [
-            get_ffmpeg_path(), "-y", "-i", str(clip_path),
-            "-vf", f"scale={target_width}:{scaled_height},pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(scaled)
-        ]
-        logger.info(f"FFmpeg Scale Command (segment {i}): {' '.join(scale_cmd)}")
-        result_scale = subprocess.run(scale_cmd, capture_output=True, text=True)
-        
-        if result_scale.returncode != 0:
-            logger.error(f"FFmpeg Scale failed (segment {i}): {result_scale.stderr[-500:]}")
-            continue
+        scaled = _scale_with_blur_fill(clip_path, temp_dir, i)
         
         # Step 3: Add lower third text for this segment
         # Text persists for exactly segment["duration"]
@@ -563,6 +552,40 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
     # No clip available
     logger.error(f"No clip available for segment {index} (no temp_file, no source_url/timestamps)")
     return None
+
+
+def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
+    """
+    Scale clip with blur fill background instead of black bars.
+    
+    Creates a blurred, darkened background from the source clip and overlays
+    the sharp foreground clip centered at y=50 (below attribution zone).
+    
+    Args:
+        clip_path: Path to source clip
+        temp_dir: Temporary directory for processing
+        index: Segment index for naming
+        
+    Returns:
+        Path to scaled output file
+    """
+    output = temp_dir / f"scaled_{index}.mp4"
+    cmd = [
+        get_ffmpeg_path(), "-y", "-i", str(clip_path),
+        "-filter_complex",
+        "[0:v]scale=1080:1920,boxblur=20:5,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];"
+        "[0:v]scale=1080:607[fg];"
+        "[bg][fg]overlay=(W-w)/2:50",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(output)
+    ]
+    logger.info(f"FFmpeg Blur Fill Scale Command (segment {index}): {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        logger.error(f"FFmpeg Blur Fill Scale failed (segment {index}): {result.stderr[-500:]}")
+        raise subprocess.CalledProcessError(result.returncode, "ffmpeg_blur_fill_scale", output=result.stdout, stderr=result.stderr)
+    
+    return output
 
 
 def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str, 

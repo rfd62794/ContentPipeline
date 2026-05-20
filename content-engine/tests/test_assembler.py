@@ -396,7 +396,7 @@ class TestAssembler(unittest.TestCase):
     @patch("core.assembler._concatenate_clips")
     @patch("core.assembler._add_attribution_text")
     def test_multi_segment_scale_command_new_layout(self, mock_attribution, mock_concat, mock_run, mock_copy):
-        """Multi-segment: FFmpeg scale command contains new layout scale=1080:607,pad=1080:1920:(ow-iw)/2:50."""
+        """Multi-segment: FFmpeg scale command contains blur fill filter_complex with boxblur and colorchannelmixer."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         mock_concat.return_value = Path("combined.mp4")
         mock_attribution.return_value = Path("final.mp4")
@@ -414,15 +414,15 @@ class TestAssembler(unittest.TestCase):
             
             assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution="Test")
             
-            # Verify that scale command uses new layout
-            scale_command_found = False
+            # Verify that scale command uses blur fill with filter_complex
+            blur_fill_found = False
             for call in mock_run.call_args_list:
                 cmd_str = str(call)
-                if "scale=1080:607,pad=1080:1920:(ow-iw)/2:50" in cmd_str:
-                    scale_command_found = True
+                if "filter_complex" in cmd_str and "boxblur=20:5" in cmd_str and "colorchannelmixer=rr=0.7:gg=0.7:bb=0.7" in cmd_str:
+                    blur_fill_found = True
                     break
             
-            self.assertTrue(scale_command_found, "Scale command should use new layout format")
+            self.assertTrue(blur_fill_found, "Scale command should use blur fill filter_complex")
     
     @patch("core.assembler.shutil.copy")
     @patch("core.assembler.subprocess.run")
