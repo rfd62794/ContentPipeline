@@ -258,11 +258,13 @@ def main():
         
         segments = short_config["segments"]
         
-        # Add stacking text accumulation
+        # Add stacking text accumulation with sliding window (last 5 lines)
+        MAX_VISIBLE_LINES = 5
         accumulated_lines = []
         for segment in segments:
             accumulated_lines.append(segment["segment_text"])
-            segment["segment_text"] = "\n".join(accumulated_lines)
+            visible_lines = accumulated_lines[-MAX_VISIBLE_LINES:]
+            segment["segment_text"] = "\n".join(visible_lines)
         
         output_path = output_dir / f"{short_config['name']}.mp4"
         
