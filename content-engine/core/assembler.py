@@ -339,8 +339,8 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
         clip_end_y = clip_start_y + scaled_height  # 657
         
-        # Calculate text zone positions (upper quarter of text zone, closer to clip)
-        analysis_zone_center = clip_end_y + int((target_height - clip_end_y) * 0.25)  # ~973
+        # Calculate text zone positions (fixed gap below clip)
+        analysis_zone_center = clip_end_y + 40  # 40px gap below clip
         
         scaled = temp_dir / f"scaled_{i}.mp4"
         scale_cmd = [
