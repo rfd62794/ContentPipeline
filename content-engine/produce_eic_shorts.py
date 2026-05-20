@@ -110,44 +110,86 @@ def main():
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "0:25",
+            "source_timestamp_end": "0:27",
+            "duration": 2,
+            "segment_text": "You're small."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "0:27",
             "source_timestamp_end": "0:30",
-            "duration": 5,
-            "segment_text": "You're prey."
+            "duration": 3,
+            "segment_text": "You run."
         },
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "0:43",
             "source_timestamp_end": "0:44",
             "duration": 1,
-            "segment_text": "You adapt."
+            "segment_text": "Dash."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "0:44",
+            "source_timestamp_end": "0:46",
+            "duration": 2,
+            "segment_text": "You survive."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "0:55",
+            "source_timestamp_end": "0:56",
+            "duration": 1,
+            "segment_text": "You consume."
         },
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "1:04",
+            "source_timestamp_end": "1:06",
+            "duration": 2,
+            "segment_text": "Same run."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "1:06",
             "source_timestamp_end": "1:10",
-            "duration": 6,
+            "duration": 4,
             "segment_text": "Now you pursue."
         },
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "1:15",
+            "source_timestamp_end": "1:18",
+            "duration": 3,
+            "segment_text": "One chases you."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "1:18",
+            "source_timestamp_end": "1:22",
+            "duration": 4,
+            "segment_text": "You turn."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "1:22",
             "source_timestamp_end": "1:27",
-            "duration": 12,
-            "segment_text": "One becomes two."
+            "duration": 5,
+            "segment_text": "Two."
         },
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "1:29",
             "source_timestamp_end": "1:32",
             "duration": 3,
-            "segment_text": "Same run."
+            "segment_text": "Dexterous."
         },
         {
             "temp_file": EIC_VIDEO,
             "source_timestamp_start": "1:32",
-            "source_timestamp_end": "1:36",
-            "duration": 4,
-            "segment_text": "The loop reversed you."
+            "source_timestamp_end": "1:38",
+            "duration": 6,
+            "segment_text": "The loop didn't upgrade you. It reversed you."
         },
     ]
     
@@ -205,8 +247,8 @@ def main():
     ]
     
     shorts_config = [
-        {"name": "eic_short_1_evolution", "segments": short_1_segments},
-        # {"name": "eic_short_2_predator", "segments": short_2_segments},  # Disabled - produce one at a time
+        # {"name": "eic_short_1_evolution", "segments": short_1_segments},  # Already produced
+        {"name": "eic_short_2_predator", "segments": short_2_segments},
         # {"name": "eic_short_3_decisions", "segments": short_3_segments}  # Disabled - produce one at a time
     ]
     
