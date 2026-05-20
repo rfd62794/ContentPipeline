@@ -490,8 +490,28 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
     Returns:
         Path to clip file, or None if unavailable
     """
-    # If temp_file exists on disk → use it directly
-    if "temp_file" in segment and segment["temp_file"]:
+    # If timestamps provided → extract window first (timestamps take priority)
+    if segment.get("source_timestamp_start") and segment.get("source_timestamp_end"):
+        # Determine source file: prefer temp_file, fallback to source_url
+        source_file = None
+        if segment.get("temp_file"):
+            temp_file = Path(segment["temp_file"])
+            # Check as absolute path first, then relative to temp_dir
+            if temp_file.exists():
+                source_file = temp_file
+            elif (temp_dir / temp_file).exists():
+                source_file = temp_dir / temp_file
+        elif segment.get("source_url"):
+            source_file = Path(segment["source_url"])
+        
+        # Extract clip from source file if valid
+        if source_file and source_file.exists() and source_file.suffix in ['.mp4', '.mkv', '.mov', '.avi']:
+            logger.info(f"Extracting timestamp window for segment {index}: {source_file}")
+            return _extract_clip_from_local(source_file, segment["source_timestamp_start"], 
+                                               segment["source_timestamp_end"], temp_dir, index)
+    
+    # Only use temp_file directly if no timestamps given
+    if segment.get("temp_file") and segment["temp_file"]:
         temp_file = Path(segment["temp_file"])
         # Check as absolute path first, then relative to temp_dir
         if temp_file.exists():
@@ -504,42 +524,39 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
         else:
             logger.warning(f"temp_file specified but not found: {temp_file}")
     
-    # Elif source_url and timestamps present → download or extract
-    if "source_url" in segment and segment["source_url"]:
-        if "source_timestamp_start" in segment and "source_timestamp_end" in segment:
-            # Check if source_url is a local file
-            source_path = Path(segment["source_url"])
-            if source_path.exists() and source_path.suffix in ['.mp4', '.mkv', '.mov', '.avi']:
-                # Local file: extract clip using FFmpeg
-                return _extract_clip_from_local(source_path, segment["source_timestamp_start"], 
-                                                   segment["source_timestamp_end"], temp_dir, index)
+    # Fallback: try source_url without timestamps (YouTube download via ClipSourcer)
+    if segment.get("source_url") and segment["source_url"]:
+        try:
+            from core.clip_sourcer import ClipSourcer
+            
+            clip_sourcer = ClipSourcer(logger)
+            output_path = temp_dir / f"segment_{index}.mp4"
+            
+            # Download clip window (if timestamps provided) or full video
+            if segment.get("source_timestamp_start") and segment.get("source_timestamp_end"):
+                result = clip_sourcer.download_clip(
+                    segment["source_url"],
+                    segment["source_timestamp_start"],
+                    segment["source_timestamp_end"],
+                    str(output_path.parent)
+                )
             else:
-                # YouTube URL: download via ClipSourcer
-                try:
-                    from core.clip_sourcer import ClipSourcer
-                    
-                    clip_sourcer = ClipSourcer(logger)
-                    output_path = temp_dir / f"segment_{index}.mp4"
-                    
-                    # Download clip window
-                    result = clip_sourcer.download_clip(
-                        segment["source_url"],
-                        segment["source_timestamp_start"],
-                        segment["source_timestamp_end"],
-                        str(output_path.parent)
-                    )
-                    
-                    if result:
-                        logger.info(f"Downloaded clip for segment {index}: {result}")
-                        return Path(result)
-                    else:
-                        logger.error(f"Failed to download clip for segment {index}")
-                        return None
-                except Exception as e:
-                    logger.error(f"ClipSourcer failed for segment {index}: {e}")
-                    return None
-        else:
-            logger.error(f"source_url present but missing timestamps for segment {index}")
+                # Download full video (no timestamps)
+                result = clip_sourcer.download_clip(
+                    segment["source_url"],
+                    None,
+                    None,
+                    str(output_path.parent)
+                )
+            
+            if result:
+                logger.info(f"Downloaded clip for segment {index}: {result}")
+                return Path(result)
+            else:
+                logger.error(f"Failed to download clip for segment {index}")
+                return None
+        except Exception as e:
+            logger.error(f"ClipSourcer failed for segment {index}: {e}")
             return None
     
     # No clip available
@@ -647,7 +664,11 @@ def _concatenate_clips(clip_paths: List[Path], temp_dir: Path) -> Path:
     concat_file = temp_dir / "concat_segments.txt"
     with open(concat_file, "w") as f:
         for clip_path in clip_paths:
-            f.write(f"file '{clip_path}'\n")
+            # Convert to absolute path and escape backslashes for FFmpeg
+            abs_path = str(clip_path.resolve())
+            # FFmpeg concat demuxer requires escaped backslashes on Windows
+            escaped_path = abs_path.replace("\\", "/")
+            f.write(f"file '{escaped_path}'\n")
     
     combined_output = temp_dir / "combined_segments.mp4"
     
