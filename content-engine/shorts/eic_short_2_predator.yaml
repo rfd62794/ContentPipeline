@@ -1,0 +1,56 @@
+name: eic_short_2_predator
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "0:25"
+    clip_end: "0:27"
+    duration: 2
+    line: "You're small."
+  - clip_start: "0:27"
+    clip_end: "0:30"
+    duration: 3
+    line: "You run."
+  - clip_start: "0:43"
+    clip_end: "0:44"
+    duration: 1
+    line: "Dash."
+  - clip_start: "0:44"
+    clip_end: "0:46"
+    duration: 2
+    line: "You survive."
+  - clip_start: "0:55"
+    clip_end: "0:56"
+    duration: 1
+    line: "You consume."
+  - clip_start: "1:04"
+    clip_end: "1:06"
+    duration: 2
+    line: "Same run."
+  - clip_start: "1:06"
+    clip_end: "1:10"
+    duration: 4
+    line: "Now you pursue."
+  - clip_start: "1:15"
+    clip_end: "1:18"
+    duration: 3
+    line: "One chases you."
+  - clip_start: "1:18"
+    clip_end: "1:22"
+    duration: 4
+    line: "You turn."
+  - clip_start: "1:22"
+    clip_end: "1:27"
+    duration: 5
+    line: "Two."
+  - clip_start: "1:29"
+    clip_end: "1:32"
+    duration: 3
+    line: "Dexterous."
+  - clip_start: "1:32"
+    clip_end: "1:38"
+    duration: 6
+    line: "The loop didn't upgrade you. It reversed you."

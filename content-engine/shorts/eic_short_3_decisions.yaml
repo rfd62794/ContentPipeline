@@ -1,0 +1,36 @@
+name: eic_short_3_decisions
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "0:10"
+    clip_end: "0:20"
+    duration: 10
+    line: "Decision one."
+  - clip_start: "0:33"
+    clip_end: "0:35"
+    duration: 2
+    line: "Decision two."
+  - clip_start: "0:55"
+    clip_end: "0:56"
+    duration: 1
+    line: "Decision three."
+  - clip_start: "1:37"
+    clip_end: "1:44"
+    duration: 7
+    line: "Decision four."
+  - clip_start: "1:44"
+    clip_end: "1:48"
+    duration: 4
+    line: "90 seconds."
+  - clip_start: "1:48"
+    clip_end: "1:52"
+    duration: 4
+    line: "This is why run one hooks you."
+  - clip_start: "1:52"
+    clip_end: "1:58"
+    duration: 6
+    line: "Run ten feels thinner."

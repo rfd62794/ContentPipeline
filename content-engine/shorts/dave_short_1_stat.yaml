@@ -1,0 +1,24 @@
+name: dave_short_1_stat
+source: https://www.youtube.com/watch?v=LUTPCMkA7xQ
+attribution: "Gameplay via: CohhCarnage"
+music_path: assets/music/background.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "08:00"
+    clip_end: "08:06"
+    duration: 6
+    line: "50% of players reached\nthe Sea People Village."
+  - clip_start: "08:06"
+    clip_end: "08:10"
+    duration: 4
+    line: "4% made it past it."
+  - clip_start: "08:10"
+    clip_end: "08:15"
+    duration: 5
+    line: "That's not a difficulty wall."
+  - clip_start: "08:15"
+    clip_end: "08:21"
+    duration: 6
+    line: "That's a displacement wall."

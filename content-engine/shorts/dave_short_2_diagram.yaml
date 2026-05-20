@@ -1,0 +1,24 @@
+name: dave_short_2_diagram
+source: https://www.youtube.com/watch?v=LUTPCMkA7xQ
+attribution: "Gameplay via: CohhCarnage"
+music_path: assets/music/background.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "05:00"
+    clip_end: "05:05"
+    duration: 5
+    line: "Dave's loop:\nA → B → C → seaweed farm"
+  - clip_start: "05:05"
+    clip_end: "05:10"
+    duration: 5
+    line: "Each loop feeds forward.\nNever back."
+  - clip_start: "10:00"
+    clip_end: "10:06"
+    duration: 6
+    line: "Stardew's loop:\nA ↔ B ↔ C ↔ D"
+  - clip_start: "10:06"
+    clip_end: "10:12"
+    duration: 6
+    line: "Everything feeds everything.\nNothing becomes optional."

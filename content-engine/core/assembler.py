@@ -382,13 +382,20 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     
     # Step 6: Add background music if configured
     music_path = config.get("shorts_music_path")
+    music_start = config.get("shorts_music_start", 0)  # Default to 0 if not specified
     if music_path and Path(music_path).exists():
         # Add music as audio track (video has no audio in shorts mode)
         # Use -shortest to match video duration, music at 0.25 volume
+        # Optionally trim music to start from a specific offset
         music_input = Path(music_path)
+        if music_start > 0:
+            # Trim music to start from specified offset
+            filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume=0.25[audio]"
+        else:
+            filter_complex = "[1:a]volume=0.25[audio]"
         result_music = subprocess.run([
             get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
-            "-filter_complex", "[1:a]volume=0.25[audio]",
+            "-filter_complex", filter_complex,
             "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "[audio]", "-shortest", str(output_path)
         ], capture_output=True, text=True)
         if result_music.returncode != 0:

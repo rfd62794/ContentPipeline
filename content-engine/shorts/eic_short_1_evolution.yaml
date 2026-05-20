@@ -1,0 +1,32 @@
+name: eic_short_1_evolution
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "0:33"
+    clip_end: "0:35"
+    duration: 2
+    line: "You feed."
+  - clip_start: "0:35"
+    clip_end: "0:38"
+    duration: 3
+    line: "You evolve."
+  - clip_start: "0:46"
+    clip_end: "0:51"
+    duration: 5
+    line: "You feed again."
+  - clip_start: "0:59"
+    clip_end: "1:02"
+    duration: 3
+    line: "You evolve deeper."
+  - clip_start: "1:02"
+    clip_end: "1:06"
+    duration: 4
+    line: "Most games give you stats."
+  - clip_start: "1:06"
+    clip_end: "1:10"
+    duration: 4
+    line: "This gives you a body."
