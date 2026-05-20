@@ -1,6 +1,70 @@
-phase: 'Phase S3 — Dave the Diver Shorts Production Run'
-certified_floor: 145/0/10
-what_is_next: 'Phase S4 — YouTube Publish Integration'
+phase: 'Phase S4 — Focus Detection'
+certified_floor: 165/0/10
+what_is_next: 'Phase S5 — Tower Migration'
+
+## Phase S4 — Focus Detection (2026-05-19)
+
+### Completed
+- **Added core/obs_capture.py pause/resume methods** — OBS recording control
+  - `pause_record()` — Pause OBS recording (standard OBS WebSocket v5 call)
+  - `resume_record()` — Resume OBS recording (standard OBS WebSocket v5 call)
+  - Proper error handling for OBS WebSocket errors (500 codes)
+  - Connection state checks before calling OBS methods
+- **Created core/focus_watcher.py** — Foreground window detection
+  - `FocusWatcher(logger)` — Initialize with logger instance
+  - `get_foreground_process()` — Get foreground window process name via win32gui/win32process
+  - `is_process_focused(process_name)` — Check if specific process is in foreground
+  - Case-insensitive process name comparison
+  - Exception-safe — all win32 exceptions caught, return empty string on failure
+  - Never raises — all errors logged and handled gracefully
+- **Updated core/process_watcher.py** — Focus pause/resume integration
+  - Added `focus_watcher` parameter to `watch()` method (default: None)
+  - Internal pause state tracking (`paused` boolean)
+  - Focus detection in RECORDING state when `focus_watcher` provided
+  - `obs.pause_record()` when game loses focus and not already paused
+  - `obs.resume_record()` when game regains focus and currently paused
+  - `obs.resume_record()` before `obs.stop_recording()` when paused at game close
+  - Guard clauses prevent double pause/resume calls
+- **Updated pipeline_watch.py** — CLI --focus-pause flag
+  - `--focus-pause` flag (action='store_true', default=False)
+  - Creates `FocusWatcher` when flag is set, passes `None` when not set
+  - Passes `focus_watcher` to `watch()` method
+  - Maintains thin wrapper pattern — no focus logic in CLI file
+- **Added dependencies** — Windows-specific libraries
+  - `pywin32>=306` — Windows API access (win32gui, win32process)
+  - `psutil>=6.0` — Process name resolution from PID
+- **Created comprehensive test suite** (20 new tests, all passing)
+  - test_obs_capture.py: 6 new tests (pause_record/resume_record methods)
+  - test_focus_watcher.py: 10 new tests (FocusWatcher functionality)
+  - test_process_watcher.py: 4 new tests (focus pause/resume integration)
+
+### Certified Floor Achievement
+- Baseline: 145/0/10
+- Target: 155/0/10
+- Actual: 165/0/10 (exceeded target by 10 tests)
+
+### Key Design Decisions
+- FocusWatcher is Windows-only — uses win32gui and win32process
+- Focus detection is opt-in via --focus-pause flag — default behavior unchanged
+- Internal pause state tracking — prevents double pause/resume calls
+- Resume before stop when paused — OBS requires active recording to stop cleanly
+- Exception-safe focus detection — all win32 exceptions caught and logged
+- Case-insensitive process name matching — "Everything is Crab.exe" == "everything is crab.exe"
+- FocusWatcher never calls OBS directly — OBS calls only in ProcessWatcher
+- Thin wrapper pattern maintained — pipeline_watch.py only wires components
+- All existing ProcessWatcher tests still pass — focus_watcher=None produces identical behavior
+
+### Usage Example
+```bash
+# Without focus detection (existing behavior)
+python pipeline_watch.py --game "Everything is Crab.exe"
+
+# With focus detection
+python pipeline_watch.py --game "Everything is Crab.exe" --focus-pause
+
+# With focus detection and scene switching
+python pipeline_watch.py --game "Everything is Crab.exe" --scene "EIC_Capture" --focus-pause
+```
 
 ## Phase S2 — Process Watcher + Own-Game Capture (2026-05-19)
 
