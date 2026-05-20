@@ -414,22 +414,14 @@ class TestAssembler(unittest.TestCase):
             
             assemble_video(segments, None, output_path, temp_dir, config, shorts_mode=True, attribution="Test")
             
-            # Verify two-pass approach: blur background, sharp foreground, overlay
-            blur_found = False
-            sharp_found = False
-            overlay_found = False
+            # Verify black bars scaling
+            scale_found = False
             for call in mock_run.call_args_list:
                 cmd_str = str(call)
-                if "boxblur=20:5" in cmd_str and "colorchannelmixer=rr=0.7:gg=0.7:bb=0.7" in cmd_str:
-                    blur_found = True
-                if "scale=1080:607" in cmd_str and "boxblur" not in cmd_str:
-                    sharp_found = True
-                if "overlay=(W-w)/2:50" in cmd_str:
-                    overlay_found = True
+                if "scale=1080:608,pad=1080:1920:(ow-iw)/2:50" in cmd_str:
+                    scale_found = True
             
-            self.assertTrue(blur_found, "Should create blurred background")
-            self.assertTrue(sharp_found, "Should create sharp foreground")
-            self.assertTrue(overlay_found, "Should overlay foreground on background")
+            self.assertTrue(scale_found, "Should use black bars scaling")
     
     @patch("core.assembler.shutil.copy")
     @patch("core.assembler.subprocess.run")
