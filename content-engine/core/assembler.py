@@ -342,7 +342,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         # Calculate text zone positions (fixed gap below clip)
         analysis_zone_center = clip_end_y + 40  # 40px gap below clip
         
-        scaled = _scale_with_blur_fill(clip_path, temp_dir, i)
+        scaled = _scale_with_blur_fill(clip_path, temp_dir, i, target_width, scaled_height)
         
         # Step 3: Add lower third text for this segment
         # Text persists for exactly segment["duration"]
@@ -554,7 +554,7 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
     return None
 
 
-def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
+def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int, target_width: int = 1080, scaled_height: int = 608) -> Path:
     """
     Scale clip with blur fill background using two-pass approach.
     
@@ -566,6 +566,8 @@ def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int) -> Path:
         clip_path: Path to source clip
         temp_dir: Temporary directory for processing
         index: Segment index for naming
+        target_width: Target width for output (default 1080)
+        scaled_height: Height for sharp foreground clip (default 608, divisible by 2 for libx264)
         
     Returns:
         Path to scaled output file
