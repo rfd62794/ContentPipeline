@@ -327,22 +327,33 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             logger.error(f"Segment {i}: No clip available — skipping")
             continue
         
-        # Step 2: Scale to fit 1080x1920 with blur fill background
+        # Step 2: Scale to fit 1080x1920 with exact positioning
         # Frame: 1080 x 1920
         # Attribution zone: y=20 to y=80 (60px, centered at y=50)
         # Clip: starts at y=50 (just below attribution), width=1080px, height=607px (16:9), ends at y=657
-        # Text zone: y=657 to y=1920 = 1263px, text at y=697 (40px below clip)
+        # Text zone: y=657 to y=1920 = 1263px, text centered at y≈1290
         
         target_width = 1080
         target_height = 1920
         clip_start_y = 50  # Just below attribution zone
-        scaled_height = 608  # 1080 * 9/16 + 1 (divisible by 2 for libx264 compatibility)
-        clip_end_y = clip_start_y + scaled_height  # 658
+        scaled_height = 607  # 1080 * 9/16 (full 16:9 ratio at 1080px width)
+        clip_end_y = clip_start_y + scaled_height  # 657
         
         # Calculate text zone positions (fixed gap below clip)
         analysis_zone_center = clip_end_y + 40  # 40px gap below clip
         
-        scaled = _scale_with_blur_fill(clip_path, temp_dir, i, target_width, scaled_height)
+        scaled = temp_dir / f"scaled_{i}.mp4"
+        scale_cmd = [
+            get_ffmpeg_path(), "-y", "-i", str(clip_path),
+            "-vf", f"scale={target_width}:{scaled_height},pad={target_width}:{target_height}:(ow-iw)/2:{clip_start_y}",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(scaled)
+        ]
+        logger.info(f"FFmpeg Scale Command (segment {i}): {' '.join(scale_cmd)}")
+        result_scale = subprocess.run(scale_cmd, capture_output=True, text=True)
+        
+        if result_scale.returncode != 0:
+            logger.error(f"FFmpeg Scale failed (segment {i}): {result_scale.stderr[-500:]}")
+            continue
         
         # Step 3: Add lower third text for this segment
         # Text persists for exactly segment["duration"]
@@ -554,73 +565,6 @@ def _get_clip_for_segment(segment: Dict[str, Any], temp_dir: Path, index: int) -
     return None
 
 
-def _scale_with_blur_fill(clip_path: Path, temp_dir: Path, index: int, target_width: int = 1080, scaled_height: int = 608) -> Path:
-    """
-    Scale clip with blur fill background using two-pass approach.
-    
-    Pass 1: Create blurred background
-    Pass 2: Create sharp foreground
-    Pass 3: Overlay foreground on background
-    
-    Args:
-        clip_path: Path to source clip
-        temp_dir: Temporary directory for processing
-        index: Segment index for naming
-        target_width: Target width for output (default 1080)
-        scaled_height: Height for sharp foreground clip (default 608, divisible by 2 for libx264)
-        
-    Returns:
-        Path to scaled output file
-    """
-    output = temp_dir / f"scaled_{index}.mp4"
-    
-    # Pass 1: Create blurred background
-    bg = temp_dir / f"bg_{index}.mp4"
-    bg_cmd = [
-        get_ffmpeg_path(), "-y", "-i", str(clip_path),
-        "-vf", "scale=1080:1920,boxblur=20:5,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-r", "30", "-an", str(bg)
-    ]
-    logger.info(f"FFmpeg Blur Background (segment {index}): {' '.join(bg_cmd)}")
-    result_bg = subprocess.run(bg_cmd, capture_output=True, text=True)
-    if result_bg.returncode != 0:
-        logger.error(f"FFmpeg Blur Background failed (segment {index}): {result_bg.stderr[-500:]}")
-        raise subprocess.CalledProcessError(result_bg.returncode, "ffmpeg_blur_background", output=result_bg.stdout, stderr=result_bg.stderr)
-    
-    # Pass 2: Create sharp foreground
-    fg = temp_dir / f"fg_{index}.mp4"
-    fg_cmd = [
-        get_ffmpeg_path(), "-y", "-i", str(clip_path),
-        "-vf", f"scale={target_width}:{scaled_height}",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(fg)
-    ]
-    logger.info(f"FFmpeg Sharp Foreground (segment {index}): {' '.join(fg_cmd)}")
-    result_fg = subprocess.run(fg_cmd, capture_output=True, text=True)
-    if result_fg.returncode != 0:
-        logger.error(f"FFmpeg Sharp Foreground failed (segment {index}): {result_fg.stderr}")
-        raise subprocess.CalledProcessError(result_fg.returncode, "ffmpeg_sharp_foreground", output=result_fg.stdout, stderr=result_fg.stderr)
-    
-    # Pass 3: Overlay foreground on background
-    overlay_cmd = [
-        get_ffmpeg_path(), "-y", "-i", str(bg), "-i", str(fg),
-        "-filter_complex", "[0:v][1:v]overlay=(W-w)/2:50",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output)
-    ]
-    logger.info(f"FFmpeg Overlay (segment {index}): {' '.join(overlay_cmd)}")
-    result_overlay = subprocess.run(overlay_cmd, capture_output=True, text=True)
-    if result_overlay.returncode != 0:
-        logger.error(f"FFmpeg Overlay failed (segment {index}): {result_overlay.stderr[-500:]}")
-        raise subprocess.CalledProcessError(result_overlay.returncode, "ffmpeg_overlay", output=result_overlay.stdout, stderr=result_overlay.stderr)
-    
-    # Clean up intermediate files
-    if bg.exists():
-        bg.unlink()
-    if fg.exists():
-        fg.unlink()
-    
-    return output
-
-
 def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str, 
                             temp_dir: Path, index: int) -> Optional[Path]:
     """
@@ -651,19 +595,17 @@ def _extract_clip_from_local(source_path: Path, start_time: str, end_time: str,
             logger.error(f"Invalid duration: {duration} seconds")
             return None
         
-        # Add buffer and ensure minimum duration of 5 seconds for encoding
+        # Add buffer
         buffer = 2
         s = max(0, start_seconds - buffer)
         duration = duration + (2 * buffer)
-        if duration < 5:
-            duration = 5  # Ensure minimum 5 seconds for encoding
         
         output_path = temp_dir / f"segment_{index}.mp4"
         
-        # Use FFmpeg to extract clip with libx264 re-encoding (fixes NVENC compatibility)
+        # Use FFmpeg to extract clip
         cmd = [
             get_ffmpeg_path(), "-y", "-ss", str(s), "-i", str(source_path),
-            "-t", str(duration), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_path)
+            "-t", str(duration), "-c", "copy", str(output_path)
         ]
         
         logger.info(f"Extracting clip {index} from local file: {s}s for {duration}s")

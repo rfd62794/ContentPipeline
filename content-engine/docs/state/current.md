@@ -2,6 +2,24 @@ phase: 'Phase S6 — Short Production Run'
 certified_floor: 181/0/10
 what_is_next: 'Phase S7 — TBD'
 
+## Phase S6 — Short Production Run (2026-05-19)
+
+### Completed
+- **EIC Short 1 production** — eic_short_1_evolution.mp4 (3.8 MB, 45.53s)
+  - 6 segments with beat-matched text overlays
+  - Black bars background (working version restored from git)
+  - Fixed multiple FFmpeg issues during production:
+    - Timestamp extraction priority (use extracted window over temp_file)
+    - Concatenation path escaping (use absolute paths in concat file)
+    - Audio mixing for videos without audio streams (map 0:v and [audio])
+    - Text positioning (upper quarter of text zone vs center)
+- **Blur fill background attempt** — Deferred to future phase
+  - Attempted two-pass approach (blur background + sharp foreground + overlay)
+  - Fixed libx264 dimension requirement (607 → 608 for even height)
+  - Visual results unsatisfactory - reverted to working black bars version
+  - Restored assembler.py from git commit dac1247 (pre-blur fill)
+  - Blur fill remains a worthwhile visual improvement for future implementation
+
 ## Phase S5 — Multi-Segment Assembly (2026-05-19)
 
 ### Completed
