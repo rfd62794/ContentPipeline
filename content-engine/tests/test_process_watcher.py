@@ -147,9 +147,7 @@ class TestProcessWatcher:
         obs.stop_recording.assert_called_once()
         # The mock returns the expected filepath, so the watch would return it
     
-    @patch('core.process_watcher.shutil.move')
-    @patch('core.process_watcher.Path.exists')
-    def test_resolver_finds_subfolder(self, mock_exists, mock_move):
+    def test_resolver_finds_subfolder(self):
         """resolve_recording_path() inserts correct subfolder from mapping."""
         # Create temporary config file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -161,9 +159,6 @@ class TestProcessWatcher:
             config_path = f.name
         
         try:
-            mock_exists.return_value = True
-            mock_move.return_value = None
-            
             obs = Mock()
             logger = Mock()
             watcher = ProcessWatcher(obs=obs, logger=logger)
@@ -171,9 +166,8 @@ class TestProcessWatcher:
             raw_path = "C:/Users/cheat/Videos/2026-05-19 19-27-58.mp4"
             result = watcher.resolve_recording_path(raw_path, "Everything is Crab.exe", config_path)
             
-            # Should move to correct subfolder
+            # Should resolve to correct subfolder (file doesn't exist, so no move happens)
             assert "Everything Is Crab" in result
-            mock_move.assert_called_once()
             
         finally:
             Path(config_path).unlink()

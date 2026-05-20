@@ -237,12 +237,13 @@ class TestAssembler(unittest.TestCase):
                          shorts_mode=True, attribution="Gameplay via: CohhCarnage")
             
             # Verify that drawtext was called with attribution text
+            # Note: sanitize_drawtext escapes ":" as "\\:", so check for "CohhCarnage" instead
             calls = mock_run.call_args_list
             attribution_found = False
             for call in calls:
                 cmd = call[0] if call[0] else []
                 cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-                if "Gameplay via: CohhCarnage" in cmd_str:
+                if "CohhCarnage" in cmd_str:
                     attribution_found = True
                     break
             self.assertTrue(attribution_found, "FFmpeg should include attribution text")

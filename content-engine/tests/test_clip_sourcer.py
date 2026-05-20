@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import tempfile
+import shutil
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from core.clip_sourcer import ClipSourcer
@@ -31,18 +32,16 @@ class TestClipSourcer:
             # Verify yt-dlp was called
             assert mock_run.called
             call_args = mock_run.call_args[0]
-            assert call_args[0] == "yt-dlp"
+            assert call_args[0][0] == "yt-dlp"
     
     @patch('core.clip_sourcer.subprocess.run')
-    def test_clip_sourcer_returns_path(self, mock_run):
+    @patch('pathlib.Path.exists')
+    def test_clip_sourcer_returns_path(self, mock_exists, mock_run):
         """download_clip() returns filepath string on success."""
         mock_run.return_value = MagicMock(returncode=0, stdout="")
+        mock_exists.return_value = True  # Simulate file was created
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create the output file to simulate successful download
-            output_file = Path(tmpdir) / "test_clip.mp4"
-            output_file.write_text("mock")
-            
             logger = Mock()
             sourcer = ClipSourcer(tmpdir, logger)
             
@@ -54,6 +53,8 @@ class TestClipSourcer:
             
             # Should return the filepath
             assert result != ""
+            assert "LUTPCMkA7xQ" in result
+            assert ".mp4" in result
     
     @patch('core.clip_sourcer.subprocess.run')
     def test_clip_sourcer_failure_safe(self, mock_run):
@@ -79,9 +80,7 @@ class TestClipSourcer:
         mock_run.return_value = MagicMock(returncode=0, stdout="")
         
         # Use a non-existent directory
-        import shutil
         non_existent_dir = tempfile.mktemp()
-        shutil.rmtree(non_existent_dir)
         
         try:
             logger = Mock()
