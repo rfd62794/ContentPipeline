@@ -8,6 +8,8 @@ Contract:
 - connect(host='localhost', port=4455, password=''): Establish connection to OBS
 - start_recording(): Start recording, returns None
 - stop_recording(): Stop recording, returns file path of recorded video
+- pause_record(): Pause recording, returns None
+- resume_record(): Resume recording, returns None
 - get_status(): Get recording status (active, bytes, duration)
 - set_scene(scene_name): Switch to specified scene
 - disconnect(): Close WebSocket connection
@@ -139,6 +141,42 @@ class OBSCapture:
             raise OBSCaptureError(f"Failed to stop recording: {e}")
         
         return file_path
+
+    def pause_record(self) -> None:
+        """
+        Pause OBS recording.
+
+        Raises:
+            OBSCaptureError: If recording fails to pause or not active
+        """
+        if not self.connected:
+            raise OBSCaptureError("Not connected to OBS")
+
+        try:
+            self.client.pause_record()
+        except obs.error.OBSSDKRequestError as e:
+            if "500" in str(e):
+                # Error 500 typically means no recording active
+                raise OBSCaptureError("No recording active")
+            raise OBSCaptureError(f"Failed to pause recording: {e}")
+
+    def resume_record(self) -> None:
+        """
+        Resume OBS recording.
+
+        Raises:
+            OBSCaptureError: If recording fails to resume or not paused
+        """
+        if not self.connected:
+            raise OBSCaptureError("Not connected to OBS")
+
+        try:
+            self.client.resume_record()
+        except obs.error.OBSSDKRequestError as e:
+            if "500" in str(e):
+                # Error 500 typically means recording not paused
+                raise OBSCaptureError("Recording not paused")
+            raise OBSCaptureError(f"Failed to resume recording: {e}")
 
     def get_status(self) -> RecordingStatus:
         """

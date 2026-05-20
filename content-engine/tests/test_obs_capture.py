@@ -173,6 +173,104 @@ class TestOBSCapture:
             assert "No recording active" in str(e)
     
     @patch('core.obs_capture.obs')
+    def test_pause_recording_success(self, mock_obs):
+        """pause_record() pauses recording successfully."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        obs_cap = OBSCapture()
+        obs_cap.connect()
+        
+        obs_cap.pause_record()
+        mock_client.pause_record.assert_called_once()
+    
+    @patch('core.obs_capture.obs')
+    def test_pause_recording_not_connected(self, mock_obs):
+        """pause_record() raises error when not connected."""
+        mock_obs.ReqClient.return_value = Mock()
+        
+        obs_cap = OBSCapture()
+        # Don't connect
+        
+        try:
+            obs_cap.pause_record()
+            assert False, "Should have raised OBSCaptureError"
+        except OBSCaptureError as e:
+            assert "Not connected to OBS" in str(e)
+    
+    @patch('core.obs_capture.obs')
+    def test_pause_recording_no_active_recording(self, mock_obs):
+        """pause_record() raises error when no recording active."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        # Create custom exception that mimics OBSSDKRequestError
+        class MockOBSSDKRequestError(Exception):
+            def __str__(self):
+                return "Request PauseRecord returned code 500"
+        
+        mock_obs.error.OBSSDKRequestError = MockOBSSDKRequestError
+        mock_client.pause_record.side_effect = MockOBSSDKRequestError()
+        
+        obs_cap = OBSCapture()
+        obs_cap.connect()
+        
+        try:
+            obs_cap.pause_record()
+            assert False, "Should have raised OBSCaptureError"
+        except OBSCaptureError as e:
+            assert "No recording active" in str(e)
+    
+    @patch('core.obs_capture.obs')
+    def test_resume_recording_success(self, mock_obs):
+        """resume_record() resumes recording successfully."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        obs_cap = OBSCapture()
+        obs_cap.connect()
+        
+        obs_cap.resume_record()
+        mock_client.resume_record.assert_called_once()
+    
+    @patch('core.obs_capture.obs')
+    def test_resume_recording_not_connected(self, mock_obs):
+        """resume_record() raises error when not connected."""
+        mock_obs.ReqClient.return_value = Mock()
+        
+        obs_cap = OBSCapture()
+        # Don't connect
+        
+        try:
+            obs_cap.resume_record()
+            assert False, "Should have raised OBSCaptureError"
+        except OBSCaptureError as e:
+            assert "Not connected to OBS" in str(e)
+    
+    @patch('core.obs_capture.obs')
+    def test_resume_recording_not_paused(self, mock_obs):
+        """resume_record() raises error when recording not paused."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        # Create custom exception that mimics OBSSDKRequestError
+        class MockOBSSDKRequestError(Exception):
+            def __str__(self):
+                return "Request ResumeRecord returned code 500"
+        
+        mock_obs.error.OBSSDKRequestError = MockOBSSDKRequestError
+        mock_client.resume_record.side_effect = MockOBSSDKRequestError()
+        
+        obs_cap = OBSCapture()
+        obs_cap.connect()
+        
+        try:
+            obs_cap.resume_record()
+            assert False, "Should have raised OBSCaptureError"
+        except OBSCaptureError as e:
+            assert "Recording not paused" in str(e)
+
+    @patch('core.obs_capture.obs')
     def test_get_status(self, mock_obs):
         """get_status() returns RecordingStatus object."""
         mock_client = Mock()
