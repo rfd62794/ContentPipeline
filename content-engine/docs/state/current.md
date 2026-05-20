@@ -1,5 +1,5 @@
 phase: 'Phase S4b — Game Launcher'
-certified_floor: 166/0/11
+certified_floor: 167/0/10
 what_is_next: 'Phase S5 — Tower Migration'
 
 ## Phase S4b — Game Launcher (2026-05-19)
@@ -26,19 +26,19 @@ what_is_next: 'Phase S5 — Tower Migration'
   - `--launch` flag (action='store_true', default=False)
   - Creates `GameLauncher` when flag is set, passes to ProcessWatcher
   - Thin wrapper pattern maintained — no launch logic in CLI file
-- **Created comprehensive test suite** (6 new tests, 5 passing, 1 skipped)
+- **Created comprehensive test suite** (6 new tests, all passing)
   - test_game_launcher.py: 6 new tests (GameLauncher functionality)
     - test_launch_steam — Steam protocol launch
     - test_launch_both_null — Returns False when both launch methods null
     - test_launch_not_found — Returns False when process not in mapping
     - test_launch_exception_safe — Returns False on subprocess exception
-    - test_launch_executable — Direct executable launch (SKIPPED due to Path mocking complexity)
+    - test_launch_executable — Direct executable launch with Path.exists() module-level patch
     - test_resolver_v1_backward_compat — v1 schema compatibility in ProcessWatcher
 
 ### Certified Floor Achievement
 - Baseline: 165/0/10
 - Target: 171/0/10
-- Actual: 166/0/11 (5 new passing tests, 1 skipped test, v1 backward compat test)
+- Actual: 167/0/10 (6 new tests added to test_game_launcher.py, all passing, skipped count maintained at 10)
 
 ### Key Design Decisions
 - Schema migration from v1 to v2 — dict format enables launch metadata while maintaining backward compat
