@@ -98,15 +98,11 @@ def main():
         # Output path
         output_path = output_dir / f"{short['name']}.mp4"
         
-        # Use a dummy audio path (since we're not using voice audio in shorts mode)
-        audio_path = temp_dir / "dummy_audio.mp3"
-        audio_path.touch()
-        
-        # Assemble as short with attribution
+        # Assemble as short with attribution (no voice audio in shorts mode)
         try:
             assemble_video(
                 segments,
-                audio_path,
+                None,  # Voice audio bypassed in shorts mode
                 output_path,
                 temp_dir,
                 config,
