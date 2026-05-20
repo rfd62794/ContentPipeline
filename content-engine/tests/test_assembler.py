@@ -418,7 +418,7 @@ class TestAssembler(unittest.TestCase):
             scale_found = False
             for call in mock_run.call_args_list:
                 cmd_str = str(call)
-                if "scale=1080:608,pad=1080:1920:(ow-iw)/2:50" in cmd_str:
+                if "scale=1080:607,pad=1080:1920:(ow-iw)/2:50" in cmd_str:
                     scale_found = True
             
             self.assertTrue(scale_found, "Should use black bars scaling")
