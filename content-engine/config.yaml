@@ -20,6 +20,11 @@ assembly:
   shorts_text_size: 48
   shorts_text_color: white
   shorts_lower_third_height_pct: 0.25
+  shorts_attribution_enabled: true
+  shorts_attribution_y_pct: 0.05
+  shorts_attribution_font_size: 30
+  shorts_attribution_color: white
+  shorts_attribution_opacity: 0.85
   
   # Image Cycling & Grounding
   youtube_confidence_threshold: 0.8

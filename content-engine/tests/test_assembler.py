@@ -207,6 +207,116 @@ class TestAssembler(unittest.TestCase):
             
             # Verify it completed without error
             self.assertTrue(mock_copy.called, "Should copy output despite missing music")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_attribution_renders(self, mock_copy, mock_run):
+        """shorts_mode with attribution passes attribution string to FFmpeg."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test segment text"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {
+                "shorts_music_path": None,
+                "shorts_attribution_enabled": True,
+                "shorts_attribution_y_pct": 0.05,
+                "shorts_attribution_font_size": 30,
+                "shorts_attribution_color": "white",
+                "shorts_attribution_opacity": 0.85
+            }
+            
+            assemble_video(segments, audio_path, output_path, temp_dir, config, 
+                         shorts_mode=True, attribution="Gameplay via: CohhCarnage")
+            
+            # Verify that drawtext was called with attribution text
+            calls = mock_run.call_args_list
+            attribution_found = False
+            for call in calls:
+                cmd = call[0] if call[0] else []
+                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+                if "Gameplay via: CohhCarnage" in cmd_str:
+                    attribution_found = True
+                    break
+            self.assertTrue(attribution_found, "FFmpeg should include attribution text")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_no_attribution_unchanged(self, mock_copy, mock_run):
+        """shorts_mode with attribution=None matches pre-attribution output."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test segment text"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {
+                "shorts_music_path": None,
+                "shorts_attribution_enabled": True
+            }
+            
+            # Call without attribution
+            assemble_video(segments, audio_path, output_path, temp_dir, config, 
+                         shorts_mode=True, attribution=None)
+            
+            # Verify that attribution text is NOT in any FFmpeg call
+            calls = mock_run.call_args_list
+            for call in calls:
+                cmd = call[0] if call[0] else []
+                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+                if "Gameplay via:" in cmd_str or "attribution" in cmd_str.lower():
+                    self.fail("No attribution text should be present when attribution=None")
+    
+    @patch("core.assembler.subprocess.run")
+    @patch("core.assembler.shutil.copy")
+    def test_assembler_attribution_position(self, mock_copy, mock_run):
+        """attribution y position uses shorts_attribution_y_pct from config."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        
+        segments = [{
+            "temp_file": "test.mp4",
+            "segment_text": "Test"
+        }]
+        
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            output_path = temp_dir / "output.mp4"
+            audio_path = temp_dir / "audio.mp3"
+            audio_path.touch()
+            config = {
+                "shorts_music_path": None,
+                "shorts_attribution_enabled": True,
+                "shorts_attribution_y_pct": 0.1,
+                "shorts_attribution_font_size": 30
+            }
+            
+            assemble_video(segments, audio_path, output_path, temp_dir, config, 
+                         shorts_mode=True, attribution="Test attribution")
+            
+            # Verify that the custom y_pct (0.1 = 10%) is used in calculation
+            # 1920 * 0.1 = 192 pixels from top
+            calls = mock_run.call_args_list
+            y_position_found = False
+            for call in calls:
+                cmd = call[0] if call[0] else []
+                cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+                if "y=192" in cmd_str:  # 1920 * 0.1 = 192
+                    y_position_found = True
+                    break
+            self.assertTrue(y_position_found, "Should use custom y position from config")
 
 if __name__ == "__main__":
     unittest.main()

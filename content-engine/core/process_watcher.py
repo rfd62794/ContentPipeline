@@ -101,6 +101,10 @@ class ProcessWatcher:
                         # Stop recording
                         filepath = self.obs.stop_recording()
                         self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
+                        
+                        # Resolve path to correct subfolder
+                        filepath = self.resolve_recording_path(filepath, process_name)
+                        
                         state = "DONE"
                         return filepath
                 
@@ -118,3 +122,63 @@ class ProcessWatcher:
     def stop(self) -> None:
         """Stop the watch loop cleanly."""
         self._stop_flag.set()
+    
+    def resolve_recording_path(self, raw_path: str, process_name: str, mapping_path: str = 'config/game_folders.json') -> str:
+        """
+        Resolve recording path to correct subfolder based on game mapping.
+        
+        Args:
+            raw_path: Original file path from OBS
+            process_name: Game process name (e.g., "Everything is Crab.exe")
+            mapping_path: Path to game_folders.json config file
+            
+        Returns:
+            Corrected path with subfolder inserted, or raw_path if resolution fails
+        """
+        import json
+        import os
+        from pathlib import Path
+        
+        try:
+            # Load game_folders.json
+            mapping_file = Path(mapping_path)
+            if not mapping_file.exists():
+                self.logger.info(f"ProcessWatcher: No folder mapping found at {mapping_path}")
+                return raw_path
+            
+            with open(mapping_file, 'r', encoding='utf-8') as f:
+                mapping = json.load(f)
+            
+            # Look up process name in mapping
+            subfolder = mapping.get(process_name)
+            if not subfolder:
+                self.logger.info(f"ProcessWatcher: No folder mapping for {process_name}")
+                return raw_path
+            
+            # Extract filename from raw_path
+            raw_path_obj = Path(raw_path)
+            filename = raw_path_obj.name
+            
+            # Extract base directory from raw_path
+            base_dir = raw_path_obj.parent.parent  # Go up from game-specific folder to Videos
+            
+            # Build corrected path
+            corrected_path = base_dir / subfolder / filename
+            
+            self.logger.info(f"ProcessWatcher: Resolved path: {raw_path} -> {corrected_path}")
+            
+            # Move file to corrected location
+            if raw_path_obj.exists():
+                corrected_path.parent.mkdir(parents=True, exist_ok=True)
+                import shutil
+                shutil.move(str(raw_path_obj), str(corrected_path))
+                self.logger.info(f"ProcessWatcher: Moved file to {corrected_path}")
+            
+            return str(corrected_path)
+            
+        except json.JSONDecodeError as e:
+            self.logger.info(f"ProcessWatcher: Malformed JSON in {mapping_path}: {e}")
+            return raw_path
+        except Exception as e:
+            self.logger.info(f"ProcessWatcher: Path resolution failed: {e}")
+            return raw_path

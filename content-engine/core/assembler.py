@@ -218,19 +218,29 @@ def preprocess_segment(segment: Dict[str, Any], temp_dir: Path, config: Dict[str
 
 import shutil
 
-def assemble_video(segments: List[Dict[str, Any]], audio_path: Path, output_path: Path, temp_dir: Path, config: Dict[str, Any], shorts_mode: bool = False):
+def assemble_video(segments: List[Dict[str, Any]], audio_path: Path, output_path: Path, temp_dir: Path, config: Dict[str, Any], shorts_mode: bool = False, attribution: str = None):
     """
     Concatenate preprocessed segments and mux with audio. Supports subtitles.
     
     When shorts_mode=True:
     - Output resolution: 1080x1920 (vertical)
     - Voice audio is bypassed
+    - Attribution text overlay (top 20%) if provided
     - Text overlay: lower third with segment text
     - Background music: optional track at 0.25 volume
+    
+    Args:
+        segments: List of segment dictionaries
+        audio_path: Audio file path
+        output_path: Output file path
+        temp_dir: Temporary directory for processing
+        config: Configuration dictionary
+        shorts_mode: Enable shorts mode (vertical video)
+        attribution: Optional attribution string for attribution overlay
     """
     # Shorts mode path
     if shorts_mode:
-        return _assemble_shorts(segments, output_path, temp_dir, config)
+        return _assemble_shorts(segments, output_path, temp_dir, config, attribution)
     
     # Horizontal (long-form) path
     concat_file = temp_dir / "concat.txt"
@@ -278,14 +288,22 @@ def assemble_video(segments: List[Dict[str, Any]], audio_path: Path, output_path
         srt_path.unlink()
 
 
-def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir: Path, config: Dict[str, Any]):
+def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir: Path, config: Dict[str, Any], attribution: str = None):
     """
     Assemble video in Shorts mode (vertical 1080x1920).
     
     - Muted gameplay clips as background
+    - Attribution text overlay (top 20%) if provided
     - Lower third text overlay with segment text
     - Optional background music at 0.25 volume
     - No voice audio
+    
+    Args:
+        segments: List of segment dictionaries
+        output_path: Output file path
+        temp_dir: Temporary directory for processing
+        config: Configuration dictionary
+        attribution: Optional attribution string (e.g., "Gameplay via: CohhCarnage")
     """
     concat_file = temp_dir / "concat.txt"
     with open(concat_file, "w") as f:
@@ -313,9 +331,15 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         logger.error(f"FFmpeg Scale failed: {result_scale.stderr[-500:]}")
         raise subprocess.CalledProcessError(result_scale.returncode, "ffmpeg_scale", output=result_scale.stdout, stderr=result_scale.stderr)
     
+    # Add attribution text overlay if provided
+    attribution_visuals = vertical_visuals
+    if attribution and config.get("shorts_attribution_enabled", False):
+        attribution_visuals = temp_dir / "attribution_overlay.mp4"
+        _add_attribution_text(vertical_visuals, attribution_visuals, attribution, config)
+    
     # Add lower third text overlay for each segment
     text_overlay = temp_dir / "text_overlay.mp4"
-    _add_lower_third_text(vertical_visuals, text_overlay, segments, temp_dir, config)
+    _add_lower_third_text(attribution_visuals, text_overlay, segments, temp_dir, config)
     
     # Add background music if configured
     music_path = config.get("shorts_music_path")
@@ -376,3 +400,31 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segments: List[
     else:
         # No segments, just copy input
         shutil.copy(str(input_video), str(output_video))
+
+
+def _add_attribution_text(input_video: Path, output_video: Path, attribution: str, config: Dict[str, Any]):
+    """Add attribution text overlay to video (top 20% of frame)."""
+    # Get attribution styling from config
+    font = config.get("shorts_text_font", "monospace")
+    font_size = config.get("shorts_attribution_font_size", 30)
+    text_color = config.get("shorts_attribution_color", "white")
+    y_pct = config.get("shorts_attribution_y_pct", 0.05)
+    opacity = config.get("shorts_attribution_opacity", 0.85)
+    
+    # Calculate attribution position (top 5% of frame)
+    y_pos = int(1920 * y_pct)
+    
+    # Escape text for FFmpeg
+    safe_text = sanitize_drawtext(attribution)
+    
+    # Build FFmpeg command with attribution text
+    result_text = subprocess.run([
+        get_ffmpeg_path(), "-y", "-i", str(input_video),
+        "-vf", f"drawtext=text='{safe_text}':fontcolor={text_color}:fontsize={font_size}:"
+               f"x=(w-text_w)/2:y={y_pos}:alpha={opacity}",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
+    ], capture_output=True, text=True)
+    
+    if result_text.returncode != 0:
+        logger.error(f"FFmpeg Attribution Overlay failed: {result_text.stderr[-500:]}")
+        raise subprocess.CalledProcessError(result_text.returncode, "ffmpeg_attribution_overlay", output=result_text.stdout, stderr=result_text.stderr)
