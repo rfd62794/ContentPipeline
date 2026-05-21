@@ -28,6 +28,20 @@
 2:03-2:07  - Healing Pond POI (Increase Regen By 1.5)
 2:08-2:16  - 2 Easy fruit
 2:18-2:23  - Carved Tree POI (Increase Physical By 1)
+2:24-2:30 - Wandering In Search Of Food (Fish Food Found)
+2:31-2:38 - Evolution Option (Reroll Selected)
+2:39-2:44 - Evolution Option (Chonky Selected) (Size + 12%, Physical + 1.2)
+2:45-2:50 - Looking For POI
+2:51-2:56 - Found POI (Chaos Tree) (Eat Chaos Fruit) (Greatly Increases 1 Random Stat)
+2:57-2:59 - (+10% Size) (Random Stat Increased)
+3:00-3:10 - Combatant Follows me to Food Pile (They Die There, More Food)
+3:11-3:15 - Evolve As Next Combatant Arrives (They'll Wait)
+3:16-3:18 - Evolution Option (Fur Lv.3) (Damage Resistance +10%->+15%)(Cold Adaptation 66%->100%)
+3:19-3:29 - Evolution Option (Fur Lv.3) (Specialization: Wool)(50% Of Your Cold Adaptation Is Gained As Heat Adapation)
+3:30-3:35 - Night Creeps In As A Combatant Arrives
+3:36-3:52 - Feeding In The Dark (Combatant Dies 3:41)
+3:53-3:57 - Finding POI At Night
+3:58-4:02 - Mud Pond Found (Thermoregulate: Increase Cold & Heat Adaptation By 10%)
 
 ## 2:23 onward — unmapped
 [Continue logging from here]
