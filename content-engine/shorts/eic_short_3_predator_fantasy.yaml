@@ -1,0 +1,64 @@
+name: eic_short_3_predator_fantasy
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: false
+max_visible_lines: 5
+beats:
+  - clip_start: "0:25"
+    clip_end: "0:27"
+    duration: 2
+    line: "You're small."
+  - clip_start: "0:27"
+    clip_end: "0:30"
+    duration: 3
+    line: "You run."
+  - clip_start: "2:51"
+    clip_end: "2:56"
+    duration: 5
+    line: "Chaos Tree."
+  - clip_start: "2:57"
+    clip_end: "2:59"
+    duration: 2
+    line: "+10% Size."
+  - clip_start: "3:00"
+    clip_end: "3:10"
+    duration: 7
+    line: "An enemy followed me to my food."
+  - clip_start: "3:10"
+    clip_end: "3:11"
+    duration: 1
+    line: "They died there."
+  - clip_start: "3:11"
+    clip_end: "3:15"
+    duration: 4
+    line: "Next one arrived."
+  - clip_start: "3:15"
+    clip_end: "3:18"
+    duration: 3
+    line: "I evolved."
+  - clip_start: "3:18"
+    clip_end: "3:21"
+    duration: 3
+    line: "They died immediately after."
+  - clip_start: "3:16"
+    clip_end: "3:29"
+    duration: 5
+    line: "Fur became Wool."
+  - clip_start: "3:30"
+    clip_end: "3:35"
+    duration: 5
+    line: "Night fell."
+  - clip_start: "3:36"
+    clip_end: "3:41"
+    duration: 5
+    line: "The last one didn't survive it."
+  - clip_start: "3:41"
+    clip_end: "3:52"
+    duration: 6
+    line: "By minute three,"
+  - clip_start: "3:41"
+    clip_end: "3:52"
+    duration: 6
+    line: "killing was a side effect."
