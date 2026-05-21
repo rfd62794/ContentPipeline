@@ -44,8 +44,7 @@
 3:58-4:02 - Mud Pond Found (Thermoregulate: Increase Cold & Heat Adaptation By 10%)
 
 ## 2:23 onward — unmapped
-3:11-3:15  - Evolve As Next Combatant Arrives (They'll Wait)
-3:18-3:21  - Kill Combatant Shortly After Evolving (loop click)
+[Continue logging from here]
 
 ---
 
