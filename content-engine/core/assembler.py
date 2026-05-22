@@ -422,7 +422,7 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "segment_text.txt"
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(sanitize_drawtext(segment_text))
+        f.write(segment_text)
     
     # Convert to absolute path and escape special characters for FFmpeg
     textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
