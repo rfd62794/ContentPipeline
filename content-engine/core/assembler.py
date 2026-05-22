@@ -359,7 +359,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         duration = segment.get("duration", 5.0)  # Default 5 seconds if not specified
         
         text_clip = temp_dir / f"text_{i}.mp4"
-        _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center)
+        _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center, i)
         
         processed_clips.append(text_clip)
     
@@ -408,7 +408,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     logger.info(f"Multi-segment assembly complete: {output_path}")
 
 
-def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: str, duration: float, temp_dir: Path, config: Dict[str, Any], y_center: int):
+def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: str, duration: float, temp_dir: Path, config: Dict[str, Any], y_center: int, segment_index: int = 0):
     """Add lower third text overlay to video (positioned below gameplay clip) with timing."""
     # Get text styling from config
     font = config.get("shorts_text_font", "monospace")
@@ -419,7 +419,7 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     y_pos = y_center
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
-    textfile = output_video.parent / "segment_text.txt"
+    textfile = output_video.parent / f"segment_text_{segment_index}.txt"
     with open(textfile, 'w', encoding='utf-8') as f:
         f.write(segment_text)
     
