@@ -1,1 +1,5 @@
-sessions/tmp_recording.wav
+sessions/.tmp_recording.wav
+sessions/*.wav
+
+__pycache__/
+*.pyc

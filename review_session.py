@@ -21,7 +21,7 @@ import tempfile
 import time
 
 
-TEMP_WAV = os.path.join("sessions", "tmp_recording.wav")
+TEMP_WAV = os.path.join("sessions", ".tmp_recording.wav")
 
 
 def format_timestamp(seconds: float) -> str:
@@ -106,8 +106,8 @@ def resolve_vlc_path() -> str:
         return "vlc"
 
 
-def record_audio(output_path: str, samplerate: int = 16000, duration: int = None) -> None:
-    """Open sounddevice InputStream. Block on input() or duration. Write WAV to output_path on stop.
+def record_audio(output_path: str, samplerate: int = 16000) -> None:
+    """Open sounddevice InputStream. Block on input(). Write WAV to output_path on stop.
     Ctrl+C raises KeyboardInterrupt — let it propagate to main()."""
     import numpy as np
     import sounddevice as sd
@@ -124,40 +124,36 @@ def record_audio(output_path: str, samplerate: int = 16000, duration: int = None
             print(f"Recording status: {status}", file=sys.stderr)
         audio_frames.append(indata.copy())
     
-    if duration:
-        print(f"Recording for {duration} seconds...")
-        # Start recording with timer
-        try:
-            with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
-                sd.sleep(duration * 1000)  # Convert to milliseconds
-        except Exception as e:
-            print(f"Recording error: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
-            raise
-    else:
-        print("Recording... Press Enter to stop.")
-        # Start recording
-        with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
-            input()  # Block until Enter is pressed
+    print("Recording... Press Enter to stop.")
+    # Start recording
+    with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
+        input()  # Block until Enter is pressed
     
     # Convert frames to numpy array and save
     if not audio_frames:
         raise ValueError("No audio frames recorded")
     audio_data = np.concatenate(audio_frames, axis=0)
+    print(f"Writing WAV to {output_path}")
     wav.write(output_path, samplerate, audio_data)
-    print(f"Audio saved to {output_path}")
+    if os.path.exists(output_path):
+        print(f"Audio saved to {output_path} ({os.path.getsize(output_path)} bytes)")
+    else:
+        raise FileNotFoundError(f"WAV file not created at {output_path}")
 
 
 
 def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Popen:
     """Launch VLC as subprocess. Args: --start-time, --no-loop, --quiet.
     Return the Popen handle. Do not block."""
+    # Convert to Windows path format
+    video_path_win = os.path.normpath(video_path)
     args = [
         vlc_path,
-        video_path,
+        video_path_win,
         f"--start-time={start_time}",
         "--no-loop",
+        "--fullscreen",
+        "--no-video-title-show",
         "--quiet",
         "--play-and-exit"
     ]
@@ -170,9 +166,17 @@ def transcribe(wav_path: str, model_name: str) -> list:
     """Load whisper model. Transcribe wav_path. Return result['segments']."""
     import whisper
     
+    print(f"Loading Whisper model: {model_name}")
     model = whisper.load_model(model_name)
-    result = model.transcribe(wav_path)
-    return result["segments"]
+    print(f"Transcribing {wav_path}...")
+    try:
+        result = model.transcribe(wav_path)
+        return result["segments"]
+    except Exception as e:
+        print(f"Transcription error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def main() -> None:
@@ -183,7 +187,6 @@ def main() -> None:
     parser.add_argument("--start-time", type=int, default=0, dest="start_time")
     parser.add_argument("--model", default="base")
     parser.add_argument("--output-dir", default="sessions", dest="output_dir")
-    parser.add_argument("--duration", type=int, default=None, help="Recording duration in seconds (for automated testing)")
     args = parser.parse_args()
     
     # Validate video path exists
@@ -215,13 +218,14 @@ def main() -> None:
         
         # Start recording
         recording_active = True
-        record_audio(TEMP_WAV, duration=args.duration)
+        record_audio(TEMP_WAV)
         recording_active = False
         
         # Transcribe
         if not os.path.exists(TEMP_WAV):
             print(f"Error: Temp WAV file not found at {TEMP_WAV}", file=sys.stderr)
             sys.exit(1)
+        print(f"Transcribing {TEMP_WAV}...")
         segments = transcribe(TEMP_WAV, args.model)
         
         # Offset segments
@@ -258,6 +262,7 @@ def main() -> None:
     finally:
         # Delete temp WAV if it exists
         if os.path.exists(TEMP_WAV):
+            print(f"Cleaning up temp WAV: {TEMP_WAV}")
             try:
                 os.remove(TEMP_WAV)
             except Exception as e:
