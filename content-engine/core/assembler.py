@@ -358,7 +358,6 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         segment_text = segment.get("segment_text", "")
         duration = segment.get("duration", 5.0)  # Default 5 seconds if not specified
         
-        logger.info(f"Segment {i} text: '{segment_text}'")  # DEBUG: log exact text being passed
         text_clip = temp_dir / f"text_{i}.mp4"
         _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center)
         
@@ -421,9 +420,6 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "segment_text.txt"
-    logger.info(f"Writing textfile to: {textfile}")
-    logger.info(f"Textfile absolute path: {textfile.resolve()}")
-    logger.info(f"Text content being written: {repr(segment_text)}")
     with open(textfile, 'w', encoding='utf-8') as f:
         f.write(segment_text)
     

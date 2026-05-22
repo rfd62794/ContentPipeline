@@ -193,63 +193,112 @@ def main():
         },
     ]
     
-    # Short 3 — The Decision Density Problem
+    # Short 3 — Predator Fantasy (same content as YAML)
     short_3_segments = [
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "0:10",
-            "source_timestamp_end": "0:20",
-            "duration": 10,
-            "segment_text": "Decision one."
-        },
-        {
-            "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "0:33",
-            "source_timestamp_end": "0:35",
+            "source_timestamp_start": "0:25",
+            "source_timestamp_end": "0:27",
             "duration": 2,
-            "segment_text": "Decision two."
+            "segment_text": "You're small."
         },
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "0:55",
-            "source_timestamp_end": "0:56",
-            "duration": 1,
-            "segment_text": "Decision three."
+            "source_timestamp_start": "0:27",
+            "source_timestamp_end": "0:30",
+            "duration": 3,
+            "segment_text": "You run."
         },
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "1:37",
-            "source_timestamp_end": "1:44",
+            "source_timestamp_start": "2:51",
+            "source_timestamp_end": "2:56",
+            "duration": 5,
+            "segment_text": "Chaos Tree."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "2:57",
+            "source_timestamp_end": "2:59",
+            "duration": 2,
+            "segment_text": "+10% Size."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:00",
+            "source_timestamp_end": "3:10",
             "duration": 7,
-            "segment_text": "Decision four."
+            "segment_text": "An enemy followed me to my food."
         },
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "1:44",
-            "source_timestamp_end": "1:48",
+            "source_timestamp_start": "3:10",
+            "source_timestamp_end": "3:11",
+            "duration": 1,
+            "segment_text": "They died there."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:11",
+            "source_timestamp_end": "3:15",
             "duration": 4,
-            "segment_text": "90 seconds."
+            "segment_text": "Next one arrived."
         },
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "1:48",
-            "source_timestamp_end": "1:52",
-            "duration": 4,
-            "segment_text": "This is why run one hooks you."
+            "source_timestamp_start": "3:15",
+            "source_timestamp_end": "3:18",
+            "duration": 3,
+            "segment_text": "I evolved."
         },
         {
             "temp_file": EIC_VIDEO,
-            "source_timestamp_start": "1:52",
-            "source_timestamp_end": "1:58",
+            "source_timestamp_start": "3:18",
+            "source_timestamp_end": "3:21",
+            "duration": 3,
+            "segment_text": "They died immediately after."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:16",
+            "source_timestamp_end": "3:29",
+            "duration": 5,
+            "segment_text": "Fur became Wool."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:30",
+            "source_timestamp_end": "3:35",
+            "duration": 5,
+            "segment_text": "Night fell."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:36",
+            "source_timestamp_end": "3:41",
+            "duration": 5,
+            "segment_text": "The last one didn't survive it."
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:41",
+            "source_timestamp_end": "3:52",
             "duration": 6,
-            "segment_text": "Run ten feels thinner."
+            "segment_text": "By minute three,"
+        },
+        {
+            "temp_file": EIC_VIDEO,
+            "source_timestamp_start": "3:41",
+            "source_timestamp_end": "3:52",
+            "duration": 6,
+            "segment_text": "killing was a side effect."
         },
     ]
     
     shorts_config = [
         # {"name": "eic_short_1_evolution", "segments": short_1_segments},  # Already produced
-        {"name": "eic_short_2_predator", "segments": short_2_segments},
-        # {"name": "eic_short_3_decisions", "segments": short_3_segments}  # Disabled - produce one at a time
+        # {"name": "eic_short_2_predator", "segments": short_2_segments},
+        {"name": "eic_short_3_predator_fantasy", "segments": short_3_segments}  # Test Short 3 with retired script
     ]
     
     # Assemble shorts with multi-segment structure (one at a time for visual confirmation)
@@ -257,7 +306,6 @@ def main():
         logger.info(f"Processing {short_config['name']}")
         
         segments = short_config["segments"]
-        logger.info(f"RETIRED SEG 0 BEFORE STACKING: {segments[0]}")
         
         # Add stacking text accumulation with sliding window (last 5 lines)
         MAX_VISIBLE_LINES = 5
@@ -268,8 +316,6 @@ def main():
             segment["segment_text"] = "\n".join(visible_lines)
         
         output_path = output_dir / f"{short_config['name']}.mp4"
-        
-        logger.info(f"RETIRED SEG 0 AFTER STACKING: {segments[0]}")
         
         # Assemble as short (no attribution for own footage)
         try:
