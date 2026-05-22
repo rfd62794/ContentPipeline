@@ -4,4 +4,4 @@ sessions/*.wav
 __pycache__/*.pyc
 *.pyc
 __pycache__/*
-cache/*
+cache/***/__pycache__/
