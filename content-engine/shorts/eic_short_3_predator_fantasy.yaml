@@ -13,7 +13,7 @@ beats:
   - clip_start: "0:25"
     clip_end: "0:27"
     duration: 2
-    line: "You are small."
+    line: "You're small."
   - clip_start: "0:27"
     clip_end: "0:30"
     duration: 3
@@ -25,7 +25,7 @@ beats:
   - clip_start: "2:57"
     clip_end: "2:59"
     duration: 2
-    line: "Size increased."
+    line: "+10% Size."
   - clip_start: "3:00"
     clip_end: "3:10"
     duration: 7
