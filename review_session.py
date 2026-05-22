@@ -106,8 +106,8 @@ def resolve_vlc_path() -> str:
         return "vlc"
 
 
-def record_audio(output_path: str, samplerate: int = 16000) -> None:
-    """Open sounddevice InputStream. Block on input(). Write WAV to output_path on stop.
+def record_audio(output_path: str, samplerate: int = 16000, duration: int = None) -> None:
+    """Open sounddevice InputStream. Block on input() or duration. Write WAV to output_path on stop.
     Ctrl+C raises KeyboardInterrupt — let it propagate to main()."""
     import numpy as np
     import sounddevice as sd
@@ -117,22 +117,28 @@ def record_audio(output_path: str, samplerate: int = 16000) -> None:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     # Recording callback
-    frames = []
+    audio_frames = []
     
     def callback(indata, frames, time, status):
         if status:
             print(f"Recording status: {status}", file=sys.stderr)
-        frames.append(indata.copy())
+        audio_frames.append(indata.copy())
     
-    print("Recording... Press Enter to stop.")
-    
-    # Start recording
-    with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
-        input()  # Block until Enter is pressed
+    if duration:
+        print(f"Recording for {duration} seconds...")
+        # Start recording with timer
+        with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
+            sd.sleep(duration * 1000)  # Convert to milliseconds
+    else:
+        print("Recording... Press Enter to stop.")
+        # Start recording
+        with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
+            input()  # Block until Enter is pressed
     
     # Convert frames to numpy array and save
-    audio_data = np.concatenate(frames, axis=0)
+    audio_data = np.concatenate(audio_frames, axis=0)
     wav.write(output_path, samplerate, audio_data)
+
 
 
 def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Popen:
@@ -167,6 +173,7 @@ def main() -> None:
     parser.add_argument("--start-time", type=int, default=0, dest="start_time")
     parser.add_argument("--model", default="base")
     parser.add_argument("--output-dir", default="sessions", dest="output_dir")
+    parser.add_argument("--duration", type=int, default=None, help="Recording duration in seconds (for automated testing)")
     args = parser.parse_args()
     
     # Validate video path exists
@@ -197,7 +204,7 @@ def main() -> None:
         
         # Start recording
         recording_active = True
-        record_audio(TEMP_WAV)
+        record_audio(TEMP_WAV, duration=args.duration)
         recording_active = False
         
         # Transcribe
