@@ -3,7 +3,7 @@
 **Source:** C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
 **Run:** Pressure 2 — Full run, main menu to main menu
 **Duration:** ~9 minutes
-**Used in:** Short 1 (evolution), Short 2 (predator), Short 3 (world)
+**Used in:** Short 1 (evolution), Short 2 (predator), Short 3 (predator fantasy)
 
 ---
 
@@ -51,4 +51,4 @@
 ## Shorts Produced
 - Short 1: eic_short_1_evolution.yaml — beats from 0:10, 0:33-1:10
 - Short 2: eic_short_2_predator.yaml — beats from 0:25-1:38
-- Short 3: eic_short_3_world.yaml — beats from 1:37-2:23 (planned)
+- Short 3: eic_short_3_predator_fantasy.yaml — beats from 0:25-0:30, 2:51-3:52 (thesis: "By minute three, killing was a side effect")
