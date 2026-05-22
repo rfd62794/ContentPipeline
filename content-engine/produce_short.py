@@ -130,6 +130,7 @@ def produce_short_from_yaml(yaml_path: Path):
     logger.info(f"Producing short: {name}")
     logger.info(f"Source: {source}")
     logger.info(f"Attribution: {attribution if attribution else 'None'}")
+    logger.info(f"Attribution type: {type(attribution)}")
     logger.info(f"Beats: {len(beats)}")
     logger.info(f"Stack text: {stack_text}")
     
