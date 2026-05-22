@@ -432,8 +432,10 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / f"segment_text_{segment_index}.txt"
+    escaped_text = sanitize_textfile(segment_text)
+    logger.info(f"Writing textfile {segment_index}: '{segment_text}' -> '{escaped_text}'")
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(sanitize_textfile(segment_text))
+        f.write(escaped_text)
     
     # Use relative path with forward slashes for FFmpeg compatibility
     textfile_rel = str(textfile).replace("\\", "/")
@@ -471,8 +473,10 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     
     # Write attribution text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "attribution_text.txt"
+    escaped_attribution = sanitize_textfile(attribution)
+    logger.info(f"Writing attribution textfile: '{attribution}' -> '{escaped_attribution}'")
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(sanitize_textfile(attribution))
+        f.write(escaped_attribution)
     
     # Convert to absolute path and escape special characters for FFmpeg
     textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
