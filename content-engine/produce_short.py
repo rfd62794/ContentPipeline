@@ -163,7 +163,7 @@ def produce_short_from_yaml(yaml_path: Path):
     output_path = output_dir / f"{name}.mp4"
     
     # Assemble short
-    print("YAML SEG 0:", segments[0])
+    logger.info(f"YAML SEG 0: {segments[0]}")
     try:
         assemble_video(
             segments,

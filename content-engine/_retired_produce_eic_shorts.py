@@ -257,6 +257,7 @@ def main():
         logger.info(f"Processing {short_config['name']}")
         
         segments = short_config["segments"]
+        logger.info(f"RETIRED SEG 0 BEFORE STACKING: {segments[0]}")
         
         # Add stacking text accumulation with sliding window (last 5 lines)
         MAX_VISIBLE_LINES = 5
@@ -268,7 +269,7 @@ def main():
         
         output_path = output_dir / f"{short_config['name']}.mp4"
         
-        print("RETIRED SEG 0:", segments[0])
+        logger.info(f"RETIRED SEG 0 AFTER STACKING: {segments[0]}")
         
         # Assemble as short (no attribution for own footage)
         try:
