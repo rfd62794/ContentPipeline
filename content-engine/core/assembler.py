@@ -420,8 +420,10 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / f"segment_text_{segment_index}.txt"
+    # Escape % for FFmpeg textfile expansion
+    safe_text = segment_text.replace("%", "\\%")
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(segment_text)
+        f.write(safe_text)
     
     # Use relative path with forward slashes for FFmpeg compatibility
     textfile_rel = str(textfile).replace("\\", "/")
