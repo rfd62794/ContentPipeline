@@ -28,6 +28,18 @@ def sanitize_drawtext(text: str) -> str:
     text = text.replace("]", "\\]")
     return text
 
+def sanitize_textfile(text: str) -> str:
+    """Escape characters that FFmpeg interprets specially in textfile content."""
+    if not text:
+        return ""
+    # Escape backslash first — must be first to avoid double-escaping
+    text = text.replace("\\", "\\\\")
+    # Escape percent — FFmpeg treats as text expansion prefix
+    text = text.replace("%", "\\%")
+    # Escape colon — FFmpeg treats as filter argument delimiter
+    text = text.replace(":", "\\:")
+    return text
+
 
 def get_ffmpeg_path() -> str:
     """Return the path to the verified local ffmpeg.exe if present, else fallback to 'ffmpeg'."""
@@ -420,10 +432,8 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / f"segment_text_{segment_index}.txt"
-    # Escape % for FFmpeg textfile expansion
-    safe_text = segment_text.replace("%", "\\%")
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(safe_text)
+        f.write(sanitize_textfile(segment_text))
     
     # Use relative path with forward slashes for FFmpeg compatibility
     textfile_rel = str(textfile).replace("\\", "/")
@@ -462,7 +472,7 @@ def _add_attribution_text(input_video: Path, output_video: Path, attribution: st
     # Write attribution text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "attribution_text.txt"
     with open(textfile, 'w', encoding='utf-8') as f:
-        f.write(attribution)
+        f.write(sanitize_textfile(attribution))
     
     # Convert to absolute path and escape special characters for FFmpeg
     textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
