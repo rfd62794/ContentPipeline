@@ -21,7 +21,7 @@ import tempfile
 import time
 
 
-TEMP_WAV = os.path.join("sessions", ".tmp_recording.wav")
+TEMP_WAV = os.path.join("sessions", "tmp_recording.wav")
 
 
 def format_timestamp(seconds: float) -> str:
@@ -132,6 +132,8 @@ def record_audio(output_path: str, samplerate: int = 16000, duration: int = None
                 sd.sleep(duration * 1000)  # Convert to milliseconds
         except Exception as e:
             print(f"Recording error: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
             raise
     else:
         print("Recording... Press Enter to stop.")
@@ -156,8 +158,10 @@ def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Po
         video_path,
         f"--start-time={start_time}",
         "--no-loop",
-        "--quiet"
+        "--quiet",
+        "--play-and-exit"
     ]
+    print(f"VLC command: {' '.join(args)}")
     process = subprocess.Popen(args)
     return process
 
