@@ -11,3 +11,6 @@ VLC. Binary path resolved at runtime: Windows default `C:\Program Files\VideoLAN
 
 ## Consequences
 VLC must be installed. Tool fails loudly if it isn't. No bundled player.
+
+## Amendment
+`--play-and-exit` was removed from the original VLC args spec during integration testing because VLC exits immediately after startup, preventing simultaneous audio recording.
