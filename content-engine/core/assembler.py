@@ -424,12 +424,12 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     with open(textfile, 'w', encoding='utf-8') as f:
         f.write(segment_text)
     
-    # Convert to absolute path with double backslash and colon escaping (original working approach)
-    textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
+    # Use relative path with forward slashes for FFmpeg compatibility
+    textfile_rel = str(textfile).replace("\\", "/")
     
     # Build FFmpeg command with lower third text and timing
     # Use enable='between(t,0,duration)' to show text only for specified duration
-    filter_string = f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:x=50:y={y_pos}:line_spacing=8:enable='between(t,0,{duration})'"
+    filter_string = f"drawtext=textfile='{textfile_rel}':fontcolor={text_color}:fontsize={font_size}:x=50:y={y_pos}:line_spacing=8:enable='between(t,0,{duration})'"
     cmd = [
         get_ffmpeg_path(), "-y", "-i", str(input_video),
         "-vf", filter_string,
