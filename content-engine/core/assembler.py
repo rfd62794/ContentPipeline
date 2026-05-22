@@ -423,6 +423,7 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     textfile = output_video.parent / "segment_text.txt"
     logger.info(f"Writing textfile to: {textfile}")
     logger.info(f"Textfile absolute path: {textfile.resolve()}")
+    logger.info(f"Text content being written: {repr(segment_text)}")
     with open(textfile, 'w', encoding='utf-8') as f:
         f.write(segment_text)
     

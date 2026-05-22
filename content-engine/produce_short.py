@@ -157,7 +157,7 @@ def produce_short_from_yaml(yaml_path: Path):
     output_dir = Path("output/shorts")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    temp_dir = Path("temp") / "eic_shorts"  # force same temp dir as retired script
+    temp_dir = Path("temp/shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
     
     # Output path

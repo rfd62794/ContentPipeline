@@ -6,7 +6,7 @@ music_start_options:
   - "0:04"   # early groove
   - "0:35"   # first pickup
   - "1:15"   # second pickup
-music_start: 75
+music_start: 0
 stack_text: true
 max_visible_lines: 5
 beats:
