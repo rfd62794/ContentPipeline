@@ -318,7 +318,6 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         attribution: Optional attribution string (e.g., "Gameplay via: CohhCarnage")
     """
     processed_clips = []
-    cumulative_time = 0.0  # Track elapsed time across segments for correct text timing
     
     # Process each segment individually
     for i, segment in enumerate(segments):
@@ -357,14 +356,13 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             continue
         
         # Step 3: Add lower third text for this segment
-        # Text persists for exactly segment["duration"] at correct timeline position
+        # Text persists for exactly segment["duration"]
         segment_text = segment.get("segment_text", "")
         duration = segment.get("duration", 5.0)  # Default 5 seconds if not specified
         
         text_clip = temp_dir / f"text_{i}.mp4"
-        _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center, time_offset=cumulative_time)
+        _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center)
         
-        cumulative_time += duration  # Track elapsed time for next segment
         processed_clips.append(text_clip)
     
     if not processed_clips:
@@ -412,7 +410,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     logger.info(f"Multi-segment assembly complete: {output_path}")
 
 
-def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: str, duration: float, temp_dir: Path, config: Dict[str, Any], y_center: int, time_offset: float = 0.0):
+def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: str, duration: float, temp_dir: Path, config: Dict[str, Any], y_center: int):
     """Add lower third text overlay to video (positioned below gameplay clip) with timing."""
     # Get text styling from config
     font = config.get("shorts_text_font", "monospace")
@@ -431,13 +429,11 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     textfile_abs = str(textfile.resolve()).replace("\\", "\\\\").replace(":", "\\:")
     
     # Build FFmpeg command with lower third text and timing
-    # Use enable='between(t,time_offset,time_offset+duration)' to show text at correct position in full timeline
-    start_time = time_offset
-    end_time = time_offset + duration
+    # Use enable='between(t,0,duration)' to show text only for specified duration
     cmd = [
         get_ffmpeg_path(), "-y", "-i", str(input_video),
         "-vf", f"drawtext=textfile='{textfile_abs}':fontcolor={text_color}:fontsize={font_size}:"
-               f"x=50:y={y_pos}:line_spacing=8:enable='between(t,{start_time},{end_time})'",
+               f"x=50:y={y_pos}:line_spacing=8:enable='between(t,0,{duration})'",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
     ]
     logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
