@@ -7,7 +7,7 @@ music_start_options:
   - "0:35"   # first pickup
   - "1:15"   # second pickup
 music_start: "1:15"
-stack_text: false
+stack_text: true
 max_visible_lines: 5
 beats:
   - clip_start: "0:25"
