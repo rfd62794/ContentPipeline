@@ -257,6 +257,7 @@ class TestLiveConnection:
         if usage:
             assert isinstance(usage, dict)
 
+    @pytest.mark.live
     def test_hook_key_present_with_script_prompt(self):
         """Full script prompt should produce response with hook_short_script key."""
         config = load_model_config()
