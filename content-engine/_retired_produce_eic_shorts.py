@@ -221,7 +221,7 @@ def main():
             "source_timestamp_start": "2:57",
             "source_timestamp_end": "2:59",
             "duration": 2,
-            "segment_text": "+10% Size."
+            "segment_text": "10% Size."
         },
         {
             "temp_file": EIC_VIDEO,
