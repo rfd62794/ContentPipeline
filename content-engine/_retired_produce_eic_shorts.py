@@ -268,6 +268,8 @@ def main():
         
         output_path = output_dir / f"{short_config['name']}.mp4"
         
+        print("RETIRED SEG 0:", segments[0])
+        
         # Assemble as short (no attribution for own footage)
         try:
             assemble_video(
