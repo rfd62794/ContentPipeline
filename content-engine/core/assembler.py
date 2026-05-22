@@ -421,6 +421,8 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
     
     # Write segment text to a temporary file (FFmpeg textfile approach)
     textfile = output_video.parent / "segment_text.txt"
+    logger.info(f"Writing textfile to: {textfile}")
+    logger.info(f"Textfile absolute path: {textfile.resolve()}")
     with open(textfile, 'w', encoding='utf-8') as f:
         f.write(segment_text)
     
