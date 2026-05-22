@@ -151,9 +151,6 @@ def produce_short_from_yaml(yaml_path: Path):
     if stack_text:
         logger.info(f"Applying text stacking (max {max_visible_lines} lines)")
         segments = apply_text_stacking(segments, max_visible_lines)
-        # DEBUG
-        for i, seg in enumerate(segments):
-            logger.info(f"SEGMENT {i} TEXT: {repr(seg['segment_text'])}")
     
     # Setup directories
     output_dir = Path("output/shorts")
