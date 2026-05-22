@@ -436,6 +436,7 @@ def _add_lower_third_text(input_video: Path, output_video: Path, segment_text: s
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-an", str(output_video)
     ]
     logger.info(f"FFmpeg Lower Third Command: {' '.join(cmd)}")
+    logger.info(f"FULL CMD: {' '.join(cmd)}")
     result_text = subprocess.run(cmd, capture_output=True, text=True)
     
     # Clean up textfile
