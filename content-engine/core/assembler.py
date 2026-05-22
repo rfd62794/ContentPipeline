@@ -360,6 +360,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         segment_text = segment.get("segment_text", "")
         duration = segment.get("duration", 5.0)  # Default 5 seconds if not specified
         
+        logger.info(f"Segment {i} text: '{segment_text}'")  # DEBUG: log exact text being passed
         text_clip = temp_dir / f"text_{i}.mp4"
         _add_lower_third_text(scaled, text_clip, segment_text, duration, temp_dir, config, analysis_zone_center)
         
