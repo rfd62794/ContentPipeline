@@ -20,6 +20,11 @@ import sys
 import tempfile
 import time
 
+# Add content-engine to PATH for ffmpeg (required by Whisper)
+content_engine_path = os.path.join(os.path.dirname(__file__), "content-engine")
+if os.path.exists(content_engine_path):
+    os.environ["PATH"] = content_engine_path + os.pathsep + os.environ.get("PATH", "")
+
 
 TEMP_WAV = os.path.join("sessions", ".tmp_recording.wav")
 
@@ -133,12 +138,7 @@ def record_audio(output_path: str, samplerate: int = 16000) -> None:
     if not audio_frames:
         raise ValueError("No audio frames recorded")
     audio_data = np.concatenate(audio_frames, axis=0)
-    print(f"Writing WAV to {output_path}")
     wav.write(output_path, samplerate, audio_data)
-    if os.path.exists(output_path):
-        print(f"Audio saved to {output_path} ({os.path.getsize(output_path)} bytes)")
-    else:
-        raise FileNotFoundError(f"WAV file not created at {output_path}")
 
 
 
@@ -154,10 +154,8 @@ def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Po
         "--no-loop",
         "--fullscreen",
         "--no-video-title-show",
-        "--quiet",
-        "--play-and-exit"
+        "--quiet"
     ]
-    print(f"VLC command: {' '.join(args)}")
     process = subprocess.Popen(args)
     return process
 
@@ -166,17 +164,9 @@ def transcribe(wav_path: str, model_name: str) -> list:
     """Load whisper model. Transcribe wav_path. Return result['segments']."""
     import whisper
     
-    print(f"Loading Whisper model: {model_name}")
     model = whisper.load_model(model_name)
-    print(f"Transcribing {wav_path}...")
-    try:
-        result = model.transcribe(wav_path)
-        return result["segments"]
-    except Exception as e:
-        print(f"Transcription error: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        raise
+    result = model.transcribe(wav_path)
+    return result["segments"]
 
 
 def main() -> None:
@@ -214,7 +204,6 @@ def main() -> None:
     try:
         # Launch VLC
         vlc_process = launch_vlc(args.video_path, args.start_time, vlc_path)
-        print(f"VLC launched with PID: {vlc_process.pid}")
         
         # Start recording
         recording_active = True
@@ -225,7 +214,6 @@ def main() -> None:
         if not os.path.exists(TEMP_WAV):
             print(f"Error: Temp WAV file not found at {TEMP_WAV}", file=sys.stderr)
             sys.exit(1)
-        print(f"Transcribing {TEMP_WAV}...")
         segments = transcribe(TEMP_WAV, args.model)
         
         # Offset segments
@@ -262,7 +250,6 @@ def main() -> None:
     finally:
         # Delete temp WAV if it exists
         if os.path.exists(TEMP_WAV):
-            print(f"Cleaning up temp WAV: {TEMP_WAV}")
             try:
                 os.remove(TEMP_WAV)
             except Exception as e:
