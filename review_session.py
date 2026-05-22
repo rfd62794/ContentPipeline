@@ -127,8 +127,12 @@ def record_audio(output_path: str, samplerate: int = 16000, duration: int = None
     if duration:
         print(f"Recording for {duration} seconds...")
         # Start recording with timer
-        with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
-            sd.sleep(duration * 1000)  # Convert to milliseconds
+        try:
+            with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
+                sd.sleep(duration * 1000)  # Convert to milliseconds
+        except Exception as e:
+            print(f"Recording error: {e}", file=sys.stderr)
+            raise
     else:
         print("Recording... Press Enter to stop.")
         # Start recording
@@ -136,8 +140,11 @@ def record_audio(output_path: str, samplerate: int = 16000, duration: int = None
             input()  # Block until Enter is pressed
     
     # Convert frames to numpy array and save
+    if not audio_frames:
+        raise ValueError("No audio frames recorded")
     audio_data = np.concatenate(audio_frames, axis=0)
     wav.write(output_path, samplerate, audio_data)
+    print(f"Audio saved to {output_path}")
 
 
 
@@ -149,8 +156,7 @@ def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Po
         video_path,
         f"--start-time={start_time}",
         "--no-loop",
-        "--quiet",
-        "--play-and-exit"
+        "--quiet"
     ]
     process = subprocess.Popen(args)
     return process
@@ -201,6 +207,7 @@ def main() -> None:
     try:
         # Launch VLC
         vlc_process = launch_vlc(args.video_path, args.start_time, vlc_path)
+        print(f"VLC launched with PID: {vlc_process.pid}")
         
         # Start recording
         recording_active = True
@@ -208,6 +215,9 @@ def main() -> None:
         recording_active = False
         
         # Transcribe
+        if not os.path.exists(TEMP_WAV):
+            print(f"Error: Temp WAV file not found at {TEMP_WAV}", file=sys.stderr)
+            sys.exit(1)
         segments = transcribe(TEMP_WAV, args.model)
         
         # Offset segments
