@@ -234,11 +234,11 @@ class GameMetricsClient:
     """Client for enriching Steam library data with SteamSpy and YouTube search metrics."""
     
     SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
-    TOKEN_FILE = ".youtube_token.json"
+    TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".youtube_token.json")
     CLIENT_SECRET_FILE = "client_secret.json"
-    CACHE_FILE = ".youtube_cache/game_metrics.json"
+    CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".youtube_cache", "game_metrics.json")
     STEAMSPY_API_URL = "https://steamspy.com/api.php"
-    STEAMSPY_CACHE_DIR = ".steam_cache"
+    STEAMSPY_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".steam_cache")
     RATE_LIMIT_DELAY = 2.0  # 2 seconds between API calls to respect quota
     STEAMSPY_RATE_LIMIT_DELAY = 1.0  # 1 second between SteamSpy calls
     
@@ -252,7 +252,7 @@ class GameMetricsClient:
         """
         self.credentials = None
         self.youtube_service = None
-        self.cache_dir = Path(cache_dir) if cache_dir else Path(".youtube_cache")
+        self.cache_dir = Path(cache_dir) if cache_dir else Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".youtube_cache"))
         self.cache_file = self.cache_dir / "game_metrics.json"
         
         # Determine client secret path
@@ -284,11 +284,7 @@ class GameMetricsClient:
                 if self.credentials.expired and self.credentials.refresh_token:
                     self.credentials.refresh(Request())
             else:
-                import os
-                print(f"Looking for token at: {os.path.abspath('.youtube_token.json')}", file=sys.stderr)
-                print(f"Current working directory: {os.getcwd()}", file=sys.stderr)
-                print(f"Token file exists: {Path('.youtube_token.json').exists()}", file=sys.stderr)
-                raise RuntimeError("No valid credentials found. Run gcloud auth application-default login or ensure .youtube_token.json exists")
+                raise RuntimeError(f"No valid credentials found. Expected token at: {self.TOKEN_FILE}")
         
         # Build YouTube service
         self.youtube_service = build('youtube', 'v3', credentials=self.credentials)
@@ -296,6 +292,10 @@ class GameMetricsClient:
         # Create SteamSpy cache directory
         self.steamspy_cache_dir = Path(self.STEAMSPY_CACHE_DIR)
         self.steamspy_cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create YouTube cache directory
+        self.cache_dir = Path(self.CACHE_FILE).parent
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
     
     def fetch_steamspy_data(self, appid: int) -> Dict[str, Any]:
         """

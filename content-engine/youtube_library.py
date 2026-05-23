@@ -77,7 +77,7 @@ class YouTubeLibrary:
     """Client for YouTube Data API v3 library data using OAuth with refresh token."""
     
     SCOPES = ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
-    TOKEN_FILE = ".youtube_token.json"
+    TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".youtube_token.json")
     CLIENT_SECRET_FILE = "client_secret.json"
     
     def __init__(self, client_secret_path: Optional[str] = None):
