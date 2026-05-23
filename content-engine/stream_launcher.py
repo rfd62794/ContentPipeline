@@ -13,11 +13,19 @@ Usage:
 import os
 import subprocess
 import sys
+import time
+import threading
+import signal
 from pathlib import Path
 from typing import Optional
 import yaml
 from dotenv import load_dotenv
 import psutil
+
+try:
+    import win32gui
+except ImportError:
+    win32gui = None
 
 # Load .env from absolute path
 load_dotenv(Path(__file__).parent / ".env")
@@ -50,7 +58,8 @@ def get_steam_launch_uri(appid: int) -> str:
 def validate_stream_config(config: dict) -> list[str]:
     """Return list of validation errors. Empty = valid.
     Check: game present, steam_appid is int, title <= 100 chars,
-    privacy is public/unlisted/private, obs_scene present."""
+    privacy is public/unlisted/private, obs_scene present,
+    obs_overlay_scene present, obs_mic_source present, game_process_name present."""
     errors = []
     
     if not config.get("game"):
@@ -72,6 +81,15 @@ def validate_stream_config(config: dict) -> list[str]:
     
     if not config.get("obs_scene"):
         errors.append("Missing required field: obs_scene")
+    
+    if not config.get("obs_overlay_scene"):
+        errors.append("Missing required field: obs_overlay_scene")
+    
+    if not config.get("obs_mic_source"):
+        errors.append("Missing required field: obs_mic_source")
+    
+    if not config.get("game_process_name"):
+        errors.append("Missing required field: game_process_name")
     
     return errors
 
@@ -97,6 +115,35 @@ def find_stream_config(game_name: str, streams_dir: Path) -> Optional[Path]:
             continue
     
     return None
+
+
+def get_active_window_title() -> str:
+    """Get the title of the currently active window.
+    Returns empty string if unable to detect."""
+    try:
+        if win32gui:
+            return win32gui.GetWindowText(win32gui.GetForegroundWindow())
+        else:
+            return ""
+    except Exception:
+        return ""
+
+
+def is_game_focused(window_title: str, game_name: str) -> bool:
+    """Check if the active window is the game window.
+    Case-insensitive partial match on game name in window title."""
+    if not window_title:
+        return False
+    return game_name.lower() in window_title.lower()
+
+
+def is_game_running(process_name: str) -> bool:
+    """Check if a game process is currently running.
+    Case-insensitive exact match on process name."""
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] and proc.info['name'].lower() == process_name.lower():
+            return True
+    return False
 
 
 def ensure_obs_running(obs_exe_path: Optional[str] = None) -> bool:
@@ -252,10 +299,98 @@ def start_obs_stream(obs_client: object) -> None:
         print(f"Error starting OBS stream: {e}")
 
 
+def stop_obs_stream(obs_client: object) -> None:
+    """Stop OBS streaming output."""
+    try:
+        obs_client.call("StartStopStreaming")
+        print("Stopped OBS streaming")
+    except Exception as e:
+        print(f"Error stopping OBS stream: {e}")
+
+
+def mute_obs_mic(obs_client: object, mic_source: str) -> None:
+    """Mute OBS microphone source."""
+    try:
+        obs_client.call("SetMute", {"source": mic_source, "mute": True})
+        print(f"Muted OBS mic: {mic_source}")
+    except Exception as e:
+        print(f"Error muting OBS mic: {e}")
+
+
+def unmute_obs_mic(obs_client: object, mic_source: str) -> None:
+    """Unmute OBS microphone source."""
+    try:
+        obs_client.call("SetMute", {"source": mic_source, "mute": False})
+        print(f"Unmuted OBS mic: {mic_source}")
+    except Exception as e:
+        print(f"Error unmuting OBS mic: {e}")
+
+
+class StreamMonitor:
+    """Background thread for monitoring game focus and process status.
+    Handles focus loss → overlay + mic mute, game close → end stream."""
+    
+    def __init__(self, obs_client: object, config: dict):
+        self.obs_client = obs_client
+        self.config = config
+        self.running = True
+        self.game_name = config.get("game")
+        self.game_process_name = config.get("game_process_name")
+        self.obs_game_scene = config.get("obs_scene")
+        self.obs_overlay_scene = config.get("obs_overlay_scene")
+        self.obs_mic_source = config.get("obs_mic_source")
+        self.was_focused = True
+        
+    def run(self):
+        """Main monitoring loop. Runs in daemon thread."""
+        print(f"Stream monitor started for {self.game_name}")
+        
+        while self.running:
+            try:
+                # Check if game is still running
+                if not is_game_running(self.game_process_name):
+                    print(f"Game closed — stream ended")
+                    stop_obs_stream(self.obs_client)
+                    self.running = False
+                    break
+                
+                # Check window focus
+                window_title = get_active_window_title()
+                is_focused = is_game_focused(window_title, self.game_name)
+                
+                # Focus lost → switch to overlay + mute mic
+                if self.was_focused and not is_focused:
+                    print(f"Focus lost — switching to overlay scene")
+                    switch_obs_scene(self.obs_client, self.obs_overlay_scene)
+                    mute_obs_mic(self.obs_client, self.obs_mic_source)
+                    self.was_focused = False
+                
+                # Focus returned → switch back to game + unmute mic
+                elif not self.was_focused and is_focused:
+                    print(f"Focus returned — switching to game scene")
+                    switch_obs_scene(self.obs_client, self.obs_game_scene)
+                    unmute_obs_mic(self.obs_client, self.obs_mic_source)
+                    self.was_focused = True
+                
+                # Sleep for 2 seconds before next check
+                time.sleep(2)
+                
+            except Exception as e:
+                print(f"Stream monitor error: {e}")
+                time.sleep(2)
+        
+        print("Stream monitor stopped")
+    
+    def stop(self):
+        """Stop the monitor thread."""
+        self.running = False
+
+
 def start_stream(game_name: str, 
                  title: Optional[str] = None,
                  privacy: str = "public",
-                 obs_scene: Optional[str] = None) -> dict:
+                 obs_scene: Optional[str] = None,
+                 enable_monitor: bool = True) -> dict:
     """
     Full stream launch sequence:
     1. Find stream config for game_name
@@ -265,9 +400,11 @@ def start_stream(game_name: str,
     5. Connect to OBS
     6. Switch to correct scene
     7. Start OBS streaming
-    8. Return status dict with stream URL
+    8. Start stream monitor (if enabled)
+    9. Return status dict with stream URL
     
     title, privacy, obs_scene override YAML values if provided.
+    enable_monitor controls whether to start the background monitoring thread.
     """
     streams_dir = Path(__file__).parent / "streams"
     
@@ -336,7 +473,15 @@ def start_stream(game_name: str,
     print("Starting OBS streaming")
     start_obs_stream(obs_client)
     
-    # 9. Return success with stream URL
+    # 9. Start stream monitor (if enabled)
+    monitor_thread = None
+    if enable_monitor:
+        monitor = StreamMonitor(obs_client, config)
+        monitor_thread = threading.Thread(target=monitor.run, daemon=True)
+        monitor_thread.start()
+        print("Stream monitor started")
+    
+    # 10. Return success with stream URL
     channel_handle = "@robertfloyddugger4516"
     stream_url = build_youtube_stream_url(channel_handle)
     
@@ -344,28 +489,31 @@ def start_stream(game_name: str,
         "success": True,
         "stream_url": stream_url,
         "game": config.get("game"),
-        "title": final_title
+        "title": final_title,
+        "monitor_running": enable_monitor
     }
 
 
 def main() -> None:
     """
-    CLI: python stream_launcher.py <game_name> [--title "..."] [--private]
+    CLI: python stream_launcher.py <game_name> [--title "..."] [--private] [--no-monitor]
     
     Examples:
       python stream_launcher.py dorfromantik
       python stream_launcher.py "Scritchy Scratchy" --title "First look"
+      python stream_launcher.py dorfromantik --no-monitor
     
     Prints: "Live at youtube.com/@robertfloyddugger4516"
     """
     if len(sys.argv) < 2:
-        print("Usage: python stream_launcher.py <game_name> [--title \"...\"] [--private]")
+        print("Usage: python stream_launcher.py <game_name> [--title \"...\"] [--private] [--no-monitor]")
         print("Example: python stream_launcher.py dorfromantik")
         sys.exit(1)
     
     game_name = sys.argv[1]
     title = None
     privacy = "public"
+    enable_monitor = True
     
     # Parse optional arguments
     i = 2
@@ -376,17 +524,41 @@ def main() -> None:
         elif sys.argv[i] == "--private":
             privacy = "private"
             i += 1
+        elif sys.argv[i] == "--no-monitor":
+            enable_monitor = False
+            i += 1
         else:
             print(f"Unknown argument: {sys.argv[i]}")
             sys.exit(1)
     
-    result = start_stream(game_name, title=title, privacy=privacy)
+    result = start_stream(game_name, title=title, privacy=privacy, enable_monitor=enable_monitor)
     
-    if result["success"]:
-        print(f"Live at {result['stream_url']}")
-    else:
+    if not result["success"]:
         print(f"Error: {result['error']}")
         sys.exit(1)
+    
+    print(f"Live at {result['stream_url']}")
+    
+    # If monitor is running, keep main thread alive and handle graceful shutdown
+    if enable_monitor:
+        print("Press Ctrl+C to stop the stream...")
+        
+        def signal_handler(sig, frame):
+            """Handle Ctrl+C for graceful shutdown."""
+            print("\nStream ended by user")
+            # OBS will be stopped by monitor thread when it detects game closed
+            # or we can force stop here if needed
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        
+        # Keep main thread alive
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nStream ended by user")
+            sys.exit(0)
 
 
 if __name__ == "__main__":

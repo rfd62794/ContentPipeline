@@ -18,6 +18,9 @@ from stream_launcher import (
     validate_stream_config,
     find_stream_config,
     ensure_obs_running,
+    get_active_window_title,
+    is_game_focused,
+    is_game_running,
 )
 
 
@@ -83,7 +86,10 @@ class TestValidateStreamConfig:
             "steam_appid": 1455840,
             "title": "Test stream",
             "privacy": "public",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert errors == []
@@ -93,7 +99,10 @@ class TestValidateStreamConfig:
             "steam_appid": 1455840,
             "title": "Test stream",
             "privacy": "public",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -105,7 +114,10 @@ class TestValidateStreamConfig:
             "steam_appid": 1455840,
             "title": "Test stream",
             "privacy": "invalid",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -117,7 +129,10 @@ class TestValidateStreamConfig:
             "steam_appid": 1455840,
             "title": "A" * 150,
             "privacy": "public",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -128,7 +143,10 @@ class TestValidateStreamConfig:
             "game": "Dorfromantik",
             "steam_appid": 1455840,
             "title": "Test stream",
-            "privacy": "public"
+            "privacy": "public",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -139,7 +157,10 @@ class TestValidateStreamConfig:
             "game": "Dorfromantik",
             "title": "Test stream",
             "privacy": "public",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -151,7 +172,10 @@ class TestValidateStreamConfig:
             "steam_appid": "1455840",  # string instead of int
             "title": "Test stream",
             "privacy": "public",
-            "obs_scene": "Gaming"
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
         }
         errors = validate_stream_config(config)
         assert len(errors) == 1
@@ -164,6 +188,48 @@ class TestValidateStreamConfig:
         }
         errors = validate_stream_config(config)
         assert len(errors) >= 2
+    
+    def test_validate_missing_overlay_scene(self):
+        config = {
+            "game": "Dorfromantik",
+            "steam_appid": 1455840,
+            "title": "Test stream",
+            "privacy": "public",
+            "obs_scene": "Gaming",
+            "obs_mic_source": "Mic/Aux",
+            "game_process_name": "Dorfromantik.exe"
+        }
+        errors = validate_stream_config(config)
+        assert len(errors) == 1
+        assert "obs_overlay_scene" in errors[0].lower()
+    
+    def test_validate_missing_mic_source(self):
+        config = {
+            "game": "Dorfromantik",
+            "steam_appid": 1455840,
+            "title": "Test stream",
+            "privacy": "public",
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "game_process_name": "Dorfromantik.exe"
+        }
+        errors = validate_stream_config(config)
+        assert len(errors) == 1
+        assert "obs_mic_source" in errors[0].lower()
+    
+    def test_validate_missing_process_name(self):
+        config = {
+            "game": "Dorfromantik",
+            "steam_appid": 1455840,
+            "title": "Test stream",
+            "privacy": "public",
+            "obs_scene": "Gaming",
+            "obs_overlay_scene": "BRB",
+            "obs_mic_source": "Mic/Aux"
+        }
+        errors = validate_stream_config(config)
+        assert len(errors) == 1
+        assert "game_process_name" in errors[0].lower()
 
 
 class TestFindStreamConfig:
@@ -266,4 +332,98 @@ class TestEnsureObsRunning:
             mock_process_iter.return_value = [MagicMock(info={'name': 'obs64.exe'})]
             
             result = ensure_obs_running()
+            assert result is True
+
+
+class TestGetActiveWindowTitle:
+    """Test get_active_window_title function."""
+    
+    def test_get_active_window_title_mock(self):
+        """Test get_active_window_title with mocked win32gui."""
+        with patch('stream_launcher.win32gui') as mock_win32gui:
+            mock_win32gui.GetForegroundWindow.return_value = 12345
+            mock_win32gui.GetWindowText.return_value = "Dorfromantik"
+            
+            result = get_active_window_title()
+            assert result == "Dorfromantik"
+    
+    def test_get_active_window_title_no_win32gui(self):
+        """Test get_active_window_title returns empty string when win32gui is None."""
+        with patch('stream_launcher.win32gui', None):
+            result = get_active_window_title()
+            assert result == ""
+    
+    def test_get_active_window_title_exception(self):
+        """Test get_active_window_title returns empty string on exception."""
+        with patch('stream_launcher.win32gui') as mock_win32gui:
+            mock_win32gui.GetForegroundWindow.side_effect = Exception("Error")
+            
+            result = get_active_window_title()
+            assert result == ""
+
+
+class TestIsGameFocused:
+    """Test is_game_focused function."""
+    
+    def test_is_game_focused_match(self):
+        """Test is_game_focused returns True when game name is in window title."""
+        window_title = "Dorfromantik - Main Menu"
+        game_name = "Dorfromantik"
+        result = is_game_focused(window_title, game_name)
+        assert result is True
+    
+    def test_is_game_focused_no_match(self):
+        """Test is_game_focused returns False when game name is not in window title."""
+        window_title = "Chrome - YouTube"
+        game_name = "Dorfromantik"
+        result = is_game_focused(window_title, game_name)
+        assert result is False
+    
+    def test_is_game_focused_case_insensitive(self):
+        """Test is_game_focused is case-insensitive."""
+        window_title = "DORFROMANTIK - Main Menu"
+        game_name = "dorfromantik"
+        result = is_game_focused(window_title, game_name)
+        assert result is True
+    
+    def test_is_game_focused_empty_title(self):
+        """Test is_game_focused returns False for empty window title."""
+        window_title = ""
+        game_name = "Dorfromantik"
+        result = is_game_focused(window_title, game_name)
+        assert result is False
+
+
+class TestIsGameRunning:
+    """Test is_game_running function."""
+    
+    def test_is_game_running_mock(self):
+        """Test is_game_running with mocked psutil."""
+        with patch('stream_launcher.psutil.process_iter') as mock_process_iter:
+            # Mock game process running
+            mock_process = MagicMock()
+            mock_process.info = {'name': 'Dorfromantik.exe'}
+            mock_process_iter.return_value = [mock_process]
+            
+            result = is_game_running("Dorfromantik.exe")
+            assert result is True
+    
+    def test_is_game_running_not_found(self):
+        """Test is_game_running returns False when process not found."""
+        with patch('stream_launcher.psutil.process_iter') as mock_process_iter:
+            # Mock no matching process
+            mock_process_iter.return_value = []
+            
+            result = is_game_running("Dorfromantik.exe")
+            assert result is False
+    
+    def test_is_game_running_case_insensitive(self):
+        """Test is_game_running is case-insensitive."""
+        with patch('stream_launcher.psutil.process_iter') as mock_process_iter:
+            # Mock game process with different case
+            mock_process = MagicMock()
+            mock_process.info = {'name': 'dorfromantik.exe'}
+            mock_process_iter.return_value = [mock_process]
+            
+            result = is_game_running("Dorfromantik.exe")
             assert result is True

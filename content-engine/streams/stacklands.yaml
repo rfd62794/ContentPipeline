@@ -5,6 +5,9 @@ description: "Building out my village in Stacklands. Resource management and car
 category: Gaming
 privacy: public
 obs_scene: "Gaming"
+obs_overlay_scene: "BRB"
+obs_mic_source: "Mic/Aux"
+game_process_name: "Stacklands.exe"
 tags:
   - stacklands
   - city builder

@@ -5,6 +5,9 @@ description: "Playing through Scritchy Scratchy, a unique platformer. Learning t
 category: Gaming
 privacy: public
 obs_scene: "Gaming"
+obs_overlay_scene: "BRB"
+obs_mic_source: "Mic/Aux"
+game_process_name: "Scritchy Scratchy.exe"
 tags:
   - scritchy scratchy
   - platformer
