@@ -18,6 +18,13 @@ database/*.db
 database/*.db-wal
 database/*.db-shm
 
+# Cache
+cache/
+
+# Steam API Cache
+steam_cache/
+
+
 # Audio artifacts
 audio/
 assets/
