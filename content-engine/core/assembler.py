@@ -410,12 +410,14 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
                 if vp and Path(vp).exists():
                     voice_parts.append(str(Path(vp)))
                 else:
-                    # Generate a silent audio clip of segment duration
+                    # Generate a silent MP3 clip of segment duration
                     silence_path = temp_dir / f"silence_{i}.mp3"
                     subprocess.run([
                         get_ffmpeg_path(), "-y",
-                        "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono",
-                        "-t", str(duration), str(silence_path)
+                        "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                        "-t", str(duration),
+                        "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                        str(silence_path)
                     ], capture_output=True, check=True)
                     voice_parts.append(str(silence_path))
 
@@ -427,7 +429,9 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             voice_track = temp_dir / "voice_track.mp3"
             subprocess.run([
                 get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0",
-                "-i", str(voice_concat_list), str(voice_track)
+                "-i", str(voice_concat_list),
+                "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                str(voice_track)
             ], capture_output=True, check=True)
 
             # Mix: music (trimmed if needed) + voice at respective volumes
