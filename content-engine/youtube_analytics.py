@@ -142,8 +142,8 @@ class YouTubeAnalytics:
                 dimensions='video',
                 metrics='views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes',
                 filters=f'video=={video_id}',
-                start_date=start_date,
-                end_date=end_date
+                startDate=start_date,
+                endDate=end_date
             ).execute()
             
             if not response.get('rows'):
@@ -241,8 +241,8 @@ class YouTubeAnalytics:
             response = self.service.reports().query(
                 ids='channel==MINE',
                 metrics='views,estimatedMinutesWatched,subscribersGained',
-                start_date=start_date,
-                end_date=end_date
+                startDate=start_date,
+                endDate=end_date
             ).execute()
             
             if not response.get('rows'):

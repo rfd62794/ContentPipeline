@@ -30,6 +30,7 @@ client_secret.json
 
 # YouTube Library Cache
 .youtube_cache/
+.youtube_cache/*.json
 
 
 # Audio artifacts
