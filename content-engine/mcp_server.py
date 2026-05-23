@@ -208,7 +208,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_sale_info",
-            description="Look up current sale prices and historical lows for games via IsThereAnyDeal. Requires ITAD_API_KEY in environment.",
+            description="Look up current sale prices and historical lows for games via IsThereAnyDeal. Requires ITAD_API_KEY in environment. Title lookup is exact-match only — use the full exact Steam title (e.g. 'The Binding of Isaac: Rebirth', not 'Isaac Rebirth').",
             inputSchema={
                 "type": "object",
                 "properties": {
