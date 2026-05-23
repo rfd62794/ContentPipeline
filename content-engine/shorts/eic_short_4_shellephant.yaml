@@ -1,0 +1,49 @@
+name: eic_short_4_shellephant
+# title: "Everything is Crab — it raised a white flag. I didn't stop."
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: true
+max_visible_lines: 5
+beats:
+  - clip_start: "6:02"
+    clip_end: "6:11"
+    duration: 9
+    line: "The ground shook."
+  - clip_start: "6:08"
+    clip_end: "6:14"
+    duration: 6
+    line: "That meant a Shellephant."
+  - clip_start: "6:15"
+    clip_end: "6:23"
+    duration: 8
+    line: "I was not ready."
+  - clip_start: "6:32"
+    clip_end: "6:40"
+    duration: 8
+    line: "So I ate during the fight."
+  - clip_start: "6:41"
+    clip_end: "6:46"
+    duration: 5
+    line: "Then I evolved during it."
+  - clip_start: "7:01"
+    clip_end: "7:15"
+    duration: 14
+    line: "For two minutes we just fought."
+  - clip_start: "7:44"
+    clip_end: "7:46"
+    duration: 2
+    line: "It raised a white flag."
+  - clip_start: "7:47"
+    clip_end: "7:55"
+    duration: 8
+    line: "I got wings."
+  - clip_start: "8:28"
+    clip_end: "8:34"
+    duration: 6
+    line: ""
+  - clip_start: "8:30"
+    clip_end: "8:34"
+    duration: 4
+    line: ""
