@@ -125,6 +125,10 @@ async def list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Return full owned Steam library (153+ games), ignoring installed_only filter (default: false)"
                     },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Skip first N games for pagination (default: 0). Games are pre-sorted by playtime descending before slicing."
+                    },
                     "refresh": {
                         "type": "boolean",
                         "description": "Bypass cache and fetch fresh YouTube + SteamSpy data (default: false)"
@@ -190,6 +194,10 @@ async def list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Only recommend installed games (default: true)"
                     },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Skip first N games for pagination (default: 0)"
+                    },
                     "refresh": {
                         "type": "boolean",
                         "description": "Bypass cache and fetch fresh YouTube + SteamSpy data (default: false)"
@@ -253,6 +261,7 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
     min_playtime = arguments.get("min_playtime", 0)
     installed_only = arguments.get("installed_only", False)
     all_owned = arguments.get("all_owned", False)
+    offset = arguments.get("offset", 0)
     refresh = arguments.get("refresh", False)
     
     client = get_game_metrics_client()
@@ -269,10 +278,12 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
         min_hours=min_playtime,
         installed_only=installed_only,
         limit=limit,
+        offset=offset,
         refresh=refresh
     )
     result = {
         "count": len(games),
+        "offset": offset,
         "games": [g.__dict__ if hasattr(g, '__dict__') else g for g in games]
     }
     
@@ -350,6 +361,7 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
     limit = arguments.get("limit", 5)
     min_playtime = arguments.get("min_playtime", 1.0)
     installed_only = arguments.get("installed_only", True)
+    offset = arguments.get("offset", 0)
     refresh = arguments.get("refresh", False)
     
     limit = min(limit, 20)  # Cap at 20
@@ -361,7 +373,8 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
         steam_library=steam_library,
         min_hours=min_playtime,
         installed_only=installed_only,
-        limit=limit * 2,  # Get more to filter
+        limit=limit * 2,  # Get more to filter before re-sorting by demand score
+        offset=offset,
         refresh=refresh
     )
     

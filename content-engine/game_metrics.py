@@ -410,9 +410,9 @@ class GameMetricsClient:
         except IOError as e:
             print(f"Warning: Could not save cache: {e}")
     
-    def get_game_metrics(self, steam_library: SteamLibrary, refresh: bool = False, 
+    def get_game_metrics(self, steam_library: SteamLibrary, refresh: bool = False,
                          installed_only: bool = False, min_hours: Optional[float] = None,
-                         limit: Optional[int] = None) -> List[GameMetrics]:
+                         limit: Optional[int] = None, offset: int = 0) -> List[GameMetrics]:
         """
         Get comprehensive metrics for Steam library games.
         
@@ -421,7 +421,8 @@ class GameMetricsClient:
             refresh: Force refresh of YouTube data (ignore cache)
             installed_only: Only include installed games
             min_hours: Filter by minimum playtime hours
-            limit: Limit to top N results by content demand score
+            limit: Limit to N results (applied before enrichment)
+            offset: Skip first N games for pagination
             
         Returns:
             List of GameMetrics objects
@@ -440,7 +441,16 @@ class GameMetricsClient:
         
         if min_hours:
             games = [game for game in games if game.playtime_hours >= min_hours]
-        
+
+        # Sort by playtime descending before slicing so pagination is deterministic
+        games.sort(key=lambda g: g.playtime_hours, reverse=True)
+
+        # Apply pagination before enrichment — never fetch more than requested
+        if offset:
+            games = games[offset:]
+        if limit:
+            games = games[:limit]
+
         # Enrich with SteamSpy and YouTube data
         _empty_steamspy = {
             'players_2weeks': 0,
@@ -507,11 +517,7 @@ class GameMetricsClient:
         
         # Sort by content demand score
         game_metrics.sort(key=lambda x: x.content_demand_score, reverse=True)
-        
-        # Apply limit
-        if limit:
-            game_metrics = game_metrics[:limit]
-        
+
         return game_metrics
 
 
