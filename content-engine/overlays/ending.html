@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Ending</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --primary: #00ff41;
+            --secondary: #00cc33;
+            --dark-green: #003300;
+            --text: #e0e0e0;
+            --font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: var(--font);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 4rem;
+            margin: 0 0 3rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        .handle {
+            color: var(--text);
+            font-size: 1.8rem;
+            margin: 0 0 1rem 0;
+        }
+
+        .github {
+            color: var(--text);
+            font-size: 1.2rem;
+            margin: 0 0 3rem 0;
+        }
+
+        .commits {
+            color: var(--secondary);
+            font-size: 1.5rem;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thanks for watching</h1>
+        <p class="handle">@robertfloyddugger4516</p>
+        <p class="github">github.com/rfd62794</p>
+        <p class="commits" id="commits">Commits this session: 0</p>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        
+        // Set commit count
+        const commits = params.get('commits') || '0';
+        document.getElementById('commits').textContent = 'Commits this session: ' + commits;
+    </script>
+</body>
+</html>

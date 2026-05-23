@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starting Soon</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --primary: #00ff41;
+            --secondary: #00cc33;
+            --dark-green: #003300;
+            --text: #e0e0e0;
+            --font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: var(--font);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 4rem;
+            margin: 0 0 1rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        h2 {
+            color: var(--secondary);
+            font-size: 2rem;
+            margin: 0 0 3rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .progress-container {
+            width: 400px;
+            height: 30px;
+            background: var(--dark-green);
+            border: 2px solid var(--primary);
+            margin: 0 auto 3rem auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            animation: progress 3s ease-in-out infinite;
+        }
+
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        .handle {
+            color: var(--text);
+            font-size: 1.2rem;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RFD IT Services</h1>
+        <h2>Building in Public</h2>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <p class="handle">@robertfloyddugger4516</p>
+    </div>
+</body>
+</html>

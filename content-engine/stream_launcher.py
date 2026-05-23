@@ -62,7 +62,8 @@ def validate_stream_config(config: dict) -> list[str]:
     Check: game present, steam_appid is int, title <= 100 chars,
     privacy is public/unlisted/private, obs_scene present,
     obs_overlay_scene present, obs_mic_source present.
-    game_process_name is optional (will be auto-detected if missing)."""
+    game_process_name is optional (will be auto-detected if missing).
+    test_mode is optional (unlisted, youtube_test, virtual_camera)."""
     errors = []
     
     if not config.get("game"):
@@ -92,6 +93,11 @@ def validate_stream_config(config: dict) -> list[str]:
         errors.append("Missing required field: obs_mic_source")
     
     # game_process_name is optional - will be auto-detected if missing
+    
+    # test_mode is optional - validate if present
+    test_mode = config.get("test_mode")
+    if test_mode and test_mode not in ["unlisted", "youtube_test", "virtual_camera"]:
+        errors.append(f"Invalid test_mode value: {test_mode}. Must be unlisted, youtube_test, or virtual_camera")
     
     return errors
 
@@ -174,7 +180,7 @@ def save_game_registry(registry: dict) -> None:
         print(f"Error saving game registry: {e}")
 
 
-def update_game_registry_entry(registry: dict, appid: int, exe_name: str, install_path: str) -> dict:
+def update_game_registry_entry(registry: dict, appid: int, exe_name: str, install_path: str, session_count: int = 0) -> dict:
     """Return new registry dict with updated entry.
     Sets last_seen to current ISO datetime.
     Does not mutate input dict."""
@@ -183,7 +189,8 @@ def update_game_registry_entry(registry: dict, appid: int, exe_name: str, instal
     new_registry[str(appid)] = {
         "exe_name": exe_name,
         "install_path": str(install_path),
-        "last_seen": datetime.now().isoformat()
+        "last_seen": datetime.now().isoformat(),
+        "session_count": session_count
     }
     return new_registry
 
@@ -195,6 +202,89 @@ def get_exe_from_registry(registry: dict, appid: int) -> Optional[str]:
     if entry:
         return entry.get("exe_name")
     return None
+
+
+def find_active_repo(search_path: str) -> Optional[str]:
+    """
+    Scan search_path for directories containing .git/.
+    Return path of repo with most recent commit timestamp.
+    Returns None if no git repos found.
+    search_path default: C:/Github/
+    """
+    try:
+        search_dir = Path(search_path)
+        if not search_dir.exists():
+            return None
+        
+        repos_with_timestamps = []
+        
+        # Scan for .git directories
+        for git_dir in search_dir.rglob(".git"):
+            repo_path = git_dir.parent
+            try:
+                # Get most recent commit timestamp
+                result = subprocess.run(
+                    ["git", "-C", str(repo_path), "log", "-1", "--format=%ct"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    timestamp = int(result.stdout.strip())
+                    repos_with_timestamps.append((repo_path, timestamp))
+            except Exception:
+                continue
+        
+        if not repos_with_timestamps:
+            return None
+        
+        # Return repo with most recent commit
+        most_recent = max(repos_with_timestamps, key=lambda x: x[1])
+        return str(most_recent[0])
+        
+    except Exception:
+        return None
+
+
+def count_commits_since(repo_path: str, since_dt: datetime) -> int:
+    """
+    Run: git -C repo_path log --oneline --since="{since_dt.isoformat()}"
+    Count lines in output.
+    Returns 0 on any error (git not found, not a repo, etc.).
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", repo_path, "log", "--oneline", f"--since={since_dt.isoformat()}"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            lines = result.stdout.strip().split('\n')
+            return len([line for line in lines if line.strip()])
+        return 0
+    except Exception:
+        return 0
+
+
+def build_game_info_url(
+    overlay_path: str,
+    game_name: str,
+    session_number: int,
+    commit_count: int
+) -> str:
+    """
+    Build file:// URL with query params for game_info.html.
+    Returns properly encoded URL string.
+    """
+    from urllib.parse import quote
+    
+    # Convert to absolute path if not already
+    overlay_abs = Path(overlay_path).absolute()
+    
+    # Build URL with query parameters
+    url = f"file:///{overlay_abs.as_posix()}?game={quote(game_name)}&session={session_number}&commits={commit_count}"
+    return url
 
 
 def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Optional[str]:
@@ -470,9 +560,10 @@ def unmute_obs_mic(obs_client: object, mic_source: str) -> None:
 
 class StreamMonitor:
     """Background thread for monitoring game focus and process status.
-    Handles focus loss → overlay + mic mute, game close → end stream."""
+    Handles focus loss → overlay + mic mute, game close → end stream.
+    Also updates commit counter every 60 seconds."""
     
-    def __init__(self, obs_client: object, config: dict):
+    def __init__(self, obs_client: object, config: dict, stream_start_time: datetime, session_count: int):
         self.obs_client = obs_client
         self.config = config
         self.running = True
@@ -482,6 +573,10 @@ class StreamMonitor:
         self.obs_overlay_scene = config.get("obs_overlay_scene")
         self.obs_mic_source = config.get("obs_mic_source")
         self.was_focused = True
+        self.stream_start_time = stream_start_time
+        self.session_count = session_count
+        self.last_commit_update = time.time()
+        self.repo_path = os.getenv("DEFAULT_REPO_PATH", "C:/Github/")
         
     def run(self):
         """Main monitoring loop. Runs in daemon thread."""
@@ -514,6 +609,12 @@ class StreamMonitor:
                     unmute_obs_mic(self.obs_client, self.obs_mic_source)
                     self.was_focused = True
                 
+                # Update commit counter every 60 seconds
+                current_time = time.time()
+                if current_time - self.last_commit_update >= 60:
+                    self.update_commit_counter()
+                    self.last_commit_update = current_time
+                
                 # Sleep for 2 seconds before next check
                 time.sleep(2)
                 
@@ -522,6 +623,35 @@ class StreamMonitor:
                 time.sleep(2)
         
         print("Stream monitor stopped")
+    
+    def update_commit_counter(self):
+        """Update the game_info overlay with current commit count."""
+        try:
+            # Find active repo
+            active_repo = find_active_repo(self.repo_path)
+            if not active_repo:
+                print("No active git repo found for commit counter")
+                return
+            
+            # Count commits since stream start
+            commit_count = count_commits_since(active_repo, self.stream_start_time)
+            print(f"Commits since stream start: {commit_count}")
+            
+            # Build new game_info URL
+            overlay_path = Path(__file__).parent / "overlays" / "game_info.html"
+            new_url = build_game_info_url(
+                str(overlay_path),
+                self.game_name,
+                self.session_count,
+                commit_count
+            )
+            
+            # Update OBS browser source (would need OBS websocket call to refresh URL)
+            # This is a placeholder - actual implementation depends on OBS source naming
+            print(f"Would update game_info overlay to: {new_url}")
+            
+        except Exception as e:
+            print(f"Error updating commit counter: {e}")
     
     def stop(self):
         """Stop the monitor thread."""
@@ -627,15 +757,30 @@ def start_stream(game_name: str,
     print("Starting OBS streaming")
     start_obs_stream(obs_client)
     
-    # 9. Start stream monitor (if enabled)
+    # 9. Track session count in registry
+    steam_appid = config.get("steam_appid")
+    registry = load_game_registry()
+    entry = registry.get(str(steam_appid), {})
+    session_count = entry.get("session_count", 0) + 1
+    registry = update_game_registry_entry(
+        registry, steam_appid,
+        exe_name=entry.get("exe_name"),
+        install_path=entry.get("install_path"),
+        session_count=session_count
+    )
+    save_game_registry(registry)
+    print(f"Session count for {config.get('game')}: {session_count}")
+    
+    # 10. Start stream monitor (if enabled)
     monitor_thread = None
     if enable_monitor:
-        monitor = StreamMonitor(obs_client, config)
+        stream_start_time = datetime.now()
+        monitor = StreamMonitor(obs_client, config, stream_start_time, session_count)
         monitor_thread = threading.Thread(target=monitor.run, daemon=True)
         monitor_thread.start()
         print("Stream monitor started")
     
-    # 10. Return success with stream URL
+    # 11. Return success with stream URL
     channel_handle = "@robertfloyddugger4516"
     stream_url = build_youtube_stream_url(channel_handle)
     
@@ -644,8 +789,132 @@ def start_stream(game_name: str,
         "stream_url": stream_url,
         "game": config.get("game"),
         "title": final_title,
-        "monitor_running": enable_monitor
+        "monitor_running": enable_monitor,
+        "session_count": session_count
     }
+
+
+def start_test_stream(
+    game_name: str,
+    test_mode: str,
+    repo_path: Optional[str] = None
+) -> dict:
+    """
+    unlisted: Normal stream, YouTube privacy set to unlisted.
+              Auto-ends after 120 seconds.
+              Full end-to-end test with real YouTube.
+    
+    youtube_test: Uses YOUTUBE_TEST_STREAM_KEY from .env.
+                  YouTube's native test stream — never appears publicly.
+                  Auto-ends after 120 seconds.
+    
+    virtual_camera: Starts OBS virtual camera output only.
+                    No streaming. Preview overlays in any webcam app.
+                    Does not auto-end — manual stop required.
+    """
+    streams_dir = Path(__file__).parent / "streams"
+    
+    # 1. Find stream config
+    config_path = find_stream_config(game_name, streams_dir)
+    if not config_path:
+        return {
+            "success": False,
+            "error": f"Stream config not found for game: {game_name}"
+        }
+    
+    # 2. Load and validate config
+    config = load_stream_config(config_path)
+    errors = validate_stream_config(config)
+    if errors:
+        return {
+            "success": False,
+            "error": f"Config validation failed: {', '.join(errors)}"
+        }
+    
+    # 3. Handle test modes
+    if test_mode == "virtual_camera":
+        # Virtual camera mode - no YouTube, just OBS virtual camera
+        obs_exe_path = os.getenv("OBS_EXE_PATH")
+        if not ensure_obs_running(obs_exe_path):
+            return {
+                "success": False,
+                "error": "Failed to ensure OBS is running"
+            }
+        
+        obs_client = connect_obs()
+        if not obs_client:
+            return {
+                "success": False,
+                "error": "Failed to connect to OBS"
+            }
+        
+        # Start virtual camera
+        try:
+            obs_client.call("StartVirtualCam")
+            print("Started OBS virtual camera")
+            return {
+                "success": True,
+                "test_mode": "virtual_camera",
+                "game": config.get("game"),
+                "note": "Virtual camera active - manual stop required"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to start virtual camera: {e}"
+            }
+    
+    elif test_mode == "youtube_test":
+        # YouTube test mode - use test stream key
+        test_stream_key = os.getenv("YOUTUBE_TEST_STREAM_KEY")
+        if not test_stream_key:
+            return {
+                "success": False,
+                "error": "YOUTUBE_TEST_STREAM_KEY not found in environment"
+            }
+        
+        # Override stream key for test
+        original_stream_key = os.getenv("YOUTUBE_STREAM_KEY")
+        os.environ["YOUTUBE_STREAM_KEY"] = test_stream_key
+        
+        # Start stream with unlisted privacy
+        result = start_stream(
+            game_name,
+            privacy="unlisted",
+            enable_monitor=False  # Disable monitoring for test
+        )
+        
+        # Restore original stream key
+        if original_stream_key:
+            os.environ["YOUTUBE_STREAM_KEY"] = original_stream_key
+        
+        if result["success"]:
+            # Auto-end after 120 seconds
+            print("Test stream will auto-end in 120 seconds")
+            threading.Timer(120, lambda: stop_obs_stream(connect_obs())).start()
+        
+        return result
+    
+    elif test_mode == "unlisted":
+        # Unlisted mode - normal stream but unlisted privacy
+        result = start_stream(
+            game_name,
+            privacy="unlisted",
+            enable_monitor=False  # Disable monitoring for test
+        )
+        
+        if result["success"]:
+            # Auto-end after 120 seconds
+            print("Test stream will auto-end in 120 seconds")
+            threading.Timer(120, lambda: stop_obs_stream(connect_obs())).start()
+        
+        return result
+    
+    else:
+        return {
+            "success": False,
+            "error": f"Invalid test_mode: {test_mode}. Must be unlisted, youtube_test, or virtual_camera"
+        }
 
 
 def main() -> None:

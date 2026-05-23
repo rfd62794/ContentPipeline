@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Info</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --primary: #00ff41;
+            --secondary: #00cc33;
+            --dark-green: #003300;
+            --text: #e0e0e0;
+            --font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: var(--font);
+            color: var(--text);
+            width: 400px;
+            height: 160px;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            overflow: hidden;
+        }
+
+        .info-card {
+            background: var(--bg);
+            border: 2px solid var(--primary);
+            padding: 15px;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-name {
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+
+        .session-info {
+            color: var(--secondary);
+            font-size: 1rem;
+            margin: 0 0 5px 0;
+        }
+
+        .commit-info {
+            color: var(--text);
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+        }
+
+        .badge {
+            background: var(--dark-green);
+            color: var(--primary);
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            align-self: flex-start;
+            border: 1px solid var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="info-card">
+        <div>
+            <div class="game-name" id="game-name">Loading...</div>
+            <div class="session-info" id="session-info">Session #0</div>
+            <div class="commit-info" id="commit-info">Commits: 0</div>
+        </div>
+        <div class="badge">Building in Public</div>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        
+        // Set game name
+        const gameName = params.get('game') || 'Unknown';
+        document.getElementById('game-name').textContent = '> ' + gameName;
+        
+        // Set session number
+        const session = params.get('session') || '0';
+        document.getElementById('session-info').textContent = 'Session #' + session;
+        
+        // Set commit count
+        const commits = params.get('commits') || '0';
+        document.getElementById('commit-info').textContent = 'Commits: ' + commits;
+    </script>
+</body>
+</html>
