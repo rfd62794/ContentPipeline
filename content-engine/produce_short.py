@@ -92,6 +92,7 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
     config = {
         "shorts_music_path": yaml_config.get("music_path", "assets/music/Pixelated_Passion.mp3"),
         "shorts_music_start": yaml_config.get("music_start", 0),
+        "music_volume": yaml_config.get("music_volume", 0.20),
         "shorts_attribution_enabled": yaml_config.get("attribution") is not None,
         "shorts_attribution_y_pct": 0.05,
         "shorts_attribution_font_size": 30,

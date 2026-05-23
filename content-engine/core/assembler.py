@@ -400,9 +400,9 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         music_input = Path(music_path)
         if music_start > 0:
             # Trim music to start from specified offset
-            filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume=0.25[audio]"
+            filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={config.get('music_volume', 0.20)}[audio]"
         else:
-            filter_complex = "[1:a]volume=0.25[audio]"
+            filter_complex = f"[1:a]volume={config.get('music_volume', 0.20)}[audio]"
         result_music = subprocess.run([
             get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
             "-filter_complex", filter_complex,
