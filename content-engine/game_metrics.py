@@ -268,15 +268,23 @@ class GameMetricsClient:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
     
     def _load_credentials(self):
-        """Load OAuth credentials using gcloud Application Default Credentials (ADC)."""
-        # Use gcloud ADC for authentication (same pattern as youtube_upload.py)
+        """Load OAuth credentials using gcloud ADC, falling back to token file."""
+        # Try gcloud ADC first (same pattern as youtube_upload.py)
         try:
             credentials, project = default(
                 scopes=["https://www.googleapis.com/auth/youtube.readonly"]
             )
             self.credentials = credentials
-        except Exception as e:
-            raise RuntimeError("Google ADC credentials not found. Run: gcloud auth application-default login")
+        except Exception:
+            # Fall back to existing token file
+            token_path = Path(self.TOKEN_FILE)
+            if token_path.exists():
+                self.credentials = Credentials.from_authorized_user_file(str(token_path), self.SCOPES)
+                # Refresh if expired
+                if self.credentials.expired and self.credentials.refresh_token:
+                    self.credentials.refresh(Request())
+            else:
+                raise RuntimeError("No valid credentials found. Run gcloud auth application-default login or ensure .youtube_token.json exists")
         
         # Build YouTube service
         self.youtube_service = build('youtube', 'v3', credentials=self.credentials)
