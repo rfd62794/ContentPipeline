@@ -21,7 +21,11 @@ from youtube_library import (
     parse_channel_response,
     parse_video_response,
     parse_playlist_response,
-    format_duration
+    format_duration,
+    print_channel_summary,
+    print_video_library,
+    print_playlists,
+    save_to_cache
 )
 
 
@@ -250,3 +254,129 @@ class TestFormatDuration:
         """Test empty string returns as-is."""
         result = format_duration('')
         assert result == ''
+
+
+class TestPrintFunctions:
+    """Tests for print functions (CLI output formatting)."""
+    
+    def test_print_channel_summary(self, capsys):
+        """Test channel summary printing."""
+        channel = YouTubeChannel(
+            channel_id='UC1234567890',
+            title='Test Channel',
+            description='Test channel description',
+            subscriber_count=1000,
+            total_views=50000,
+            video_count=100,
+            custom_url='testchannel'
+        )
+        
+        print_channel_summary(channel)
+        
+        captured = capsys.readouterr()
+        assert 'Test Channel' in captured.out
+        assert 'UC1234567890' in captured.out
+        assert '1,000' in captured.out
+        assert '50,000' in captured.out
+        assert '100' in captured.out
+    
+    def test_print_video_library_empty(self, capsys):
+        """Test video library printing with empty list."""
+        print_video_library([])
+        
+        captured = capsys.readouterr()
+        assert 'No videos found' in captured.out
+    
+    def test_print_video_library_with_videos(self, capsys):
+        """Test video library printing with videos."""
+        videos = [
+            YouTubeVideo(
+                video_id='video1',
+                title='Test Video 1',
+                description='Test description',
+                tags=['tag1'],
+                publish_date='2024-01-01T00:00:00Z',
+                status='public',
+                duration='PT4M13S',
+                thumbnail_url='http://example.com/thumb.jpg',
+                view_count=1000,
+                like_count=50,
+                comment_count=10
+            )
+        ]
+        
+        print_video_library(videos)
+        
+        captured = capsys.readouterr()
+        assert 'Test Video 1' in captured.out
+        assert 'video1' in captured.out
+        assert '4:13' in captured.out
+    
+    def test_print_playlists_empty(self, capsys):
+        """Test playlist printing with empty list."""
+        print_playlists([])
+        
+        captured = capsys.readouterr()
+        assert 'No playlists found' in captured.out
+    
+    def test_print_playlists_with_playlists(self, capsys):
+        """Test playlist printing with playlists."""
+        playlists = [
+            YouTubePlaylist(
+                playlist_id='PL1234567890',
+                title='Test Playlist',
+                description='Test description',
+                video_count=10,
+                video_ids=['video1', 'video2'],
+                thumbnail_url='http://example.com/playlist.jpg'
+            )
+        ]
+        
+        print_playlists(playlists)
+        
+        captured = capsys.readouterr()
+        assert 'Test Playlist' in captured.out
+        assert 'PL1234567890' in captured.out
+        assert '10' in captured.out
+
+
+class TestCLIInterface:
+    """Tests for CLI interface functions."""
+    
+    def test_save_to_cache_creates_file(self, tmp_path):
+        """Test save_to_cache creates file and directory."""
+        cache_path = tmp_path / "cache" / "library.json"
+        data = {"test": "data"}
+        
+        save_to_cache(data, str(cache_path))
+        
+        assert cache_path.exists()
+        assert cache_path.parent.exists()
+    
+    def test_save_to_cache_writes_json(self, tmp_path):
+        """Test save_to_cache writes valid JSON."""
+        cache_path = tmp_path / "cache" / "library.json"
+        data = {"channel": {"title": "Test"}, "videos": []}
+        
+        save_to_cache(data, str(cache_path))
+        
+        import json
+        with open(cache_path, 'r') as f:
+            loaded = json.load(f)
+        
+        assert loaded == data
+    
+    def test_save_to_cache_overwrites_existing(self, tmp_path):
+        """Test save_to_cache overwrites existing file."""
+        cache_path = tmp_path / "cache" / "library.json"
+        data1 = {"version": 1}
+        data2 = {"version": 2}
+        
+        save_to_cache(data1, str(cache_path))
+        save_to_cache(data2, str(cache_path))
+        
+        import json
+        with open(cache_path, 'r') as f:
+            loaded = json.load(f)
+        
+        assert loaded == data2

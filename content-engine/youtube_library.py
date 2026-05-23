@@ -74,52 +74,30 @@ class YouTubePlaylist:
 class YouTubeLibrary:
     """Client for YouTube Data API v3 library data."""
     
-    def __init__(self, api_key: Optional[str] = None):
-        """
-        Initialize YouTube library client.
-        
-        Args:
-            api_key: Optional YouTube Data API v3 API key. If not provided, uses gcloud ADC.
-        """
+    def __init__(self):
+        """Initialize YouTube library client using gcloud ADC."""
         try:
-            if api_key:
-                # Use API key for public data access
-                self.service = build('youtube', 'v3', developerKey=api_key)
-            else:
-                # Use gcloud ADC for authenticated access
-                credentials, project = default(
-                    scopes=["https://www.googleapis.com/auth/youtube.readonly"]
-                )
-                self.service = build('youtube', 'v3', credentials=credentials)
+            credentials, project = default(
+                scopes=["https://www.googleapis.com/auth/youtube.readonly"]
+            )
+            self.service = build('youtube', 'v3', credentials=credentials)
         except Exception as e:
             print(f"Error during authentication: {e}")
-            if api_key:
-                print("Make sure the API key is valid and has YouTube Data API v3 enabled.")
-            else:
-                print("Make sure gcloud auth application-default login has been run with YouTube read scope.")
+            print("Make sure gcloud auth application-default login has been run with YouTube read scope.")
             sys.exit(1)
     
-    def get_channel_metadata(self, channel_id: Optional[str] = None) -> Optional[YouTubeChannel]:
+    def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
-        Get channel metadata for the authenticated user's channel or a specific channel.
-        
-        Args:
-            channel_id: Optional YouTube channel ID. If not provided, uses mine=True.
+        Get channel metadata for the authenticated user's channel.
         
         Returns:
             YouTubeChannel object or None if not found.
         """
         try:
-            if channel_id:
-                response = self.service.channels().list(
-                    part='snippet,statistics',
-                    id=channel_id
-                ).execute()
-            else:
-                response = self.service.channels().list(
-                    part='snippet,statistics',
-                    mine=True
-                ).execute()
+            response = self.service.channels().list(
+                part='snippet,statistics',
+                mine=True
+            ).execute()
             
             if not response.get('items'):
                 return None
@@ -447,11 +425,9 @@ def main():
     
     parser = argparse.ArgumentParser(description="YouTube Library Data Client")
     parser.add_argument('--channel', action='store_true', help='Print channel summary')
-    parser.add_argument('--channel-id', help='YouTube channel ID (for public channels)')
     parser.add_argument('--videos', action='store_true', help='Print video library')
     parser.add_argument('--playlists', action='store_true', help='Print playlist data')
     parser.add_argument('--save', action='store_true', help='Save data to .youtube_cache/library.json')
-    parser.add_argument('--api-key', help='YouTube Data API v3 API key (for public data access)')
     
     args = parser.parse_args()
     
@@ -459,15 +435,12 @@ def main():
         print("Error: Specify at least one option (--channel, --videos, --playlists, --save)")
         sys.exit(1)
     
-    # Get API key from CLI argument or environment variable
-    api_key = args.api_key or os.getenv('YOUTUBE_API_KEY')
-    
-    library = YouTubeLibrary(api_key=api_key)
+    library = YouTubeLibrary()
     
     cache_data = {}
     
     if args.channel:
-        channel = library.get_channel_metadata(channel_id=args.channel_id)
+        channel = library.get_channel_metadata()
         if channel:
             print_channel_summary(channel)
             cache_data['channel'] = {
