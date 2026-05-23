@@ -243,25 +243,20 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
     
     client = get_game_metrics_client()
     
-    if appid:
-        # Get metrics for specific game
-        metrics = client.get_game_metrics(appid)
-        result = {
-            "count": 1,
-            "games": [metrics.__dict__ if metrics else None]
-        }
-    else:
-        # Get metrics for multiple games
-        limit = min(limit, 50)  # Cap at 50
-        games = client.get_library_metrics(
-            limit=limit,
-            min_playtime=min_playtime,
-            installed_only=installed_only
-        )
-        result = {
-            "count": len(games),
-            "games": [g.__dict__ if hasattr(g, '__dict__') else g for g in games]
-        }
+    # Get metrics for multiple games
+    limit = min(limit, 50)  # Cap at 50
+    steam_library = get_steam_library()
+    games = client.get_game_metrics(
+        steam_library=steam_library,
+        min_hours=min_playtime,
+        installed_only=installed_only,
+        limit=limit
+    )
+    result = {
+        "count": len(games),
+        "games": [g.__dict__ if hasattr(g, '__dict__') else g for g in games]
+    }
+    
     
     return [TextContent(
         type="text",
@@ -342,10 +337,13 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
     client = get_game_metrics_client()
     
     # Get library metrics with filters
-    games = client.get_library_metrics(
-        limit=limit * 2,  # Get more to filter
-        min_playtime=min_playtime,
-        installed_only=installed_only
+    # Get library metrics with filters
+    steam_library = get_steam_library()
+    games = client.get_game_metrics(
+        steam_library=steam_library,
+        min_hours=min_playtime,
+        installed_only=installed_only,
+        limit=limit * 2  # Get more to filter
     )
     
     # Sort by content demand score (descending)
