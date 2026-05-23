@@ -27,6 +27,9 @@ cache/
 # YouTube OAuth Token
 .youtube_token.json
 
+# YouTube Library Cache
+.youtube_cache/
+
 
 # Audio artifacts
 audio/
