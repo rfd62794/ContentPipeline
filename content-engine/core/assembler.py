@@ -51,7 +51,7 @@ def get_ffmpeg_path() -> str:
 
 def get_audio_duration(audio_path: Path) -> float:
     """
-    Get duration of an audio file in seconds using ffprobe.
+    Get duration of an audio file in seconds using ffmpeg.
 
     Args:
         audio_path: Path to audio file.
@@ -59,18 +59,30 @@ def get_audio_duration(audio_path: Path) -> float:
     Returns:
         Duration in seconds as float.
     """
-    ffprobe_path = get_ffmpeg_path().replace('ffmpeg', 'ffprobe')
+    import re
+    
+    ffmpeg_path = get_ffmpeg_path()
     
     cmd = [
-        ffprobe_path,
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'default=noprint_wrappers=1:nokey=1',
-        str(audio_path)
+        ffmpeg_path,
+        '-i', str(audio_path),
+        '-f', 'null',
+        '-'
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return float(result.stdout.strip())
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    # Parse duration from stderr
+    stderr = result.stderr
+    duration_match = re.search(r'Duration: (\d+):(\d+):(\d+\.\d+)', stderr)
+    if duration_match:
+        hours, minutes, seconds = duration_match.groups()
+        duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+        return duration
+    else:
+        # Fallback: estimate from file size (rough approximation)
+        # MP3 at 128kbps is ~16KB per second
+        size_kb = audio_path.stat().st_size / 1024
+        return size_kb / 16.0
 
 
 def generate_srt(audio_path: Path, output_srt_path: Path):
