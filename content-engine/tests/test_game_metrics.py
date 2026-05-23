@@ -537,8 +537,8 @@ class TestGameMetricsClientCache:
                 client = GameMetricsClient()
                 client.save_cache(cache_data)
         
-        # Verify open was called for writing
-        mock_file.assert_called_once()
+        # Verify open was called at least once for writing (may also be called for overrides load)
+        mock_file.assert_called()
 
 
 class TestGameMetricsClientSteamspy:
@@ -636,6 +636,7 @@ class TestGameMetricsDataclass:
             avg_views_top5=25000.0,
             content_demand_score=4.699,
             composite_score=3.951,
+            actual_playtime_hours=None,
             genres=['Action', 'Indie'],
             last_played=None
         )
@@ -652,5 +653,6 @@ class TestGameMetricsDataclass:
         assert metrics.avg_views_top5 == 25000.0
         assert metrics.content_demand_score == 4.699
         assert metrics.composite_score == 3.951
+        assert metrics.actual_playtime_hours is None
         assert metrics.genres == ['Action', 'Indie']
         assert metrics.last_played is None

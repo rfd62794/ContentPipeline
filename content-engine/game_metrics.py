@@ -53,6 +53,7 @@ class GameMetrics:
     avg_views_top5: float
     content_demand_score: float
     composite_score: float
+    actual_playtime_hours: Optional[float]
     genres: List[str]
     last_played: Optional[int]
 
@@ -139,20 +140,23 @@ def compute_review_score(positive: int, negative: int) -> Optional[float]:
     return (positive / total) * 100.0
 
 
-def merge_game_metrics(steam_data: GameInfo, steamspy_data: Dict[str, Any], youtube_data: Dict[str, Any]) -> Dict[str, Any]:
+def merge_game_metrics(steam_data: GameInfo, steamspy_data: Dict[str, Any], youtube_data: Dict[str, Any],
+                       actual_playtime_hours: Optional[float] = None) -> Dict[str, Any]:
     """
     Merge Steam game data with SteamSpy and YouTube search metrics.
-    
+
     Args:
         steam_data: GameInfo from Steam library
         steamspy_data: SteamSpy metrics dict with players_2weeks, owners_estimate, etc.
         youtube_data: YouTube metrics dict with top_video_views, recent_upload_count, avg_views_top5
-        
+        actual_playtime_hours: Corrected total hours if Steam record is incomplete (optional)
+
     Returns:
         Merged metrics dict
     """
     content_demand_score = compute_content_demand_score(youtube_data.get('top_video_views', 0))
-    composite_score = compute_composite_score(content_demand_score, steam_data.playtime_hours)
+    effective_hours = actual_playtime_hours if actual_playtime_hours is not None else steam_data.playtime_hours
+    composite_score = compute_composite_score(content_demand_score, effective_hours)
     review_score = compute_review_score(
         steamspy_data.get('positive_reviews', 0),
         steamspy_data.get('negative_reviews', 0)
@@ -171,6 +175,7 @@ def merge_game_metrics(steam_data: GameInfo, steamspy_data: Dict[str, Any], yout
         'avg_views_top5': youtube_data.get('avg_views_top5', 0.0),
         'content_demand_score': content_demand_score,
         'composite_score': composite_score,
+        'actual_playtime_hours': actual_playtime_hours,
         'genres': steam_data.genres if hasattr(steam_data, 'genres') else [],
         'last_played': steam_data.last_played
     }
@@ -268,11 +273,12 @@ class GameMetricsClient:
     STEAMSPY_CACHE_DIR = Path(__file__).parent / ".steam_cache"
     RATE_LIMIT_DELAY = 2.0  # 2 seconds between API calls to respect quota
     STEAMSPY_RATE_LIMIT_DELAY = 1.0  # 1 second between SteamSpy calls
-    
+    PLAYTIME_OVERRIDES_FILE = Path(__file__).parent / "playtime_overrides.json"
+
     def __init__(self, client_secret_path: Optional[str] = None, cache_dir: Optional[str] = None):
         """
         Initialize GameMetrics client.
-        
+
         Args:
             client_secret_path: Path to client_secret.json
             cache_dir: Directory for cache (default: .youtube_cache)
@@ -286,6 +292,24 @@ class GameMetricsClient:
 
         self.steamspy_cache_dir = Path(self.STEAMSPY_CACHE_DIR)
         self.steamspy_cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load manual playtime overrides (Steam hours are a floor, not the full record)
+        self.playtime_overrides: Dict[str, float] = {}
+        if self.PLAYTIME_OVERRIDES_FILE.exists():
+            try:
+                with open(self.PLAYTIME_OVERRIDES_FILE, 'r') as f:
+                    raw = json.load(f)
+                overrides = {}
+                for k, v in raw.items():
+                    if k.startswith('_'):
+                        continue
+                    try:
+                        overrides[k.lower()] = float(v)
+                    except (TypeError, ValueError):
+                        pass
+                self.playtime_overrides = overrides
+            except (IOError, json.JSONDecodeError) as e:
+                print(f"Warning: Could not load playtime overrides: {e}")
     
     def fetch_steamspy_data(self, appid: int) -> Dict[str, Any]:
         """
@@ -477,6 +501,11 @@ class GameMetricsClient:
         if limit:
             games = games[:limit]
 
+        # Build name->actual_hours lookup for this batch
+        def _actual_hours(game) -> float:
+            override = self.playtime_overrides.get(game.name.lower())
+            return override if override is not None else game.playtime_hours
+
         # Enrich with SteamSpy and YouTube data
         _empty_steamspy = {
             'players_2weeks': 0,
@@ -525,8 +554,9 @@ class GameMetricsClient:
 
                 cache[appid_str] = {'steamspy': steamspy_data, 'youtube': youtube_data}
             
-            # Merge metrics
-            merged = merge_game_metrics(game, steamspy_data, youtube_data)
+            # Merge metrics (use actual hours override if available)
+            merged = merge_game_metrics(game, steamspy_data, youtube_data,
+                                        actual_playtime_hours=_actual_hours(game) if game.name.lower() in self.playtime_overrides else None)
             metrics_list.append(merged)
         
         # Save cache
@@ -548,6 +578,7 @@ class GameMetricsClient:
                 avg_views_top5=m['avg_views_top5'],
                 content_demand_score=m['content_demand_score'],
                 composite_score=m['composite_score'],
+                actual_playtime_hours=m['actual_playtime_hours'],
                 genres=m['genres'],
                 last_played=m['last_played']
             ))
