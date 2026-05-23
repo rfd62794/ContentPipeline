@@ -268,28 +268,17 @@ class GameMetricsClient:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
     
     def _load_credentials(self):
-        """Load OAuth credentials from token file or create new ones."""
-        token_path = Path(self.TOKEN_FILE)
-        
-        if token_path.exists():
-            self.credentials = Credentials.from_authorized_user_file(str(token_path), self.SCOPES)
-        
-        # Refresh or create credentials
-        if not self.credentials or not self.credentials.valid:
-            if self.credentials and self.credentials.expired and self.credentials.refresh_token:
-                self.credentials.refresh(Request())
-            else:
-                if not Path(self.client_secret_path).exists():
-                    raise FileNotFoundError(
-                        f"Client secret file not found: {self.client_secret_path}\n"
-                        "Download from Google Cloud Console: https://console.cloud.google.com/apis/credentials"
-                    )
-                flow = InstalledAppFlow.from_client_secrets_file(self.client_secret_path, self.SCOPES)
-                self.credentials = flow.run_local_server(port=0)
-            
-            # Save credentials
-            with open(token_path, 'w') as token:
-                token.write(self.credentials.to_json())
+        """Load OAuth credentials using gcloud Application Default Credentials (ADC)."""
+        # Use gcloud ADC for authentication (same pattern as youtube_upload.py)
+        try:
+            credentials, project = default(
+                scopes=["https://www.googleapis.com/auth/youtube.readonly"]
+            )
+            self.credentials = credentials
+        except Exception as e:
+            print(f"Error loading gcloud ADC credentials: {e}")
+            print("Make sure gcloud auth application-default login has been run with YouTube readonly scope.")
+            sys.exit(1)
         
         # Build YouTube service
         self.youtube_service = build('youtube', 'v3', credentials=self.credentials)
