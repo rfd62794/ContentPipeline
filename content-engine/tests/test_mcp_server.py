@@ -354,13 +354,13 @@ class TestGetContentRecommendations:
             appid=1, name='Game1', playtime_hours=10.0, steam_active_players=None,
             players_2weeks=None, owners_estimate=None, review_score=None,
             top_video_views=1000, recent_upload_count=5, avg_views_top5=200.0,
-            content_demand_score=90.0, genres=['Action'], last_played=None
+            content_demand_score=3.0, composite_score=2.8, genres=['Action'], last_played=None
         )
         mock_game2 = GameMetrics(
             appid=2, name='Game2', playtime_hours=5.0, steam_active_players=None,
             players_2weeks=None, owners_estimate=None, review_score=None,
             top_video_views=500, recent_upload_count=3, avg_views_top5=150.0,
-            content_demand_score=80.0, genres=['RPG'], last_played=None
+            content_demand_score=2.699, composite_score=2.3, genres=['RPG'], last_played=None
         )
         mock_client.get_game_metrics.return_value = [mock_game1, mock_game2]
         
@@ -383,7 +383,7 @@ class TestGetContentRecommendations:
             appid=1, name='Game1', playtime_hours=10.0, steam_active_players=None,
             players_2weeks=None, owners_estimate=None, review_score=None,
             top_video_views=1000, recent_upload_count=5, avg_views_top5=200.0,
-            content_demand_score=90.0, genres=['Action'], last_played=None
+            content_demand_score=3.0, composite_score=2.8, genres=['Action'], last_played=None
         )
         mock_client.get_game_metrics.return_value = [mock_game]
         
@@ -409,7 +409,7 @@ class TestGetContentRecommendations:
             appid=1, name='Game1', playtime_hours=10.0, steam_active_players=None,
             players_2weeks=None, owners_estimate=None, review_score=None,
             top_video_views=1000, recent_upload_count=5, avg_views_top5=200.0,
-            content_demand_score=90.0, genres=['Action'], last_played=None
+            content_demand_score=3.0, composite_score=2.8, genres=['Action'], last_played=None
         )
         mock_client.get_game_metrics.return_value = [mock_game]
         

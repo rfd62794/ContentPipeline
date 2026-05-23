@@ -52,6 +52,7 @@ class GameMetrics:
     recent_upload_count: int
     avg_views_top5: float
     content_demand_score: float
+    composite_score: float
     genres: List[str]
     last_played: Optional[int]
 
@@ -66,18 +67,41 @@ class _QuotaExceededError(Exception):
 
 def compute_content_demand_score(top_views: int) -> float:
     """
-    Compute content demand score from top video views.
-    
-    Score is (top_video_views / 1000) capped at 100.
-    
+    Compute content demand score from top video views using log scale.
+
+    Log10 scale: 1k views -> 3.0, 10k -> 4.0, 100k -> 5.0, 1M -> 6.0, 10M -> 7.0.
+    Returns 0.0 for zero views. Uncapped — large games remain differentiated.
+
     Args:
         top_views: Highest view count in search results
-        
+
     Returns:
-        Content demand score (0-100)
+        Content demand score (log10 scale, 0.0+)
     """
-    score = top_views / 1000.0
-    return min(score, 100.0)
+    if top_views <= 0:
+        return 0.0
+    import math
+    return round(math.log10(top_views), 3)
+
+
+def compute_composite_score(content_demand_score: float, playtime_hours: float) -> float:
+    """
+    Blend YouTube demand signal with personal playtime into a single ranking score.
+
+    Formula: (content_demand_score * 0.7) + (log10(playtime_hours + 1) * 0.3 * 7)
+    The playtime term is scaled to roughly match the demand score range (0-7).
+    Weight: 70% YouTube audience demand, 30% personal familiarity signal.
+
+    Args:
+        content_demand_score: Log-scale YouTube demand score.
+        playtime_hours: Hours played from Steam.
+
+    Returns:
+        Composite ranking score.
+    """
+    import math
+    playtime_signal = math.log10(playtime_hours + 1) * 0.3 * 7
+    return round(content_demand_score * 0.7 + playtime_signal, 3)
 
 
 def parse_steamspy_response(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -128,11 +152,12 @@ def merge_game_metrics(steam_data: GameInfo, steamspy_data: Dict[str, Any], yout
         Merged metrics dict
     """
     content_demand_score = compute_content_demand_score(youtube_data.get('top_video_views', 0))
+    composite_score = compute_composite_score(content_demand_score, steam_data.playtime_hours)
     review_score = compute_review_score(
         steamspy_data.get('positive_reviews', 0),
         steamspy_data.get('negative_reviews', 0)
     )
-    
+
     return {
         'appid': steam_data.appid,
         'name': steam_data.name,
@@ -145,6 +170,7 @@ def merge_game_metrics(steam_data: GameInfo, steamspy_data: Dict[str, Any], yout
         'recent_upload_count': youtube_data.get('recent_upload_count', 0),
         'avg_views_top5': youtube_data.get('avg_views_top5', 0.0),
         'content_demand_score': content_demand_score,
+        'composite_score': composite_score,
         'genres': steam_data.genres if hasattr(steam_data, 'genres') else [],
         'last_played': steam_data.last_played
     }
@@ -521,12 +547,13 @@ class GameMetricsClient:
                 recent_upload_count=m['recent_upload_count'],
                 avg_views_top5=m['avg_views_top5'],
                 content_demand_score=m['content_demand_score'],
+                composite_score=m['composite_score'],
                 genres=m['genres'],
                 last_played=m['last_played']
             ))
         
-        # Sort by content demand score
-        game_metrics.sort(key=lambda x: x.content_demand_score, reverse=True)
+        # Sort by composite score (YouTube demand + playtime blend)
+        game_metrics.sort(key=lambda x: x.composite_score, reverse=True)
 
         return game_metrics
 

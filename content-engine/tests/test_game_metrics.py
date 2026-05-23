@@ -29,28 +29,33 @@ from steam_library import GameInfo
 # =============================================================================
 
 class TestComputeContentDemandScore:
-    """Test compute_content_demand_score function."""
-    
+    """Test compute_content_demand_score function (log10 scale)."""
+
     def test_zero_views(self):
-        """Test with zero views."""
+        """Test with zero views returns 0."""
         assert compute_content_demand_score(0) == 0.0
-    
-    def test_low_views(self):
-        """Test with low view count."""
-        assert compute_content_demand_score(500) == 0.5
-    
-    def test_medium_views(self):
-        """Test with medium view count."""
-        assert compute_content_demand_score(50000) == 50.0
-    
-    def test_high_views_capped(self):
-        """Test that score is capped at 100."""
-        assert compute_content_demand_score(200000) == 100.0
-        assert compute_content_demand_score(1000000) == 100.0
-    
-    def test_exact_cap_threshold(self):
-        """Test at exact cap threshold (100,000 views)."""
-        assert compute_content_demand_score(100000) == 100.0
+
+    def test_negative_views(self):
+        """Test with negative views returns 0."""
+        assert compute_content_demand_score(-1) == 0.0
+
+    def test_1k_views(self):
+        """1k views -> log10(1000) = 3.0"""
+        assert compute_content_demand_score(1000) == 3.0
+
+    def test_10k_views(self):
+        """10k views -> log10(10000) = 4.0"""
+        assert compute_content_demand_score(10000) == 4.0
+
+    def test_1m_views(self):
+        """1M views -> log10(1000000) = 6.0"""
+        assert compute_content_demand_score(1_000_000) == 6.0
+
+    def test_large_games_differentiated(self):
+        """Large games must not collapse to the same score."""
+        score_100k = compute_content_demand_score(100_000)
+        score_10m = compute_content_demand_score(10_000_000)
+        assert score_10m > score_100k
 
 
 class TestParseSteamspyResponse:
@@ -149,7 +154,9 @@ class TestMergeGameMetrics:
         assert result['top_video_views'] == 50000
         assert result['recent_upload_count'] == 10
         assert result['avg_views_top5'] == 25000.0
-        assert result['content_demand_score'] == 50.0
+        assert result['content_demand_score'] == round(__import__('math').log10(50000), 3)
+        assert 'composite_score' in result
+        assert result['composite_score'] > 0
         assert result['genres'] == ['Action', 'Indie']
     
     def test_merge_with_zero_views(self):
@@ -180,6 +187,7 @@ class TestMergeGameMetrics:
         result = merge_game_metrics(steam_data, steamspy_data, youtube_data)
         
         assert result['content_demand_score'] == 0.0
+        assert result['composite_score'] >= 0.0
         assert result['top_video_views'] == 0
         assert abs(result['review_score'] - 66.7) < 0.1  # 100/150 * 100
     
@@ -211,7 +219,8 @@ class TestMergeGameMetrics:
         result = merge_game_metrics(steam_data, steamspy_data, youtube_data)
         
         assert result['steam_active_players'] is None
-        assert result['content_demand_score'] == 30.0
+        assert result['content_demand_score'] == round(__import__('math').log10(30000), 3)
+        assert 'composite_score' in result
         assert result['review_score'] == 80.0  # 200/250 * 100
 
 
@@ -625,7 +634,8 @@ class TestGameMetricsDataclass:
             top_video_views=50000,
             recent_upload_count=10,
             avg_views_top5=25000.0,
-            content_demand_score=50.0,
+            content_demand_score=4.699,
+            composite_score=3.951,
             genres=['Action', 'Indie'],
             last_played=None
         )
@@ -640,6 +650,7 @@ class TestGameMetricsDataclass:
         assert metrics.top_video_views == 50000
         assert metrics.recent_upload_count == 10
         assert metrics.avg_views_top5 == 25000.0
-        assert metrics.content_demand_score == 50.0
+        assert metrics.content_demand_score == 4.699
+        assert metrics.composite_score == 3.951
         assert metrics.genres == ['Action', 'Indie']
         assert metrics.last_played is None
