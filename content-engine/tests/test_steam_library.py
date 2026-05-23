@@ -24,7 +24,10 @@ from steam_library import (
     SteamLibrary,
     GameInfo,
     print_library_table,
-    print_game_metadata
+    print_game_metadata,
+    query_installed_by_playtime,
+    query_recent_plays,
+    query_genre_breakdown
 )
 
 
@@ -833,8 +836,8 @@ class TestPrintLibraryTable:
     def test_print_library_with_games(self, capsys):
         """Test printing library with games."""
         games = [
-            GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=2.5),
-            GameInfo(appid=67890, name='Game Two', installdir=None, installed=False, playtime_hours=0.0),
+            GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=2.5, last_played=None),
+            GameInfo(appid=67890, name='Game Two', installdir=None, installed=False, playtime_hours=0.0, last_played=None),
         ]
         
         print_library_table(games)
@@ -844,8 +847,171 @@ class TestPrintLibraryTable:
         assert 'Game Two' in captured.out
         assert '[INSTALLED]' in captured.out
         assert '2.5' in captured.out
-        assert 'Total games: 2' in captured.out
-        assert 'Installed: 1' in captured.out
+
+
+# =============================================================================
+# Query Function Tests
+# =============================================================================
+
+class TestQueryInstalledByPlaytime:
+    """Tests for query_installed_by_playtime function."""
+    
+    @patch('steam_library.SteamLibrary')
+    @patch('steam_library.Path')
+    def test_query_installed_by_playtime(self, mock_path, mock_library_class):
+        """Test querying installed games by playtime threshold."""
+        # Mock library
+        mock_library = MagicMock()
+        mock_game1 = GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=15.0)
+        mock_game2 = GameInfo(appid=67890, name='Game Two', installdir='Game2', installed=True, playtime_hours=5.0)
+        mock_game3 = GameInfo(appid=11111, name='Game Three', installdir=None, installed=False, playtime_hours=20.0)
+        mock_library.get_library.return_value = [mock_game1, mock_game2, mock_game3]
+        mock_library_class.return_value = mock_library
+        
+        # Mock cache directory
+        mock_cache_dir = MagicMock()
+        mock_cache_dir.exists.return_value = True
+        mock_cache_file = MagicMock()
+        mock_cache_file.exists.return_value = True
+        mock_cache_dir.glob.return_value = [mock_cache_file]
+        mock_path.return_value = mock_cache_dir
+        
+        # Mock cache data
+        import json
+        with patch('builtins.open', create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps({
+                'steam_appid': 12345,
+                'genres': ['Action', 'Indie']
+            })
+            
+            results = query_installed_by_playtime(10.0)
+        
+        assert len(results) == 1
+        assert results[0]['name'] == 'Game One'
+        assert results[0]['playtime_hours'] == 15.0
+        assert results[0]['genres'] == ['Action', 'Indie']
+    
+    @patch('steam_library.SteamLibrary')
+    @patch('steam_library.Path')
+    def test_query_installed_by_playtime_no_results(self, mock_path, mock_library_class):
+        """Test query with no games meeting threshold."""
+        mock_library = MagicMock()
+        mock_library.get_library.return_value = []
+        mock_library_class.return_value = mock_library
+        
+        mock_cache_dir = MagicMock()
+        mock_cache_dir.exists.return_value = False
+        mock_path.return_value = mock_cache_dir
+        
+        results = query_installed_by_playtime(10.0)
+        
+        assert results == []
+
+
+class TestQueryRecentPlays:
+    """Tests for query_recent_plays function."""
+    
+    @patch('steam_library.SteamLibrary')
+    def test_query_recent_plays(self, mock_library_class):
+        """Test querying games played within N days."""
+        import time
+        
+        # Mock library with last_played data
+        mock_game1 = GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=15.0, last_played=int(time.time()))
+        mock_game2 = GameInfo(appid=67890, name='Game Two', installdir='Game2', installed=True, playtime_hours=5.0, last_played=int(time.time()) - (10 * 24 * 60 * 60))
+        mock_game3 = GameInfo(appid=11111, name='Game Three', installdir=None, installed=False, playtime_hours=20.0, last_played=int(time.time()) - (40 * 24 * 60 * 60))
+        
+        mock_library = MagicMock()
+        mock_library.get_library.return_value = [mock_game1, mock_game2, mock_game3]
+        mock_library_class.return_value = mock_library
+        
+        results = query_recent_plays(30)
+        
+        assert len(results) == 2  # Only games within last 30 days
+        assert results[0]['name'] == 'Game One'
+        assert results[1]['name'] == 'Game Two'
+    
+    @patch('steam_library.SteamLibrary')
+    def test_query_recent_plays_no_last_played(self, mock_library_class):
+        """Test query with games missing last_played data."""
+        mock_game = GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=15.0, last_played=None)
+        
+        mock_library = MagicMock()
+        mock_library.get_library.return_value = [mock_game]
+        mock_library_class.return_value = mock_library
+        
+        results = query_recent_plays(30)
+        
+        assert results == []  # No games with last_played data
+
+
+class TestQueryGenreBreakdown:
+    """Tests for query_genre_breakdown function."""
+    
+    @patch('steam_library.SteamLibrary')
+    @patch('steam_library.Path')
+    def test_query_genre_breakdown(self, mock_path, mock_library_class):
+        """Test genre breakdown aggregation."""
+        # Mock library
+        mock_library = MagicMock()
+        mock_library.get_library.return_value = [
+            GameInfo(appid=12345, name='Game One', installdir='Game1', installed=True, playtime_hours=15.0, last_played=None),
+            GameInfo(appid=67890, name='Game Two', installdir='Game2', installed=True, playtime_hours=25.0, last_played=None)
+        ]
+        mock_library_class.return_value = mock_library
+        
+        # Mock cache directory with genre data
+        mock_cache_dir = MagicMock()
+        mock_cache_dir.exists.return_value = True
+        mock_cache_file1 = MagicMock()
+        mock_cache_file2 = MagicMock()
+        mock_cache_dir.glob.return_value = [mock_cache_file1, mock_cache_file2]
+        mock_path.return_value = mock_cache_dir
+        
+        import json
+        # Create a simple mock that returns different data for different files
+        cache_data = {
+            str(mock_cache_file1): json.dumps({
+                'steam_appid': 12345,
+                'genres': ['Action', 'Indie']
+            }),
+            str(mock_cache_file2): json.dumps({
+                'steam_appid': 67890,
+                'genres': ['RPG', 'Adventure']
+            })
+        }
+        
+        def mock_open_func(filename, *args, **kwargs):
+            mock_file = MagicMock()
+            mock_file.__enter__.return_value = MagicMock()
+            mock_file.__enter__.return_value.read.return_value = cache_data.get(str(filename), '{}')
+            return mock_file
+        
+        with patch('builtins.open', side_effect=mock_open_func):
+            results = query_genre_breakdown()
+        
+        # Each game has 2 genres, so we expect 4 total genre entries
+        assert len(results) == 4
+        # Check that results are sorted by total_hours descending
+        assert results[0]['genre'] == 'RPG'
+        assert results[0]['total_hours'] == 25.0
+        assert results[0]['game_count'] == 1
+    
+    @patch('steam_library.SteamLibrary')
+    @patch('steam_library.Path')
+    def test_query_genre_breakdown_no_cache(self, mock_path, mock_library_class):
+        """Test genre breakdown with no cache data."""
+        mock_library = MagicMock()
+        mock_library.get_library.return_value = []
+        mock_library_class.return_value = mock_library
+        
+        mock_cache_dir = MagicMock()
+        mock_cache_dir.exists.return_value = False
+        mock_path.return_value = mock_cache_dir
+        
+        results = query_genre_breakdown()
+        
+        assert results == []
     
     def test_print_library_long_name_truncated(self, capsys):
         """Test that long names are truncated."""

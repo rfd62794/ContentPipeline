@@ -20,6 +20,7 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 import requests
 
 from dotenv import load_dotenv
@@ -42,6 +43,7 @@ class GameInfo:
     installdir: Optional[str] = None
     installed: bool = False
     playtime_hours: float = 0.0
+    last_played: Optional[int] = None  # Unix timestamp from Steam API
     # Store API metadata
     genres: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
@@ -291,7 +293,8 @@ class SteamWebAPI:
             games.append({
                 'appid': game.get('appid'),
                 'name': game.get('name', 'Unknown'),
-                'playtime_forever': game.get('playtime_forever', 0)  # in minutes
+                'playtime_forever': game.get('playtime_forever', 0),  # in minutes
+                'rtime_last_played': game.get('rtime_last_played')  # Unix timestamp
             })
         
         return games
@@ -631,7 +634,8 @@ class SteamLibrary:
                 name=name,
                 installdir=local.get('installdir'),
                 installed=appid in installed_map,
-                playtime_hours=playtime_hours
+                playtime_hours=playtime_hours,
+                last_played=web.get('rtime_last_played')
             )
             library.append(game)
         
@@ -712,7 +716,8 @@ class SteamLibrary:
                     name=web.get('name', 'Unknown'),
                     installdir=local.get('installdir'),
                     installed=appid in installed_map,
-                    playtime_hours=playtime_hours
+                    playtime_hours=playtime_hours,
+                    last_played=web.get('rtime_last_played')
                 )
                 library.append(game)
             
@@ -819,6 +824,209 @@ def print_game_metadata(game: GameInfo) -> None:
             print(f"  ... and {len(game.screenshots) - 3} more")
 
 
+# =============================================================================
+# Query Functions
+# =============================================================================
+
+def load_cached_games() -> List[GameInfo]:
+    """Load all cached game data from .steam_cache directory."""
+    cache_dir = Path('.steam_cache')
+    if not cache_dir.exists():
+        return []
+    
+    games = []
+    for cache_file in cache_dir.glob('*.json'):
+        try:
+            with open(cache_file, 'r') as f:
+                data = json.load(f)
+            
+            # Parse basic game info from cache
+            game = GameInfo(
+                appid=data.get('steam_appid', 0),
+                name=data.get('name', 'Unknown'),
+                genres=data.get('genres', []),
+                tags=data.get('tags', [])
+            )
+            games.append(game)
+        except (IOError, json.JSONDecodeError) as e:
+            logger.warning(f"Failed to load cache file {cache_file}: {e}")
+    
+    return games
+
+
+def query_installed_by_playtime(min_hours: float) -> List[Dict[str, Any]]:
+    """
+    Query installed games with playtime >= min_hours.
+    
+    Args:
+        min_hours: Minimum playtime threshold in hours.
+    
+    Returns:
+        List of game dicts with name, playtime_hours, genres.
+    """
+    cache_dir = Path('.steam_cache')
+    if not cache_dir.exists():
+        return []
+    
+    # Load library to get playtime data
+    library = SteamLibrary()
+    full_library = library.get_library()
+    
+    # Filter installed games by playtime
+    results = []
+    for game in full_library:
+        if game.installed and game.playtime_hours >= min_hours:
+            # Load genres from cache if available
+            cache_file = cache_dir / f"{game.appid}.json"
+            genres = []
+            if cache_file.exists():
+                try:
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        raw_genres = data.get('genres', [])
+                        # Handle both string and dict formats
+                        genres = [g if isinstance(g, str) else g.get('description', str(g)) for g in raw_genres]
+                except (IOError, json.JSONDecodeError):
+                    pass
+            
+            results.append({
+                'name': game.name,
+                'playtime_hours': game.playtime_hours,
+                'genres': genres
+            })
+    
+    # Sort by playtime descending
+    results.sort(key=lambda x: x['playtime_hours'], reverse=True)
+    return results
+
+
+def query_recent_plays(days: int) -> List[Dict[str, Any]]:
+    """
+    Query games played within the last N days.
+    
+    Args:
+        days: Number of days to look back.
+    
+    Returns:
+        List of game dicts with name, last_played, playtime_hours.
+    """
+    # Calculate cutoff timestamp
+    cutoff_time = time.time() - (days * 24 * 60 * 60)
+    
+    # Load library to get last_played data
+    library = SteamLibrary()
+    full_library = library.get_library()
+    
+    results = []
+    for game in full_library:
+        if game.last_played and game.last_played >= cutoff_time:
+            last_played_date = datetime.fromtimestamp(game.last_played).strftime('%Y-%m-%d')
+            results.append({
+                'name': game.name,
+                'last_played': last_played_date,
+                'playtime_hours': game.playtime_hours
+            })
+    
+    # Sort by last_played descending
+    results.sort(key=lambda x: x['last_played'], reverse=True)
+    return results
+
+
+def query_genre_breakdown() -> List[Dict[str, Any]]:
+    """
+    Aggregate total playtime by genre across all owned games.
+    
+    Returns:
+        List of genre dicts with genre, total_hours, game_count.
+    """
+    cache_dir = Path('.steam_cache')
+    if not cache_dir.exists():
+        return []
+    
+    # Load library to get playtime data
+    library = SteamLibrary()
+    full_library = library.get_library()
+    
+    # Create game playtime lookup
+    game_playtime = {game.appid: game.playtime_hours for game in full_library}
+    
+    # Aggregate by genre
+    genre_hours = {}
+    genre_counts = {}
+    
+    for cache_file in cache_dir.glob('*.json'):
+        try:
+            with open(cache_file, 'r') as f:
+                data = json.load(f)
+            
+            appid = data.get('steam_appid', 0)
+            playtime = game_playtime.get(appid, 0)
+            raw_genres = data.get('genres', [])
+            # Handle both string and dict formats
+            genres = [g if isinstance(g, str) else g.get('description', str(g)) for g in raw_genres]
+            
+            for genre in genres:
+                genre_hours[genre] = genre_hours.get(genre, 0) + playtime
+                genre_counts[genre] = genre_counts.get(genre, 0) + 1
+        except (IOError, json.JSONDecodeError):
+            pass
+    
+    # Convert to results list
+    results = []
+    for genre, total_hours in genre_hours.items():
+        results.append({
+            'genre': genre,
+            'total_hours': total_hours,
+            'game_count': genre_counts.get(genre, 0)
+        })
+    
+    # Sort by total hours descending
+    results.sort(key=lambda x: x['total_hours'], reverse=True)
+    return results
+
+
+def handle_query(args, library: SteamLibrary) -> None:
+    """Handle query commands."""
+    if args.query == 'installed-by-playtime':
+        if not args.min_hours:
+            print("Error: --min-hours required for installed-by-playtime query")
+            return
+        
+        results = query_installed_by_playtime(args.min_hours)
+        if not results:
+            print(f"No installed games with >= {args.min_hours} hours playtime")
+            return
+        
+        print(f"\n=== Installed Games with >= {args.min_hours} Hours Playtime ===")
+        for game in results:
+            genres_str = ', '.join(game['genres'][:3]) if game['genres'] else 'N/A'
+            print(f"{game['name']}: {game['playtime_hours']:.1f} hours | Genres: {genres_str}")
+    
+    elif args.query == 'recent-plays':
+        if not args.days:
+            print("Error: --days required for recent-plays query")
+            return
+        
+        results = query_recent_plays(args.days)
+        if not results:
+            print(f"No games played in the last {args.days} days")
+            return
+        
+        print(f"\n=== Games Played in Last {args.days} Days ===")
+        for game in results:
+            print(f"{game['name']}: {game['last_played']} | {game['playtime_hours']:.1f} hours")
+    
+    elif args.query == 'genre-breakdown':
+        results = query_genre_breakdown()
+        if not results:
+            print("No genre data available")
+            return
+        
+        print("\n=== Genre Breakdown by Total Playtime ===")
+        for genre in results[:10]:  # Top 10
+            print(f"{genre['genre']}: {genre['total_hours']:.1f} hours ({genre['game_count']} games)")
+
+
 def main():
     """CLI entry point."""
     import argparse
@@ -861,6 +1069,28 @@ def main():
         default=None,
         help='Show detailed metadata for a specific app ID'
     )
+    parser.add_argument(
+        '--query',
+        type=str,
+        metavar='QUERY_TYPE',
+        default=None,
+        choices=['installed-by-playtime', 'recent-plays', 'genre-breakdown'],
+        help='Run query on cached data: installed-by-playtime, recent-plays, genre-breakdown'
+    )
+    parser.add_argument(
+        '--min-hours',
+        type=float,
+        metavar='HOURS',
+        default=None,
+        help='Minimum playtime threshold for installed-by-playtime query'
+    )
+    parser.add_argument(
+        '--days',
+        type=int,
+        metavar='DAYS',
+        default=None,
+        help='Number of days for recent-plays query'
+    )
     
     args = parser.parse_args()
     
@@ -891,6 +1121,11 @@ def main():
             print_game_metadata(game)
         else:
             print(f"Error: Could not fetch details for app ID {args.app_id}")
+        return
+    
+    # Handle query commands
+    if args.query:
+        handle_query(args, library)
         return
     
     # Fetch games
