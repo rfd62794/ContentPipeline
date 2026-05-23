@@ -8,3 +8,4 @@ cache/***/__pycache__/
 .steam_cache/
 .youtube_token.json
 .youtube_cache/
+/secrets/*

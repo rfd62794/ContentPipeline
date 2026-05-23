@@ -473,6 +473,7 @@ def main():
     parser.add_argument('--videos', action='store_true', help='Print video library')
     parser.add_argument('--playlists', action='store_true', help='Print playlist data')
     parser.add_argument('--save', action='store_true', help='Save data to .youtube_cache/library.json')
+    parser.add_argument('--client-secret', help='Path to client_secret.json for OAuth')
     
     args = parser.parse_args()
     
@@ -480,7 +481,7 @@ def main():
         print("Error: Specify at least one option (--channel, --videos, --playlists, --save)")
         sys.exit(1)
     
-    library = YouTubeLibrary()
+    library = YouTubeLibrary(client_secret_path=args.client_secret)
     
     cache_data = {}
     
