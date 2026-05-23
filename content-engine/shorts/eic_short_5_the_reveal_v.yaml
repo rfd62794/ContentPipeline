@@ -4,10 +4,11 @@ attribution: null
 music_path: assets/music/Pixelated_Passion.mp3
 music_start: 0
 music_volume: 0.20
-voice: true
+voice: false
 voice_volume: 0.50
 voice_name: David
 voice_delay: 0.3
+voice_gap: 1.5
 stack_text: true
 max_visible_lines: 5
 beats:

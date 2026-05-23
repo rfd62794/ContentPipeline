@@ -14,7 +14,7 @@ import logging
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from core.assembler import assemble_video
+from core.assembler import assemble_video, get_audio_duration
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -97,6 +97,7 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
         "voice_volume": yaml_config.get("voice_volume", 0.50),
         "voice_name": yaml_config.get("voice_name", "David"),
         "voice_delay": yaml_config.get("voice_delay", 0.3),
+        "voice_gap": yaml_config.get("voice_gap", 1.5),
         "shorts_attribution_enabled": yaml_config.get("attribution") is not None,
         "shorts_attribution_y_pct": 0.05,
         "shorts_attribution_font_size": 30,
@@ -143,6 +144,66 @@ def build_voice_mix_filter(voice_volume: float, voice_delay: float = 0.3) -> str
     """
     delay_ms = int(voice_delay * 1000)
     return f"[2:a]adelay={delay_ms}|{delay_ms},volume={voice_volume}[v];[1:a][v]amix=inputs=2:duration=shortest[audio]"
+
+
+def compute_voice_schedule(
+    segments: List[Dict[str, Any]],
+    tts_durations: List[float],
+    voice_delay: float = 0.3,
+    voice_gap: float = 1.5
+) -> List[Optional[float]]:
+    """
+    Compute actual start times for voice clips respecting gap constraints.
+
+    For each segment, calculates when its voice clip should actually start,
+    considering both the per-segment delay and minimum gap between clips.
+    Skips segments where the voice would be pushed past the segment's end time.
+
+    Args:
+        segments: List of segment dictionaries with 'duration' field.
+        tts_durations: List of TTS clip durations (same length as segments).
+        voice_delay: Delay after segment start before voice fires (default 0.3s).
+        voice_gap: Minimum seconds between voice clip end and next start (default 1.5s).
+
+    Returns:
+        List of actual start times (float) or None if segment's voice is skipped.
+    """
+    schedule = []
+    cumulative_time = 0.0
+    previous_voice_end = -float('inf')  # No previous voice initially
+
+    for i, (segment, tts_duration) in enumerate(zip(segments, tts_durations)):
+        segment_start = cumulative_time
+        segment_end = cumulative_time + segment.get('duration', 5.0)
+        
+        # Skip segments with no voice (tts_duration == 0.0)
+        if tts_duration == 0.0:
+            schedule.append(None)
+            cumulative_time += segment.get('duration', 5.0)
+            continue
+        
+        # Calculate earliest start based on segment timing
+        earliest_start = segment_start + voice_delay
+        
+        # Calculate earliest start based on gap constraint
+        gap_constrained_start = previous_voice_end + voice_gap if previous_voice_end != -float('inf') else earliest_start
+        
+        # Actual start is the maximum of both constraints
+        actual_start = max(earliest_start, gap_constrained_start)
+        
+        # Check if voice would end past segment end
+        voice_end = actual_start + tts_duration
+        if voice_end > segment_end:
+            # Skip this segment's voice
+            schedule.append(None)
+            previous_voice_end = previous_voice_end  # No change
+        else:
+            schedule.append(actual_start)
+            previous_voice_end = voice_end
+        
+        cumulative_time += segment.get('duration', 5.0)
+    
+    return schedule
 
 
 def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:
@@ -245,8 +306,9 @@ def produce_short_from_yaml(yaml_path: Path):
 
     # Generate per-beat TTS voice clips if voice is enabled
     voice_clips_generated = []
+    tts_durations = []
     if config.get("voice_enabled"):
-        voice_name = config.get("voice_name", "en-US-GuyNeural")
+        voice_name = config.get("voice_name", "David")
         logger.info(f"Voice enabled — generating TTS clips (voice: {voice_name})")
         for i, segment in enumerate(segments):
             raw_text = beats[i].get("line", "")
@@ -256,11 +318,38 @@ def produce_short_from_yaml(yaml_path: Path):
                 generate_voice_clip(raw_text, voice_name, voice_path)
                 segment["voice_path"] = str(voice_path)
                 voice_clips_generated.append(voice_path)
+                # Get TTS duration for scheduling
+                duration = get_audio_duration(voice_path)
+                tts_durations.append(duration)
+                logger.info(f"  Segment {i}: TTS duration {duration:.2f}s")
             else:
                 segment["voice_path"] = None
+                tts_durations.append(0.0)  # No voice clip
     else:
         for segment in segments:
             segment["voice_path"] = None
+            tts_durations.append(0.0)
+    
+    # Compute voice schedule with gap constraints
+    if config.get("voice_enabled") and any(d > 0 for d in tts_durations):
+        voice_delay = config.get("voice_delay", 0.3)
+        voice_gap = config.get("voice_gap", 1.5)
+        voice_schedule = compute_voice_schedule(segments, tts_durations, voice_delay, voice_gap)
+        
+        # Store schedule in segments and log results
+        for i, (segment, scheduled_start) in enumerate(zip(segments, voice_schedule)):
+            segment["voice_start"] = scheduled_start
+            if scheduled_start is not None:
+                logger.info(f"  Segment {i}: voice scheduled at {scheduled_start:.2f}s")
+            else:
+                logger.info(f"  Segment {i}: voice skipped (gap constraint)")
+        
+        config["voice_schedule"] = voice_schedule
+    else:
+        # No voice scheduling needed
+        for segment in segments:
+            segment["voice_start"] = None
+        config["voice_schedule"] = None
 
     # Output path
     output_path = output_dir / f"{name}.mp4"
