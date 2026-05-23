@@ -229,15 +229,8 @@ def generate_all_voice_clips(
     All files written to disk before function returns.
     No FFmpeg. No assembly. TTS only.
     """
-    import pyttsx3
-    engine = pyttsx3.init()
-    
-    # Set voice
-    voices = engine.getProperty('voices')
-    for v in voices:
-        if voice_name.lower() in v.name.lower():
-            engine.setProperty('voice', v.id)
-            break
+    import subprocess
+    import sys
     
     voice_paths = {}
     for i, beat in enumerate(beats):
@@ -247,10 +240,13 @@ def generate_all_voice_clips(
         if not should_generate_voice(text):
             continue
         output_path = temp_dir / f"voice_{i}.mp3"
-        engine.save_to_file(text, str(output_path))
+        subprocess.run(
+            [sys.executable, "tts_worker.py", text, str(output_path), voice_name],
+            check=True,
+            timeout=30
+        )
         voice_paths[i] = output_path
     
-    engine.runAndWait()  # Single blocking call after all saves queued
     return voice_paths
 
 
