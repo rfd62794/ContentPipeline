@@ -6,6 +6,7 @@ and updates the database with the selected asset path.
 """
 
 import sys
+import yaml
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -21,11 +22,19 @@ from core.prompt_builder import (
 
 SCRIPT_ID = 1  # Will be mapped dynamically later but matches our test flow.
 
+def _load_config() -> dict:
+    config_path = Path(__file__).resolve().parent / "config.yaml"
+    with open(config_path, "r", encoding="utf-8") as f:
+        full = yaml.safe_load(f)
+    return full.get("assembly", {})
+
 def main():
     print("=" * 70)
     print("ContentEngine P4b — Asset Sourcing & Prompt Building")
     print("=" * 70)
     print()
+
+    config = _load_config()
 
     conn = get_connection()
     conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
