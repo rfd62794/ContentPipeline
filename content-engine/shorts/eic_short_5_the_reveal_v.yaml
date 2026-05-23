@@ -8,7 +8,6 @@ voice: true
 voice_volume: 0.50
 voice_name: David
 voice_delay: 0.3
-voice_gap: 1.5
 stack_text: true
 max_visible_lines: 5
 beats:

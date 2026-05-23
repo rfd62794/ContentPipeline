@@ -49,42 +49,6 @@ def get_ffmpeg_path() -> str:
     return "ffmpeg"
 
 
-def get_audio_duration(audio_path: Path) -> float:
-    """
-    Get duration of an audio file in seconds using ffmpeg.
-
-    Args:
-        audio_path: Path to audio file.
-
-    Returns:
-        Duration in seconds as float.
-    """
-    import re
-    
-    ffmpeg_path = get_ffmpeg_path()
-    
-    cmd = [
-        ffmpeg_path,
-        '-i', str(audio_path),
-        '-f', 'null',
-        '-'
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    # Parse duration from stderr
-    stderr = result.stderr
-    duration_match = re.search(r'Duration: (\d+):(\d+):(\d+\.\d+)', stderr)
-    if duration_match:
-        hours, minutes, seconds = duration_match.groups()
-        duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
-        return duration
-    else:
-        # Fallback: estimate from file size (rough approximation)
-        # MP3 at 128kbps is ~16KB per second
-        size_kb = audio_path.stat().st_size / 1024
-        return size_kb / 16.0
-
-
 def generate_srt(audio_path: Path, output_srt_path: Path):
     """
     Generate an SRT file using Whisper transcription with word-level timestamps.
@@ -439,64 +403,23 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     if music_path and Path(music_path).exists():
         music_input = Path(music_path)
         if has_voice:
-            # Check if voice schedule is available (new gap-aware timing)
-            voice_schedule = config.get("voice_schedule")
-            
-            if voice_schedule:
-                # Build voice track using schedule-based timing
-                voice_parts = []
-                cumulative_time = 0.0
-                
-                for i, (seg, vp, scheduled_start) in enumerate(zip(segments, voice_paths, voice_schedule)):
-                    segment_duration = seg.get("duration", 5.0)
-                    
-                    if scheduled_start is not None and vp and Path(vp).exists():
-                        # Calculate silence needed before this voice clip
-                        silence_needed = scheduled_start - cumulative_time
-                        if silence_needed > 0:
-                            silence_path = temp_dir / f"silence_{i}.mp3"
-                            subprocess.run([
-                                get_ffmpeg_path(), "-y",
-                                "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                                "-t", str(silence_needed),
-                                "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                                str(silence_path)
-                            ], capture_output=True, check=True)
-                            voice_parts.append(str(silence_path))
-                        
-                        # Add the voice clip
-                        voice_parts.append(str(Path(vp)))
-                        cumulative_time = scheduled_start + get_audio_duration(Path(vp))
-                    else:
-                        # No voice for this segment or skipped - add silence for full segment duration
-                        silence_path = temp_dir / f"silence_{i}.mp3"
-                        subprocess.run([
-                            get_ffmpeg_path(), "-y",
-                            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                            "-t", str(segment_duration),
-                            "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                            str(silence_path)
-                        ], capture_output=True, check=True)
-                        voice_parts.append(str(silence_path))
-                        cumulative_time += segment_duration
-            else:
-                # Fallback to simple concatenation (old behavior)
-                voice_parts = []
-                for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
-                    duration = seg.get("duration", 5.0)
-                    if vp and Path(vp).exists():
-                        voice_parts.append(str(Path(vp)))
-                    else:
-                        # Generate a silent MP3 clip of segment duration
-                        silence_path = temp_dir / f"silence_{i}.mp3"
-                        subprocess.run([
-                            get_ffmpeg_path(), "-y",
-                            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                            "-t", str(duration),
-                            "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                            str(silence_path)
-                        ], capture_output=True, check=True)
-                        voice_parts.append(str(silence_path))
+            # Build a concatenated voice track: silence for gaps, voice clip where present
+            voice_parts = []
+            for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
+                duration = seg.get("duration", 5.0)
+                if vp and Path(vp).exists():
+                    voice_parts.append(str(Path(vp)))
+                else:
+                    # Generate a silent MP3 clip of segment duration
+                    silence_path = temp_dir / f"silence_{i}.mp3"
+                    subprocess.run([
+                        get_ffmpeg_path(), "-y",
+                        "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                        "-t", str(duration),
+                        "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                        str(silence_path)
+                    ], capture_output=True, check=True)
+                    voice_parts.append(str(silence_path))
 
             # Concatenate voice parts into one track
             voice_concat_list = temp_dir / "voice_concat.txt"
@@ -513,14 +436,16 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             ], capture_output=True, check=True)
 
             # Mix: music (trimmed if needed) + voice at respective volumes
-            # No adelay needed when using schedule-based timing (silence is pre-padded)
+            voice_delay = config.get("voice_delay", 0.3)
+            delay_ms = int(voice_delay * 1000)
+            
             if music_start > 0:
                 music_filter = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={music_volume}[m]"
             else:
                 music_filter = f"[1:a]volume={music_volume}[m]"
             filter_complex = (
                 f"{music_filter};"
-                f"[2:a]volume={voice_volume}[v];"
+                f"[2:a]adelay={delay_ms}|{delay_ms},volume={voice_volume}[v];"
                 f"[m][v]amix=inputs=2:duration=shortest[audio]"
             )
             result_audio = subprocess.run([
