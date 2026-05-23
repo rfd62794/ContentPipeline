@@ -56,6 +56,10 @@ class GameMetrics:
     last_played: Optional[int]
 
 
+class _QuotaExceededError(Exception):
+    """Raised internally when YouTube API quota is exhausted."""
+
+
 # =============================================================================
 # Pure Functions (Testable Without Network)
 # =============================================================================
@@ -379,13 +383,9 @@ class GameMetricsClient:
         except HttpError as e:
             safe_name = game_name.encode('ascii', 'ignore').decode('ascii') if game_name else 'Unknown'
             print(f"YouTube API error for {safe_name}: {e}")
-            # Check if it's a quota error - if so, wait longer
             if 'quota' in str(e).lower() or 'ratelimit' in str(e).lower():
-                print("Quota limit hit, waiting 60 seconds...")
-                time.sleep(60)  # Wait longer for quota errors
-            else:
-                # Rate limiting even for other errors
-                time.sleep(self.RATE_LIMIT_DELAY)
+                raise _QuotaExceededError() from e
+            time.sleep(self.RATE_LIMIT_DELAY)
             return {
                 'top_video_views': 0,
                 'recent_upload_count': 0,
@@ -477,16 +477,26 @@ class GameMetricsClient:
                     steamspy_data = _empty_steamspy
                     youtube_data = entry
             else:
-                # refresh=True or cold cache: fetch both
+                # Cold cache entry
                 spy_cache_file = self.steamspy_cache_dir / f"spy_{game.appid}.json"
                 if refresh or spy_cache_file.exists():
                     steamspy_data = self.fetch_steamspy_data(game.appid)
                 else:
                     steamspy_data = _empty_steamspy
 
-                safe_name = game.name.encode('ascii', 'ignore').decode('ascii') if game.name else 'Unknown'
-                print(f"Fetching YouTube data for: {safe_name}")
-                youtube_data = self.search_youtube_for_game(game.name)
+                if refresh:
+                    # Only hit YouTube API when explicitly requested
+                    try:
+                        safe_name = game.name.encode('ascii', 'ignore').decode('ascii') if game.name else 'Unknown'
+                        print(f"Fetching YouTube data for: {safe_name}")
+                        youtube_data = self.search_youtube_for_game(game.name)
+                    except _QuotaExceededError:
+                        print("YouTube quota exhausted — skipping remaining YouTube fetches.")
+                        youtube_data = _empty_youtube
+                        refresh = False  # stop trying for remaining games
+                else:
+                    youtube_data = _empty_youtube
+
                 cache[appid_str] = {'steamspy': steamspy_data, 'youtube': youtube_data}
             
             # Merge metrics
