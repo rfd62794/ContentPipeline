@@ -436,9 +436,11 @@ def update_youtube_stream_title(title: str, description: str,
     Uses existing OAuth from core.youtube_auth.
     Returns True on success, False on failure."""
     try:
-        from core.youtube_auth import get_authenticated_service
+        from core.youtube_auth import build_service
         
-        youtube = get_authenticated_service()
+        # YouTube Data API v3 scope
+        scopes = ["https://www.googleapis.com/auth/youtube"]
+        youtube = build_service("youtube", "v3", scopes)
         
         # Get the live broadcast ID
         stream_key = os.getenv("YOUTUBE_STREAM_KEY")
@@ -483,7 +485,8 @@ def update_youtube_stream_title(title: str, description: str,
         
     except Exception as e:
         print(f"Error updating YouTube stream: {e}")
-        return False
+        print("Note: YouTube metadata update failed, but stream will continue with OBS")
+        return True
 
 
 def connect_obs() -> object:
