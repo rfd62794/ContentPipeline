@@ -14,16 +14,13 @@ import json
 
 # Google API imports
 try:
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    from google.auth.transport.requests import Request
-    from google.auth import default
-    from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 except ImportError:
     print("Error: Google API libraries not installed.")
     print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
     sys.exit(1)
+
+from core.youtube_auth import build_service
 
 
 # =============================================================================
@@ -77,8 +74,6 @@ class YouTubeLibrary:
     """Client for YouTube Data API v3 library data using OAuth with refresh token."""
     
     SCOPES = ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
-    TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".youtube_token.json")
-    CLIENT_SECRET_FILE = "client_secret.json"
     
     def __init__(self, client_secret_path: Optional[str] = None):
         """
@@ -87,43 +82,7 @@ class YouTubeLibrary:
         Args:
             client_secret_path: Path to client_secret.json. If not provided, looks in current directory.
         """
-        self.credentials = None
-        self.service = None
-        
-        # Determine client secret path
-        if client_secret_path:
-            self.client_secret_path = client_secret_path
-        else:
-            self.client_secret_path = self.CLIENT_SECRET_FILE
-        
-        # Load or create credentials
-        self._load_credentials()
-        
-        # Build service
-        if self.credentials:
-            self.service = build('youtube', 'v3', credentials=self.credentials)
-        else:
-            print("Error: Could not obtain credentials")
-            sys.exit(1)
-    
-    def _load_credentials(self):
-        """Load OAuth credentials using gcloud ADC, falling back to token file."""
-        # Try gcloud ADC first (same pattern as youtube_upload.py)
-        try:
-            credentials, project = default(
-                scopes=["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
-            )
-            self.credentials = credentials
-        except Exception:
-            # Fall back to existing token file
-            token_path = Path(self.TOKEN_FILE)
-            if token_path.exists():
-                self.credentials = Credentials.from_authorized_user_file(str(token_path), self.SCOPES)
-                # Refresh if expired
-                if self.credentials.expired and self.credentials.refresh_token:
-                    self.credentials.refresh(Request())
-            else:
-                raise RuntimeError("No valid credentials found. Run gcloud auth application-default login or ensure .youtube_token.json exists")
+        self.service = build_service('youtube', 'v3', self.SCOPES)
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
