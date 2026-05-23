@@ -180,18 +180,21 @@ def save_game_registry(registry: dict) -> None:
         print(f"Error saving game registry: {e}")
 
 
-def update_game_registry_entry(registry: dict, appid: int, exe_name: str, install_path: str, session_count: int = 0) -> dict:
+def update_game_registry_entry(registry: dict, appid: int, exe_name: str, install_path: str, session_count: int = 0, window_title: Optional[str] = None) -> dict:
     """Return new registry dict with updated entry.
     Sets last_seen to current ISO datetime.
     Does not mutate input dict."""
     # Create a copy to avoid mutation
     new_registry = registry.copy()
-    new_registry[str(appid)] = {
+    entry_data = {
         "exe_name": exe_name,
         "install_path": str(install_path),
         "last_seen": datetime.now().isoformat(),
         "session_count": session_count
     }
+    if window_title:
+        entry_data["window_title"] = window_title
+    new_registry[str(appid)] = entry_data
     return new_registry
 
 
@@ -202,6 +205,19 @@ def get_exe_from_registry(registry: dict, appid: int) -> Optional[str]:
     if entry:
         return entry.get("exe_name")
     return None
+
+
+def get_window_title_for_game(game_name: str, registry: Optional[dict] = None, appid: Optional[int] = None) -> str:
+    """
+    Derive window title search string from game name.
+    Default: return game_name as-is.
+    Registry override takes precedence if window_title set.
+    """
+    if registry and appid:
+        entry = registry.get(str(appid))
+        if entry and entry.get("window_title"):
+            return entry["window_title"]
+    return game_name
 
 
 def find_active_repo(search_path: str) -> Optional[str]:
@@ -285,6 +301,136 @@ def build_game_info_url(
     # Build URL with query parameters
     url = f"file:///{overlay_abs.as_posix()}?game={quote(game_name)}&session={session_number}&commits={commit_count}"
     return url
+
+
+def wait_for_game_window(process_name: str, timeout_seconds: int = 30) -> Optional[str]:
+    """
+    Poll every 2 seconds until game window appears.
+    Returns actual window title when found.
+    Returns None if timeout exceeded.
+    Uses psutil to check process, win32gui to get window title.
+    """
+    import time as time_module
+    
+    start_time = time_module.time()
+    
+    while time_module.time() - start_time < timeout_seconds:
+        # Check if process is running
+        if is_game_running(process_name):
+            # Try to get window title
+            window_title = get_active_window_title()
+            if window_title:
+                print(f"Game window detected: {window_title}")
+                return window_title
+        
+        time_module.sleep(2)
+    
+    print(f"Timeout: Game window not found after {timeout_seconds} seconds")
+    return None
+
+
+def add_game_capture_source(obs_client, scene_name: str, window_title: str, source_name: str = "Game Capture") -> bool:
+    """
+    Add Game Capture source to named scene via obs-websocket.
+    Captures specific window matching window_title.
+    Positions full screen (1920x1080, x=0, y=0).
+    Returns True on success, False on failure.
+    If source named "Game Capture" already exists in scene,
+    remove it first then add fresh.
+    """
+    try:
+        from obswebsocket import requests
+        
+        # Remove existing source if it exists
+        req = requests.GetSceneItemList(sceneName=scene_name)
+        response = obs_client.call(req)
+        for item in response.datain['sceneItems']:
+            if item['sourceName'] == source_name:
+                req = requests.RemoveSceneItem(
+                    sceneName=scene_name,
+                    sceneItemId=item['sceneItemId']
+                )
+                obs_client.call(req)
+                print(f"Removed existing {source_name} from {scene_name}")
+                break
+        
+        # Create the Game Capture source
+        req = requests.CreateInput(
+            sceneName=scene_name,
+            inputName=source_name,
+            inputKind='game_capture',
+            sceneItemEnabled=True
+        )
+        response = obs_client.call(req)
+        print(f"Created {source_name} in {scene_name}")
+        
+        # Set source settings to capture specific window
+        req = requests.SetInputSettings(
+            inputName=source_name,
+            inputSettings={
+                'capture_mode': 'window',
+                'window': window_title,
+                'allow_transparency': False
+            }
+        )
+        response = obs_client.call(req)
+        print(f"Set {source_name} to capture window: {window_title}")
+        
+        # Position full screen
+        req = requests.GetSceneItemList(sceneName=scene_name)
+        response = obs_client.call(req)
+        for item in response.datain['sceneItems']:
+            if item['sourceName'] == source_name:
+                scene_item_id = item['sceneItemId']
+                req = requests.SetSceneItemTransform(
+                    sceneName=scene_name,
+                    sceneItemId=scene_item_id,
+                    sceneItemTransform={
+                        'positionX': 0,
+                        'positionY': 0,
+                        'scaleX': 1.0,
+                        'scaleY': 1.0
+                    }
+                )
+                obs_client.call(req)
+                print(f"Positioned {source_name} full screen")
+                break
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error adding game capture source: {e}")
+        return False
+
+
+def remove_game_capture_source(obs_client, scene_name: str, source_name: str = "Game Capture") -> bool:
+    """
+    Remove Game Capture source from scene.
+    Returns True if removed, False if not found.
+    Never raises.
+    """
+    try:
+        from obswebsocket import requests
+        
+        req = requests.GetSceneItemList(sceneName=scene_name)
+        response = obs_client.call(req)
+        
+        for item in response.datain['sceneItems']:
+            if item['sourceName'] == source_name:
+                req = requests.RemoveSceneItem(
+                    sceneName=scene_name,
+                    sceneItemId=item['sceneItemId']
+                )
+                obs_client.call(req)
+                print(f"Removed {source_name} from {scene_name}")
+                return True
+        
+        print(f"{source_name} not found in {scene_name}")
+        return False
+        
+    except Exception as e:
+        print(f"Error removing game capture source: {e}")
+        return False
 
 
 def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Optional[str]:
@@ -591,6 +737,7 @@ class StreamMonitor:
                 if not is_game_running(self.game_process_name):
                     print(f"Game closed — stream ended")
                     stop_obs_stream(self.obs_client)
+                    remove_game_capture_source(self.obs_client, "Gaming")
                     self.running = False
                     break
                 
@@ -752,15 +899,48 @@ def start_stream(game_name: str,
             "error": "Failed to connect to OBS"
         }
     
-    # 7. Switch OBS scene
-    print(f"Switching OBS scene to: {final_scene}")
-    switch_obs_scene(obs_client, final_scene)
+    # 7. Switch to Starting Soon scene
+    print("Switching OBS scene to: Starting Soon")
+    switch_obs_scene(obs_client, "Starting Soon")
     
-    # 8. Start OBS streaming
+    # 8. Wait for game window to appear
+    game_process_name = config.get("game_process_name")
+    if game_process_name:
+        print(f"Waiting for game window: {game_process_name}")
+        window_title = wait_for_game_window(game_process_name, timeout_seconds=30)
+        
+        if window_title:
+            # 9. Add Game Capture source dynamically
+            print(f"Adding Game Capture source for window: {window_title}")
+            add_game_capture_source(obs_client, "Gaming", window_title)
+            
+            # Update registry with window title
+            steam_appid = config.get("steam_appid")
+            registry = load_game_registry()
+            entry = registry.get(str(steam_appid), {})
+            registry = update_game_registry_entry(
+                registry, steam_appid,
+                exe_name=entry.get("exe_name"),
+                install_path=entry.get("install_path"),
+                session_count=entry.get("session_count", 0),
+                window_title=window_title
+            )
+            save_game_registry(registry)
+        else:
+            print("Warning: Game window not found, proceeding without game capture")
+    else:
+        print("Warning: No game_process_name, skipping game capture setup")
+        window_title = None
+    
+    # 10. Switch to Gaming scene
+    print(f"Switching OBS scene to: Gaming")
+    switch_obs_scene(obs_client, "Gaming")
+    
+    # 11. Start OBS streaming
     print("Starting OBS streaming")
     start_obs_stream(obs_client)
     
-    # 9. Track session count in registry
+    # 12. Track session count in registry
     steam_appid = config.get("steam_appid")
     registry = load_game_registry()
     entry = registry.get(str(steam_appid), {})
@@ -769,12 +949,13 @@ def start_stream(game_name: str,
         registry, steam_appid,
         exe_name=entry.get("exe_name"),
         install_path=entry.get("install_path"),
-        session_count=session_count
+        session_count=session_count,
+        window_title=entry.get("window_title")
     )
     save_game_registry(registry)
     print(f"Session count for {config.get('game')}: {session_count}")
     
-    # 10. Start stream monitor (if enabled)
+    # 13. Start stream monitor (if enabled)
     monitor_thread = None
     if enable_monitor:
         stream_start_time = datetime.now()
@@ -783,7 +964,7 @@ def start_stream(game_name: str,
         monitor_thread.start()
         print("Stream monitor started")
     
-    # 11. Return success with stream URL
+    # 14. Return success with stream URL
     channel_handle = "@robertfloyddugger4516"
     stream_url = build_youtube_stream_url(channel_handle)
     

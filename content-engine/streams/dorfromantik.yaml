@@ -1,6 +1,6 @@
 game: "Dorfromantik"
 steam_appid: 1455840
-title: "Chill Dorfromantik — indie dev winding down"
+title: "Chill Dorfromantik - indie dev winding down"
 description: "Building ContentPipeline live. Tile placement, no pressure."
 category: Gaming
 privacy: public
@@ -8,6 +8,7 @@ obs_scene: "Gaming"
 obs_overlay_scene: "BRB"
 obs_mic_source: "Mic/Aux"
 game_process_name: "Dorfromantik.exe"
+window_title: "Dorfromantik"
 tags:
   - dorfromantik
   - indie

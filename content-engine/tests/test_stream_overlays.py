@@ -14,7 +14,8 @@ from stream_launcher import (
     count_commits_since,
     build_game_info_url,
     update_game_registry_entry,
-    validate_stream_config
+    validate_stream_config,
+    get_window_title_for_game
 )
 
 
@@ -169,6 +170,18 @@ class TestSessionCountTracking:
         registry = {}
         updated = update_game_registry_entry(registry, 123, "game.exe", "/path")
         assert updated["123"]["session_count"] == 0
+    
+    def test_update_registry_entry_with_window_title(self):
+        """window_title is added to registry entry when provided."""
+        registry = {}
+        updated = update_game_registry_entry(registry, 123, "game.exe", "/path", window_title="Game Window")
+        assert updated["123"]["window_title"] == "Game Window"
+    
+    def test_update_registry_entry_window_title_optional(self):
+        """window_title is not added to registry entry when not provided."""
+        registry = {}
+        updated = update_game_registry_entry(registry, 123, "game.exe", "/path")
+        assert "window_title" not in updated["123"]
 
 
 class TestTestModes:
@@ -231,3 +244,18 @@ class TestOverlayFiles:
             # Check for external HTTP references (except file:// which is allowed)
             assert "http://" not in content, f"{html_file} contains http:// reference"
             assert "https://" not in content, f"{html_file} contains https:// reference"
+
+class TestWindowTitle:
+    """Tests for window title derivation."""
+    
+    def test_get_window_title_uses_registry_override(self):
+        """Registry window_title takes precedence over game_name."""
+        registry = {"123": {"window_title": "Custom Window Name"}}
+        result = get_window_title_for_game("GameName", registry, 123)
+        assert result == "Custom Window Name"
+    
+    def test_get_window_title_falls_back_to_game_name(self):
+        """Uses game_name when no registry override exists."""
+        registry = {}
+        result = get_window_title_for_game("GameName", registry, 123)
+        assert result == "GameName"
