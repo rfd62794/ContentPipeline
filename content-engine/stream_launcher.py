@@ -137,6 +137,35 @@ def get_active_window_title() -> str:
         return ""
 
 
+def find_game_window_title(game_name: str) -> Optional[str]:
+    """
+    Scan all windows to find one matching the game name.
+    Returns the actual window title if found, None otherwise.
+    Case-insensitive partial match on game name in window title.
+    """
+    if not win32gui:
+        return None
+    
+    try:
+        def window_callback(hwnd, windows):
+            if win32gui.IsWindowVisible(hwnd):
+                title = win32gui.GetWindowText(hwnd)
+                if title and game_name.lower() in title.lower():
+                    windows.append(title)
+            return True
+        
+        windows = []
+        win32gui.EnumWindows(window_callback, windows)
+        
+        if windows:
+            # Return the first match (most likely the game)
+            return windows[0]
+        return None
+    except Exception as e:
+        print(f"Error scanning windows: {e}")
+        return None
+
+
 def is_game_focused(window_title: str, game_name: str) -> bool:
     """Check if the active window is the game window.
     Case-insensitive partial match on game name in window title."""
@@ -303,12 +332,12 @@ def build_game_info_url(
     return url
 
 
-def wait_for_game_window(process_name: str, timeout_seconds: int = 30) -> Optional[str]:
+def wait_for_game_window(process_name: str, game_name: str, timeout_seconds: int = 30) -> Optional[str]:
     """
     Poll every 2 seconds until game window appears.
     Returns actual window title when found.
     Returns None if timeout exceeded.
-    Uses psutil to check process, win32gui to get window title.
+    Uses psutil to check process, win32gui to scan all windows.
     """
     import time as time_module
     
@@ -317,8 +346,8 @@ def wait_for_game_window(process_name: str, timeout_seconds: int = 30) -> Option
     while time_module.time() - start_time < timeout_seconds:
         # Check if process is running
         if is_game_running(process_name):
-            # Try to get window title
-            window_title = get_active_window_title()
+            # Scan all windows for game window
+            window_title = find_game_window_title(game_name)
             if window_title:
                 print(f"Game window detected: {window_title}")
                 return window_title
@@ -907,7 +936,7 @@ def start_stream(game_name: str,
     game_process_name = config.get("game_process_name")
     if game_process_name:
         print(f"Waiting for game window: {game_process_name}")
-        window_title = wait_for_game_window(game_process_name, timeout_seconds=30)
+        window_title = wait_for_game_window(game_process_name, config.get("game"), timeout_seconds=30)
         
         if window_title:
             # 9. Add Game Capture source dynamically
