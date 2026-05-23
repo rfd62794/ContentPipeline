@@ -10,6 +10,8 @@ Tools:
 - get_youtube_analytics: Get video performance metrics
 - get_channel_summary: Get channel performance summary
 - get_content_recommendations: Get content recommendations based on metrics
+- get_sale_info: Look up current sale prices and historical lows via IsThereAnyDeal
+- start_stream: Launch automated YouTube Live stream for a game
 
 Usage:
     python mcp_server.py
@@ -209,7 +211,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_sale_info",
-            description="Look up current sale prices and historical lows for games via IsThereAnyDeal. Requires ITAD_API_KEY in environment. Title lookup is exact-match only — use the full exact Steam title (e.g. 'The Binding of Isaac: Rebirth', not 'Isaac Rebirth').",
+            description="Look up current sale prices and historical lows for games via IsThereAnyDeal. Requires ITAD_API_KEY in environment. Title lookup is exact-match only - use the full exact Steam title (e.g. 'The Binding of Isaac: Rebirth', not 'Isaac Rebirth').",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -225,8 +227,35 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["game_names"]
             }
+        ),
+        Tool(
+            name="start_stream",
+            description="Launch an automated YouTube Live stream for a game. Requires OBS Studio with websocket server enabled, YOUTUBE_STREAM_KEY, OBS_WEBSOCKET_PASSWORD, and OBS_EXE_PATH in environment. Game must have a stream config in content-engine/streams/.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "game_name": {
+                        "type": "string",
+                        "description": "Name of the game to stream (must match a stream config file in content-engine/streams/)"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Custom stream title (optional, overrides config default)"
+                    },
+                    "privacy": {
+                        "type": "string",
+                        "description": "Stream privacy status (public, unlisted, private, default: public)"
+                    },
+                    "obs_scene": {
+                        "type": "string",
+                        "description": "OBS scene name to switch to (optional, overrides config default)"
+                    }
+                },
+                "required": ["game_name"]
+            }
         )
     ]
+
 
 
 @app.call_tool()
@@ -245,6 +274,8 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             return await handle_get_content_recommendations(arguments)
         elif name == "get_sale_info":
             return await handle_get_sale_info(arguments)
+        elif name == "start_stream":
+            return await handle_start_stream(arguments)
         else:
             return [TextContent(
                 type="text",
@@ -442,6 +473,28 @@ async def handle_get_sale_info(arguments: Any) -> list[TextContent]:
             "summary": [format_sale_result(r) for r in results]
         }, indent=2)
     )]
+
+async def handle_start_stream(arguments: Any) -> list[TextContent]:
+    """Handle start_stream tool call."""
+    game_name = arguments.get("game_name")
+    title = arguments.get("title")
+    privacy = arguments.get("privacy", "public")
+    obs_scene = arguments.get("obs_scene")
+    
+    if not game_name:
+        return [TextContent(
+            type="text",
+            text=json.dumps({"error": "game_name is required"})
+        )]
+    
+    # Call the stream launcher
+    result = start_stream(game_name, title=title, privacy=privacy, obs_scene=obs_scene)
+    
+    return [TextContent(
+        type="text",
+        text=json.dumps(result, indent=2)
+    )]
+
 
 
 async def main():
