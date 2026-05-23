@@ -18,6 +18,7 @@ from mcp_server import (
     handle_get_content_recommendations,
     steam_get_installed_games
 )
+from mcp_server import steam_get_installed_games
 from youtube_analytics import YouTubeAnalytics
 from game_metrics import GameMetricsClient
 
