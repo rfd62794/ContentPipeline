@@ -14,11 +14,12 @@ import os
 import sys
 import json
 import time
+import sqlite3
 import requests
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, date
 
 # Steam library imports
 from steam_library import SteamLibrary, GameInfo, get_installed_games
@@ -56,6 +57,8 @@ class GameMetrics:
     actual_playtime_hours: Optional[float]
     genres: List[str]
     last_played: Optional[int]
+    players_delta: Optional[int] = None
+    uploads_delta: Optional[int] = None
 
 
 class _QuotaExceededError(Exception):
@@ -103,6 +106,45 @@ def compute_composite_score(content_demand_score: float, playtime_hours: float) 
     import math
     playtime_signal = math.log10(playtime_hours + 1) * 0.3 * 7
     return round(content_demand_score * 0.7 + playtime_signal, 3)
+
+
+def compute_trend_delta(current: Optional[int], historical: Optional[int]) -> Optional[int]:
+    """
+    Compute the delta between a current and historical metric value.
+
+    Args:
+        current: Today's value (may be None if metric unavailable).
+        historical: Value from 7 days ago (may be None if no history yet).
+
+    Returns:
+        Integer delta, or None if either value is missing.
+    """
+    if current is None or historical is None:
+        return None
+    return current - historical
+
+
+def compute_composite_with_trend(base_score: float, players_delta: Optional[int]) -> float:
+    """
+    Add a small additive trend boost to composite_score for rising games.
+
+    Rising player counts indicate an opening content window. The boost is
+    log-scaled so a 10x spike doesn't dominate the score.
+    Declining games are NOT penalised — delta below zero is ignored.
+
+    Formula: base_score + log10(players_delta + 1) * 0.5  (if delta > 0)
+
+    Args:
+        base_score: Composite score from compute_composite_score.
+        players_delta: Change in players_2weeks over the last 7 days.
+
+    Returns:
+        Adjusted composite score, rounded to 3 decimal places.
+    """
+    import math
+    if players_delta is not None and players_delta > 0:
+        return round(base_score + math.log10(players_delta + 1) * 0.5, 3)
+    return base_score
 
 
 def parse_steamspy_response(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -259,6 +301,58 @@ def format_metrics_table(games: List[Dict[str, Any]]) -> str:
 
 
 # =============================================================================
+# Metrics History DB
+# =============================================================================
+
+class MetricsHistoryDB:
+    """Lightweight SQLite store for daily per-game metric snapshots."""
+
+    HISTORY_DB_FILE = Path(__file__).parent / "metrics_history.db"
+
+    def __init__(self, db_path: Optional[Path] = None):
+        self.db_path = db_path or self.HISTORY_DB_FILE
+        self._init_db()
+
+    def _init_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS metrics_history (
+                    appid INTEGER,
+                    date TEXT,
+                    players_2weeks INTEGER,
+                    recent_upload_count INTEGER,
+                    PRIMARY KEY (appid, date)
+                )
+            """)
+            conn.commit()
+
+    def write_snapshot(self, appid: int, players_2weeks: Optional[int],
+                       recent_upload_count: int) -> None:
+        """Insert or replace today's row for this game."""
+        today = date.today().isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO metrics_history "
+                "(appid, date, players_2weeks, recent_upload_count) VALUES (?, ?, ?, ?)",
+                (appid, today, players_2weeks, recent_upload_count)
+            )
+            conn.commit()
+
+    def read_snapshot_7d_ago(self, appid: int) -> Optional[Dict[str, Any]]:
+        """Return the row from 7 days ago, or None if no history exists."""
+        target = (date.today() - timedelta(days=7)).isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT players_2weeks, recent_upload_count FROM metrics_history "
+                "WHERE appid = ? AND date = ?",
+                (appid, target)
+            ).fetchone()
+        if row is None:
+            return None
+        return {"players_2weeks": row[0], "recent_upload_count": row[1]}
+
+
+# =============================================================================
 # API Client
 # =============================================================================
 
@@ -310,7 +404,10 @@ class GameMetricsClient:
                 self.playtime_overrides = overrides
             except (IOError, json.JSONDecodeError) as e:
                 print(f"Warning: Could not load playtime overrides: {e}")
-    
+
+        # Metrics history DB for 7-day trend signals
+        self.history_db = MetricsHistoryDB()
+
     def fetch_steamspy_data(self, appid: int) -> Dict[str, Any]:
         """
         Fetch SteamSpy data for a specific game.
@@ -477,6 +574,9 @@ class GameMetricsClient:
         Returns:
             List of GameMetrics objects
         """
+        # Capture original refresh intent before loop (may be mutated on quota exhaustion)
+        do_refresh = refresh
+
         # Load cache
         cache = self.load_cache() if not refresh else {}
         
@@ -558,13 +658,32 @@ class GameMetricsClient:
             merged = merge_game_metrics(game, steamspy_data, youtube_data,
                                         actual_playtime_hours=_actual_hours(game) if game.name.lower() in self.playtime_overrides else None)
             metrics_list.append(merged)
-        
+
+        # Write history snapshots for refreshed games
+        if do_refresh:
+            for m in metrics_list:
+                self.history_db.write_snapshot(
+                    appid=m['appid'],
+                    players_2weeks=m['players_2weeks'],
+                    recent_upload_count=m['recent_upload_count']
+                )
+
         # Save cache
         self.save_cache(cache)
         
-        # Convert to GameMetrics objects
+        # Convert to GameMetrics objects (with trend deltas)
         game_metrics = []
         for m in metrics_list:
+            hist = self.history_db.read_snapshot_7d_ago(m['appid'])
+            players_delta = compute_trend_delta(
+                m['players_2weeks'],
+                hist['players_2weeks'] if hist else None
+            )
+            uploads_delta = compute_trend_delta(
+                m['recent_upload_count'],
+                hist['recent_upload_count'] if hist else None
+            )
+            final_composite = compute_composite_with_trend(m['composite_score'], players_delta)
             game_metrics.append(GameMetrics(
                 appid=m['appid'],
                 name=m['name'],
@@ -577,13 +696,15 @@ class GameMetricsClient:
                 recent_upload_count=m['recent_upload_count'],
                 avg_views_top5=m['avg_views_top5'],
                 content_demand_score=m['content_demand_score'],
-                composite_score=m['composite_score'],
+                composite_score=final_composite,
                 actual_playtime_hours=m['actual_playtime_hours'],
                 genres=m['genres'],
-                last_played=m['last_played']
+                last_played=m['last_played'],
+                players_delta=players_delta,
+                uploads_delta=uploads_delta
             ))
         
-        # Sort by composite score (YouTube demand + playtime blend)
+        # Sort by composite score (YouTube demand + playtime blend + trend boost)
         game_metrics.sort(key=lambda x: x.composite_score, reverse=True)
 
         return game_metrics

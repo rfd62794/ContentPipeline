@@ -9,3 +9,4 @@ cache/***/__pycache__/
 .youtube_token.json
 .youtube_cache/
 /secrets/*
+content-engine/metrics_history.db
