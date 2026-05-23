@@ -343,6 +343,7 @@ def produce_short_from_yaml(yaml_path: Path):
     
     # PHASE 2: Generate all TTS clips in one pass (before assembly)
     voice_paths = {}
+    print(f"DEBUG: voice_enabled={config.get('voice_enabled')}, voice_schedule={voice_schedule}")
     if config.get("voice_enabled") and voice_schedule:
         voice_name = config.get("voice_name", "David")
         logger.info(f"Voice enabled — generating TTS clips (voice: {voice_name})")
