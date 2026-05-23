@@ -323,8 +323,12 @@ def produce_short_from_yaml(yaml_path: Path):
     
     # Compute voice schedule with gap constraints
     voice_schedule = None
+    print("DEBUG: About to start voice scheduling")
     try:
+        print("DEBUG: In try block")
+        print(f"DEBUG: voice_enabled={config.get('voice_enabled')}, tts_durations={tts_durations}")
         if config.get("voice_enabled") and any(d > 0 for d in tts_durations):
+            print("DEBUG: Inside if condition")
             voice_delay = config.get("voice_delay", 0.3)
             voice_gap = config.get("voice_gap", 1.5)
             voice_schedule = compute_voice_schedule(segments, tts_durations, voice_delay, voice_gap)
