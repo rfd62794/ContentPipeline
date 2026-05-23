@@ -59,7 +59,8 @@ def validate_stream_config(config: dict) -> list[str]:
     """Return list of validation errors. Empty = valid.
     Check: game present, steam_appid is int, title <= 100 chars,
     privacy is public/unlisted/private, obs_scene present,
-    obs_overlay_scene present, obs_mic_source present, game_process_name present."""
+    obs_overlay_scene present, obs_mic_source present.
+    game_process_name is optional (will be auto-detected if missing)."""
     errors = []
     
     if not config.get("game"):
@@ -88,8 +89,7 @@ def validate_stream_config(config: dict) -> list[str]:
     if not config.get("obs_mic_source"):
         errors.append("Missing required field: obs_mic_source")
     
-    if not config.get("game_process_name"):
-        errors.append("Missing required field: game_process_name")
+    # game_process_name is optional - will be auto-detected if missing
     
     return errors
 
@@ -144,6 +144,61 @@ def is_game_running(process_name: str) -> bool:
         if proc.info['name'] and proc.info['name'].lower() == process_name.lower():
             return True
     return False
+
+
+def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Optional[str]:
+    """Find the game executable by scanning Steam install directory.
+    Looks up installdir from steam_library ACF parser, then scans
+    C:/Program Files (x86)/Steam/steamapps/common/{installdir}/
+    Returns filename of largest .exe found, or None if not found."""
+    try:
+        from steam_library import SteamLibrary
+        
+        # Initialize Steam library
+        if steam_path is None:
+            steam_path = Path("C:/Program Files (x86)/Steam")
+        
+        steam_lib = SteamLibrary(steam_path)
+        
+        # Get game info to find installdir
+        games = steam_lib.get_installed_games()
+        game_info = None
+        for game in games:
+            if game.appid == steam_appid:
+                game_info = game
+                break
+        
+        if not game_info or not game_info.installdir:
+            print(f"Could not find installdir for appid {steam_appid}")
+            return None
+        
+        # Scan the install directory for .exe files
+        install_dir = steam_path / "steamapps" / "common" / game_info.installdir
+        if not install_dir.exists():
+            print(f"Install directory not found: {install_dir}")
+            return None
+        
+        # Find all .exe files and their sizes
+        exe_files = []
+        for exe_path in install_dir.rglob("*.exe"):
+            try:
+                size = exe_path.stat().st_size
+                exe_files.append((exe_path.name, size))
+            except Exception:
+                continue
+        
+        if not exe_files:
+            print(f"No .exe files found in {install_dir}")
+            return None
+        
+        # Return the largest .exe file
+        largest_exe = max(exe_files, key=lambda x: x[1])
+        print(f"Found game executable: {largest_exe[0]} ({largest_exe[1] / (1024*1024):.1f} MB)")
+        return largest_exe[0]
+        
+    except Exception as e:
+        print(f"Error finding game executable: {e}")
+        return None
 
 
 def ensure_obs_running(obs_exe_path: Optional[str] = None) -> bool:
@@ -261,17 +316,22 @@ def update_youtube_stream_title(title: str, description: str,
 
 def connect_obs() -> object:
     """Connect to OBS via obs-websocket-py.
-    Reads OBS_WEBSOCKET_PASSWORD from env.
+    Reads OBS_WEBSOCKET_PASSWORD from env (optional).
     Default port 4455. Returns obs client object."""
     try:
         from obswebsocket import obsws
         
         password = os.getenv("OBS_WEBSOCKET_PASSWORD")
-        if not password:
-            print("Error: OBS_WEBSOCKET_PASSWORD not found in environment")
-            return None
         
-        obs = obsws(obsws_host="localhost", obsws_port=4455, password=password)
+        if password:
+            # Connect with authentication
+            obs = obsws(obsws_host="localhost", obsws_port=4455, password=password)
+            print("Connecting to OBS WebSocket with authentication")
+        else:
+            # Connect without authentication
+            obs = obsws(obsws_host="localhost", obsws_port=4455, password=None)
+            print("Connecting to OBS WebSocket without authentication")
+        
         obs.connect()
         print("Connected to OBS WebSocket")
         return obs
@@ -424,6 +484,18 @@ def start_stream(game_name: str,
             "success": False,
             "error": f"Config validation failed: {', '.join(errors)}"
         }
+    
+    # Auto-detect game_process_name if not in YAML
+    if not config.get("game_process_name"):
+        steam_appid = config.get("steam_appid")
+        print(f"Auto-detecting game executable for appid {steam_appid}")
+        detected_exe = find_game_exe(steam_appid)
+        if detected_exe:
+            config["game_process_name"] = detected_exe
+            print(f"Auto-detected game_process_name: {detected_exe}")
+        else:
+            print("Warning: Could not auto-detect game_process_name. Process monitoring will be disabled.")
+            enable_monitor = False
     
     # Override with provided parameters
     final_title = title if title else config.get("title")

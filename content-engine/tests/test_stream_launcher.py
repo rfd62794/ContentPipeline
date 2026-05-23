@@ -21,6 +21,7 @@ from stream_launcher import (
     get_active_window_title,
     is_game_focused,
     is_game_running,
+    find_game_exe,
 )
 
 
@@ -218,6 +219,7 @@ class TestValidateStreamConfig:
         assert "obs_mic_source" in errors[0].lower()
     
     def test_validate_missing_process_name(self):
+        """Test validate_config does not require game_process_name (optional field)."""
         config = {
             "game": "Dorfromantik",
             "steam_appid": 1455840,
@@ -228,8 +230,8 @@ class TestValidateStreamConfig:
             "obs_mic_source": "Mic/Aux"
         }
         errors = validate_stream_config(config)
-        assert len(errors) == 1
-        assert "game_process_name" in errors[0].lower()
+        # game_process_name is optional, so should not have errors
+        assert len(errors) == 0
 
 
 class TestFindStreamConfig:
@@ -427,3 +429,77 @@ class TestIsGameRunning:
             
             result = is_game_running("Dorfromantik.exe")
             assert result is True
+
+
+class TestFindGameExe:
+    """Test find_game_exe function."""
+    
+    def test_find_game_exe_returns_largest_exe(self):
+        """Test find_game_exe returns the largest .exe file from install directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create mock Steam install structure
+            steam_path = Path(tmpdir)
+            common_dir = steam_path / "steamapps" / "common" / "Dorfromantik"
+            common_dir.mkdir(parents=True)
+            
+            # Create mock exe files with different sizes
+            small_exe = common_dir / "small.exe"
+            small_exe.write_bytes(b"x" * 1000)
+            
+            medium_exe = common_dir / "medium.exe"
+            medium_exe.write_bytes(b"x" * 5000)
+            
+            large_exe = common_dir / "Dorfromantik.exe"
+            large_exe.write_bytes(b"x" * 10000)
+            
+            # Mock SteamLibrary to return game info
+            with patch('steam_library.SteamLibrary') as mock_steam_lib_class:
+                mock_game_info = MagicMock()
+                mock_game_info.installdir = "Dorfromantik"
+                mock_game_info.appid = 1455840
+                
+                mock_steam_instance = MagicMock()
+                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                mock_steam_lib_class.return_value = mock_steam_instance
+                
+                result = find_game_exe(1455840, steam_path)
+                
+                # Should return the largest exe
+                assert result == "Dorfromantik.exe"
+    
+    def test_find_game_exe_no_exe_files(self):
+        """Test find_game_exe returns None when no exe files found."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            steam_path = Path(tmpdir)
+            common_dir = steam_path / "steamapps" / "common" / "Dorfromantik"
+            common_dir.mkdir(parents=True)
+            
+            # Don't create any exe files
+            
+            with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                mock_game_info = MagicMock()
+                mock_game_info.installdir = "Dorfromantik"
+                mock_steam_instance = MagicMock()
+                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                mock_steam_lib.return_value = mock_steam_instance
+                
+                result = find_game_exe(1455840, steam_path)
+                
+                assert result is None
+    
+    def test_find_game_exe_installdir_not_found(self):
+        """Test find_game_exe returns None when installdir not found."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            steam_path = Path(tmpdir)
+            
+            with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                # Mock game info without installdir
+                mock_game_info = MagicMock()
+                mock_game_info.installdir = None
+                mock_steam_instance = MagicMock()
+                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                mock_steam_lib.return_value = mock_steam_instance
+                
+                result = find_game_exe(1455840, steam_path)
+                
+                assert result is None
