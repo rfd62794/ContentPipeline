@@ -17,6 +17,7 @@ from mcp_server import (
     handle_get_channel_summary,
     handle_get_content_recommendations
 )
+from youtube_analytics import YouTubeAnalytics
 
 
 # =============================================================================
@@ -255,14 +256,20 @@ class TestGetYouTubeAnalytics:
     def test_get_youtube_analytics_missing_params(self):
         """Test with missing required parameters."""
         import asyncio
-        result = asyncio.run(handle_get_youtube_analytics({
-            "video_id": "abc123"
-            # Missing start_date and end_date
-        }))
-        content = json.loads(result[0].text)
-        
-        # Should handle gracefully with None values
-        assert "error" in content or "video_id" in content
+        # Mock the YouTubeAnalytics client to avoid real auth calls
+        with patch('mcp_server.get_youtube_analytics') as mock_get_analytics:
+            mock_analytics = MagicMock()
+            mock_analytics.get_video_stats.return_value = None
+            mock_get_analytics.return_value = mock_analytics
+            
+            result = asyncio.run(handle_get_youtube_analytics({
+                "video_id": "abc123"
+                # Missing start_date and end_date
+            }))
+            content = json.loads(result[0].text)
+            
+            # Should handle gracefully with None values
+            assert "error" in content or "video_id" in content
     
     def test_get_youtube_analytics_error(self):
         """Test error handling when analytics fetch fails."""
@@ -315,14 +322,20 @@ class TestGetChannelSummary:
     def test_get_channel_summary_missing_params(self):
         """Test with missing required parameters."""
         import asyncio
-        result = asyncio.run(handle_get_channel_summary({
-            "start_date": "2024-01-01"
-            # Missing end_date
-        }))
-        content = json.loads(result[0].text)
-        
-        # Should handle gracefully
-        assert "error" in content or "start_date" in content
+        # Mock the YouTubeAnalytics client to avoid real auth calls
+        with patch('mcp_server.get_youtube_analytics') as mock_get_analytics:
+            mock_analytics = MagicMock()
+            mock_analytics.get_channel_stats.return_value = None
+            mock_get_analytics.return_value = mock_analytics
+            
+            result = asyncio.run(handle_get_channel_summary({
+                "start_date": "2024-01-01"
+                # Missing end_date
+            }))
+            content = json.loads(result[0].text)
+            
+            # Should handle gracefully
+            assert "error" in content or "start_date" in content
     
     def test_get_channel_summary_error(self):
         """Test error handling when channel stats fetch fails."""
@@ -417,9 +430,14 @@ class TestClientInitialization:
     
     def test_get_youtube_analytics_singleton(self):
         """Test that YouTubeAnalytics is cached."""
-        client1 = get_youtube_analytics()
-        client2 = get_youtube_analytics()
-        assert client1 is client2
+        # Mock the YouTubeAnalytics to avoid real auth calls
+        with patch('mcp_server.YouTubeAnalytics') as mock_analytics_class:
+            mock_instance = MagicMock()
+            mock_analytics_class.return_value = mock_instance
+            
+            client1 = get_youtube_analytics()
+            client2 = get_youtube_analytics()
+            assert client1 is client2
 
 
 # =============================================================================
