@@ -425,7 +425,8 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             voice_concat_list = temp_dir / "voice_concat.txt"
             with open(voice_concat_list, "w") as f:
                 for vp in voice_parts:
-                    f.write(f"file '{vp}'\n")
+                    abs_path = str(Path(vp).resolve()).replace("\\", "/")
+                    f.write(f"file '{abs_path}'\n")
             voice_track = temp_dir / "voice_track.mp3"
             subprocess.run([
                 get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0",
