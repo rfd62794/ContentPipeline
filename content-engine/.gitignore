@@ -24,6 +24,9 @@ cache/
 # Steam API Cache
 .steam_cache/
 
+# YouTube OAuth Token
+.youtube_token.json
+
 
 # Audio artifacts
 audio/

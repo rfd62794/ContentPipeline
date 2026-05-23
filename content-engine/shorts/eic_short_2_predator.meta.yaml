@@ -1,0 +1,13 @@
+# Metadata override layer for eic_short_2_predator
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: ""                    # Manual override. Empty = use Layer 1 if auto_generate true.
+description: ""              # Manual override. Multiline supported.
+tags: []                     # Manual override list. Empty = use Layer 1 if auto_generate true.
+privacy: "public"            # public | unlisted | private
+schedule: ""                 # ISO format: "2026-05-23T21:00:00" Local time. Empty = publish immediately.
+category_id: "20"            # YouTube category ID. 20 = Gaming. Do not change without ADR.
+made_for_kids: false
