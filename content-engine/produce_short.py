@@ -323,25 +323,31 @@ def produce_short_from_yaml(yaml_path: Path):
     
     # Compute voice schedule with gap constraints
     voice_schedule = None
-    if config.get("voice_enabled") and any(d > 0 for d in tts_durations):
-        voice_delay = config.get("voice_delay", 0.3)
-        voice_gap = config.get("voice_gap", 1.5)
-        voice_schedule = compute_voice_schedule(segments, tts_durations, voice_delay, voice_gap)
+    try:
+        if config.get("voice_enabled") and any(d > 0 for d in tts_durations):
+            voice_delay = config.get("voice_delay", 0.3)
+            voice_gap = config.get("voice_gap", 1.5)
+            voice_schedule = compute_voice_schedule(segments, tts_durations, voice_delay, voice_gap)
+            
+            # Log schedule results
+            for i, scheduled_start in enumerate(voice_schedule):
+                if scheduled_start is not None:
+                    logger.info(f"  Segment {i}: voice scheduled at {scheduled_start:.2f}s")
+                else:
+                    logger.info(f"  Segment {i}: voice skipped (gap constraint)")
+            
+            config["voice_schedule"] = voice_schedule
+        else:
+            # No voice scheduling needed
+            voice_schedule = [None] * len(segments)
+            config["voice_schedule"] = voice_schedule
         
-        # Log schedule results
-        for i, scheduled_start in enumerate(voice_schedule):
-            if scheduled_start is not None:
-                logger.info(f"  Segment {i}: voice scheduled at {scheduled_start:.2f}s")
-            else:
-                logger.info(f"  Segment {i}: voice skipped (gap constraint)")
-        
-        config["voice_schedule"] = voice_schedule
-    else:
-        # No voice scheduling needed
-        voice_schedule = [None] * len(segments)
-        config["voice_schedule"] = voice_schedule
-    
-    print("DEBUG: After voice scheduling, about to start PHASE 2")
+        print("DEBUG: After voice scheduling, about to start PHASE 2")
+    except Exception as e:
+        print(f"ERROR in voice scheduling: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     # PHASE 2: Generate all TTS clips in one pass (before assembly)
     voice_paths = {}
     print(f"DEBUG: voice_enabled={config.get('voice_enabled')}, voice_schedule={voice_schedule}")
