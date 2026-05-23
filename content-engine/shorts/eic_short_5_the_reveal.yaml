@@ -1,0 +1,32 @@
+name: eic_short_5_the_reveal
+source: C:/Users/cheat/Videos/Everything Is Crab/2026-05-19 19-27-58.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+stack_text: true
+max_visible_lines: 5
+beats:
+  - clip_start: "8:59"
+    clip_end: "9:03"
+    duration: 4
+    line: "I picked one more fight."
+  - clip_start: "9:04"
+    clip_end: "9:15"
+    duration: 11
+    line: "I couldn't win it."
+  - clip_start: "9:16"
+    clip_end: "9:17"
+    duration: 1
+    line: "I died."
+  - clip_start: "9:16"
+    clip_end: "9:17"
+    duration: 1
+    line: "I started as a slime."
+  - clip_start: "9:18"
+    clip_end: "9:20"
+    duration: 2
+    line: "The game said: Main Predator. Main Prey."
+  - clip_start: "9:21"
+    clip_end: "9:23"
+    duration: 2
+    line: "PROGRESS!"
