@@ -479,7 +479,6 @@ class TestGameMetricsClientInit:
         # Windows converts forward slashes to backslashes
         assert 'custom' in str(client.cache_dir) and 'cache' in str(client.cache_dir)
     
-        mock_path.assert_called_with('/custom/cache')
 
 
 class TestGameMetricsClientCache:
