@@ -96,6 +96,7 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
         "voice_enabled": yaml_config.get("voice", False),
         "voice_volume": yaml_config.get("voice_volume", 0.50),
         "voice_name": yaml_config.get("voice_name", "David"),
+        "voice_delay": yaml_config.get("voice_delay", 0.3),
         "shorts_attribution_enabled": yaml_config.get("attribution") is not None,
         "shorts_attribution_y_pct": 0.05,
         "shorts_attribution_font_size": 30,
@@ -125,20 +126,23 @@ def should_generate_voice(segment_text: Optional[str]) -> bool:
     return bool(segment_text and segment_text.strip())
 
 
-def build_voice_mix_filter(voice_volume: float) -> str:
+def build_voice_mix_filter(voice_volume: float, voice_delay: float = 0.3) -> str:
     """
     Build the ffmpeg filter_complex string for mixing voice into a silent video.
 
     Assumes input 0 is the video (no audio), input 1 is music, input 2 is voice.
     Music and voice are mixed together at their respective volumes.
+    Voice is delayed by voice_delay seconds to create a double-hit effect (text first, then voice).
 
     Args:
         voice_volume: Voice track volume (0.0 to 1.0).
+        voice_delay: Delay in seconds before voice starts (default 0.3).
 
     Returns:
         ffmpeg filter_complex string.
     """
-    return f"[2:a]volume={voice_volume}[v];[1:a][v]amix=inputs=2:duration=shortest[audio]"
+    delay_ms = int(voice_delay * 1000)
+    return f"[2:a]adelay={delay_ms}|{delay_ms},volume={voice_volume}[v];[1:a][v]amix=inputs=2:duration=shortest[audio]"
 
 
 def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:

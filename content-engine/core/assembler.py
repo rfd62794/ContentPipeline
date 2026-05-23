@@ -436,13 +436,16 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             ], capture_output=True, check=True)
 
             # Mix: music (trimmed if needed) + voice at respective volumes
+            voice_delay = config.get("voice_delay", 0.3)
+            delay_ms = int(voice_delay * 1000)
+            
             if music_start > 0:
                 music_filter = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={music_volume}[m]"
             else:
                 music_filter = f"[1:a]volume={music_volume}[m]"
             filter_complex = (
                 f"{music_filter};"
-                f"[2:a]volume={voice_volume}[v];"
+                f"[2:a]adelay={delay_ms}|{delay_ms},volume={voice_volume}[v];"
                 f"[m][v]amix=inputs=2:duration=shortest[audio]"
             )
             result_audio = subprocess.run([
