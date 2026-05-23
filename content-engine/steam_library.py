@@ -15,9 +15,11 @@ Environment Variables:
 import os
 import re
 import logging
+import json
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import requests
 
 from dotenv import load_dotenv
@@ -40,6 +42,15 @@ class GameInfo:
     installdir: Optional[str] = None
     installed: bool = False
     playtime_hours: float = 0.0
+    # Store API metadata
+    genres: List[str] = field(default_factory=list)
+    tags: List[str] = field(default_factory=list)
+    description: Optional[str] = None
+    developers: List[str] = field(default_factory=list)
+    publishers: List[str] = field(default_factory=list)
+    release_date: Optional[str] = None
+    header_image: Optional[str] = None
+    screenshots: List[str] = field(default_factory=list)
 
 
 # =============================================================================
@@ -321,6 +332,220 @@ class SteamWebAPI:
 
 
 # =============================================================================
+# Steam Store API Client
+# =============================================================================
+
+class SteamStoreAPIError(Exception):
+    """Base exception for Steam Store API errors."""
+    pass
+
+
+class SteamStoreAPI:
+    """Client for Steam Store API calls with rate limiting and caching."""
+    
+    BASE_URL = "https://store.steampowered.com/api"
+    
+    def __init__(
+        self,
+        cache_dir: Optional[Path] = None,
+        requests_per_second: float = 10.0
+    ):
+        """
+        Initialize Steam Store API client.
+        
+        Args:
+            cache_dir: Directory for caching API responses. Defaults to .steam_cache/
+            requests_per_second: Rate limit for API calls (default: 10 req/s)
+        """
+        if cache_dir is None:
+            cache_dir = Path(".steam_cache")
+        
+        self.cache_dir = cache_dir
+        self.cache_dir.mkdir(exist_ok=True)
+        
+        self.min_request_interval = 1.0 / requests_per_second
+        self.last_request_time = 0.0
+    
+    def _rate_limit(self) -> None:
+        """Enforce rate limiting between requests."""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            time.sleep(sleep_time)
+        
+        self.last_request_time = time.time()
+    
+    def _get_cache_path(self, appid: int) -> Path:
+        """Get cache file path for a given appid."""
+        return self.cache_dir / f"{appid}.json"
+    
+    def _read_cache(self, appid: int) -> Optional[Dict[str, Any]]:
+        """Read cached data for an appid."""
+        cache_path = self._get_cache_path(appid)
+        if not cache_path.exists():
+            return None
+        
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Failed to read cache for {appid}: {e}")
+            return None
+    
+    def _write_cache(self, appid: int, data: Dict[str, Any]) -> None:
+        """Write data to cache for an appid."""
+        cache_path = self._get_cache_path(appid)
+        try:
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+        except IOError as e:
+            logger.warning(f"Failed to write cache for {appid}: {e}")
+    
+    def get_app_details(self, appid: int, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed app information from Steam Store API.
+        
+        Args:
+            appid: Steam app ID.
+            use_cache: Whether to use cached data if available.
+        
+        Returns:
+            Dictionary with app details, or None if not found.
+        
+        API Reference:
+            https://store.steampowered.com/api/appdetails
+        """
+        # Check cache first
+        if use_cache:
+            cached = self._read_cache(appid)
+            if cached:
+                logger.debug(f"Using cached data for appid {appid}")
+                return cached
+        
+        # Rate limit
+        self._rate_limit()
+        
+        # Make request
+        url = f"{self.BASE_URL}/appdetails"
+        params = {
+            'appids': appid,
+            'l': 'english'  # Request English language data
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Check if appid exists in response
+            if str(appid) not in data:
+                logger.warning(f"Appid {appid} not found in Store API response")
+                return None
+            
+            app_data = data[str(appid)]
+            
+            # Check if request was successful
+            if not app_data.get('success', False):
+                logger.warning(f"Store API returned success=False for appid {appid}")
+                return None
+            
+            # Extract the actual data
+            details = app_data.get('data', {})
+            
+            # Cache the result
+            if use_cache:
+                self._write_cache(appid, details)
+            
+            return details
+            
+        except requests.RequestException as e:
+            logger.error(f"Store API request failed for appid {appid}: {e}")
+            return None
+        except ValueError as e:
+            logger.error(f"Invalid JSON response for appid {appid}: {e}")
+            return None
+    
+    def parse_app_details(self, details: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse Store API details into a standardized format.
+        
+        Args:
+            details: Raw Store API response data.
+        
+        Returns:
+            Dictionary with standardized fields.
+        """
+        parsed = {}
+        
+        # Basic info
+        parsed['name'] = details.get('name', '')
+        parsed['short_description'] = details.get('short_description', '')
+        parsed['detailed_description'] = details.get('detailed_description', '')
+        
+        # Strip HTML from description
+        import re
+        html_tags = re.compile('<.*?>')
+        parsed['description'] = html_tags.sub('', parsed['short_description'])
+        
+        # Developers and publishers
+        parsed['developers'] = details.get('developers', [])
+        parsed['publishers'] = details.get('publishers', [])
+        
+        # Release date
+        release_date = details.get('release_date', {})
+        parsed['release_date'] = release_date.get('date', '')
+        
+        # Genres
+        genres = details.get('genres', [])
+        parsed['genres'] = [g.get('description', '') for g in genres]
+        
+        # Tags (Steam tags)
+        tags = details.get('steamspy_tags', [])
+        if not tags:
+            # Alternative tag location
+            tags = details.get('tags', [])
+            if tags:
+                tags = [t.get('tag', '') for t in tags]
+        parsed['tags'] = tags
+        
+        # Media
+        parsed['header_image'] = details.get('header_image', '')
+        
+        screenshots = details.get('screenshots', [])
+        parsed['screenshots'] = [s.get('path_full', '') for s in screenshots]
+        
+        # Price (if available)
+        price_overview = details.get('price_overview', {})
+        if price_overview:
+            parsed['price'] = price_overview.get('final_formatted', '')
+            parsed['discount_percent'] = price_overview.get('discount_percent', 0)
+        else:
+            parsed['price'] = 'Free to Play' if details.get('is_free', False) else 'N/A'
+            parsed['discount_percent'] = 0
+        
+        return parsed
+    
+    def get_parsed_app_details(self, appid: int, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+        """
+        Get parsed app details in a standardized format.
+        
+        Args:
+            appid: Steam app ID.
+            use_cache: Whether to use cached data if available.
+        
+        Returns:
+            Dictionary with standardized app details, or None if not found.
+        """
+        details = self.get_app_details(appid, use_cache)
+        if not details:
+            return None
+        
+        return self.parse_app_details(details)
+
+
+# =============================================================================
 # SteamLibrary Class
 # =============================================================================
 
@@ -336,7 +561,9 @@ class SteamLibrary:
         self,
         steam_path: Optional[Path] = None,
         api_key: Optional[str] = None,
-        steam_id: Optional[str] = None
+        steam_id: Optional[str] = None,
+        cache_dir: Optional[Path] = None,
+        enable_store_api: bool = True
     ):
         """
         Initialize SteamLibrary.
@@ -345,14 +572,23 @@ class SteamLibrary:
             steam_path: Path to Steam installation directory.
             api_key: Steam API key. If None, reads from STEAM_API_KEY env var.
             steam_id: Steam user ID. If None, reads from STEAM_ID env var.
+            cache_dir: Directory for caching Store API responses.
+            enable_store_api: Whether to enable Store API integration.
         """
         self.steam_path = steam_path
         self.api_client: Optional[SteamWebAPI] = None
+        self.store_api_client: Optional[SteamStoreAPI] = None
         
         try:
             self.api_client = SteamWebAPI(api_key, steam_id)
         except SteamWebAPIError as e:
             logger.warning(f"Steam Web API not available: {e}")
+        
+        if enable_store_api:
+            try:
+                self.store_api_client = SteamStoreAPI(cache_dir=cache_dir)
+            except Exception as e:
+                logger.warning(f"Steam Store API not available: {e}")
     
     def get_library(self) -> List[GameInfo]:
         """
@@ -401,6 +637,42 @@ class SteamLibrary:
         
         # Sort by name
         library.sort(key=lambda g: g.name.lower())
+        
+        return library
+    
+    def get_library_with_metadata(self, limit: Optional[int] = None) -> List[GameInfo]:
+        """
+        Get merged library with Store API metadata.
+        
+        Args:
+            limit: Maximum number of games to fetch metadata for (None = all).
+        
+        Returns:
+            List of GameInfo objects with full Store API metadata.
+        """
+        library = self.get_library()
+        
+        if not self.store_api_client:
+            logger.warning("Store API not available, returning basic library")
+            return library
+        
+        # Limit the number of games to fetch metadata for
+        games_to_enrich = library[:limit] if limit else library
+        
+        for game in games_to_enrich:
+            try:
+                details = self.store_api_client.get_parsed_app_details(game.appid)
+                if details:
+                    game.genres = details.get('genres', [])
+                    game.tags = details.get('tags', [])
+                    game.description = details.get('description', '')
+                    game.developers = details.get('developers', [])
+                    game.publishers = details.get('publishers', [])
+                    game.release_date = details.get('release_date', '')
+                    game.header_image = details.get('header_image', '')
+                    game.screenshots = details.get('screenshots', [])
+            except Exception as e:
+                logger.warning(f"Failed to fetch metadata for {game.name} (appid {game.appid}): {e}")
         
         return library
     
@@ -492,6 +764,61 @@ def print_library_table(library: List[GameInfo]) -> None:
     print(f"Installed: {installed_count}")
 
 
+def print_game_metadata(game: GameInfo) -> None:
+    """
+    Print detailed metadata for a single game.
+    
+    Args:
+        game: GameInfo object with metadata.
+    """
+    print(f"\n{'='*60}")
+    print(f"Game: {game.name}")
+    print(f"AppID: {game.appid}")
+    print(f"{'='*60}")
+    
+    if game.installed:
+        print(f"Status: INSTALLED")
+        if game.installdir:
+            print(f"Install Dir: {game.installdir}")
+    else:
+        print(f"Status: Not Installed")
+    
+    if game.playtime_hours > 0:
+        print(f"Playtime: {game.playtime_hours:.1f} hours")
+    
+    if game.genres:
+        print(f"Genres: {', '.join(game.genres)}")
+    
+    if game.tags:
+        print(f"Tags: {', '.join(game.tags[:10])}")  # Show first 10 tags
+        if len(game.tags) > 10:
+            print(f"       ... and {len(game.tags) - 10} more")
+    
+    if game.developers:
+        print(f"Developers: {', '.join(game.developers)}")
+    
+    if game.publishers:
+        print(f"Publishers: {', '.join(game.publishers)}")
+    
+    if game.release_date:
+        print(f"Release Date: {game.release_date}")
+    
+    if game.description:
+        # Truncate description if too long
+        desc = game.description[:200] + "..." if len(game.description) > 200 else game.description
+        print(f"Description: {desc}")
+    
+    if game.header_image:
+        print(f"Header Image: {game.header_image}")
+    
+    if game.screenshots:
+        print(f"Screenshots: {len(game.screenshots)} available")
+        for i, ss in enumerate(game.screenshots[:3], 1):
+            print(f"  {i}. {ss}")
+        if len(game.screenshots) > 3:
+            print(f"  ... and {len(game.screenshots) - 3} more")
+
+
 def main():
     """CLI entry point."""
     import argparse
@@ -515,14 +842,62 @@ def main():
         default=None,
         help='Show recently played games (limit to N games)'
     )
+    parser.add_argument(
+        '--metadata',
+        action='store_true',
+        help='Fetch full metadata from Steam Store API (slower, requires API calls)'
+    )
+    parser.add_argument(
+        '--metadata-limit',
+        type=int,
+        metavar='N',
+        default=None,
+        help='Limit metadata fetching to N games (default: all)'
+    )
+    parser.add_argument(
+        '--app-id',
+        type=int,
+        metavar='APPID',
+        default=None,
+        help='Show detailed metadata for a specific app ID'
+    )
     
     args = parser.parse_args()
     
     # Initialize library
     library = SteamLibrary(steam_path=args.steam_path)
     
+    # Handle single app ID lookup
+    if args.app_id:
+        if not library.store_api_client:
+            print("Error: Store API not available")
+            return
+        
+        details = library.store_api_client.get_parsed_app_details(args.app_id)
+        if details:
+            # Create a GameInfo object for display
+            game = GameInfo(
+                appid=args.app_id,
+                name=details.get('name', 'Unknown'),
+                genres=details.get('genres', []),
+                tags=details.get('tags', []),
+                description=details.get('description', ''),
+                developers=details.get('developers', []),
+                publishers=details.get('publishers', []),
+                release_date=details.get('release_date', ''),
+                header_image=details.get('header_image', ''),
+                screenshots=details.get('screenshots', [])
+            )
+            print_game_metadata(game)
+        else:
+            print(f"Error: Could not fetch details for app ID {args.app_id}")
+        return
+    
     # Fetch games
-    if args.recent is not None:
+    if args.metadata:
+        games = library.get_library_with_metadata(limit=args.metadata_limit)
+        print(f"\n=== Steam Library with Store API Metadata ===\n")
+    elif args.recent is not None:
         games = library.get_recently_played(count=args.recent)
         print(f"\n=== Recently Played Games (Last {args.recent}) ===\n")
     elif args.installed_only:
@@ -534,6 +909,14 @@ def main():
     
     # Print table
     print_library_table(games)
+    
+    # If metadata was fetched, show details for installed games
+    if args.metadata:
+        installed_with_metadata = [g for g in games if g.installed and g.genres]
+        if installed_with_metadata:
+            print(f"\n=== Installed Games with Metadata ===\n")
+            for game in installed_with_metadata:
+                print_game_metadata(game)
 
 
 if __name__ == "__main__":
