@@ -17,6 +17,7 @@ try:
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from google.auth.transport.requests import Request
+    from google.auth import default
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 except ImportError:
@@ -106,30 +107,17 @@ class YouTubeLibrary:
             sys.exit(1)
     
     def _load_credentials(self):
-        """Load existing credentials or run OAuth flow."""
-        # Check for existing token
-        if os.path.exists(self.TOKEN_FILE):
-            self.credentials = Credentials.from_authorized_user_file(self.TOKEN_FILE, self.SCOPES)
-            # Refresh if expired
-            if self.credentials.expired and self.credentials.refresh_token:
-                self.credentials.refresh(Request())
-        
-        # If no valid credentials, run OAuth flow
-        if not self.credentials or not self.credentials.valid:
-            if not os.path.exists(self.client_secret_path):
-                print(f"Error: {self.client_secret_path} not found")
-                print("Create client_secret.json from Google Cloud Console:")
-                print("1. Go to console.cloud.google.com")
-                print("2. Create OAuth 2.0 credentials (Desktop application)")
-                print("3. Download client_secret.json")
-                sys.exit(1)
-            
-            flow = InstalledAppFlow.from_client_secrets_file(self.client_secret_path, self.SCOPES)
-            self.credentials = flow.run_local_server(port=0)
-            
-            # Save credentials for future use
-            with open(self.TOKEN_FILE, 'w') as token:
-                token.write(self.credentials.to_json())
+        """Load OAuth credentials using gcloud Application Default Credentials (ADC)."""
+        # Use gcloud ADC for authentication (same pattern as youtube_upload.py)
+        try:
+            credentials, project = default(
+                scopes=["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
+            )
+            self.credentials = credentials
+        except Exception as e:
+            print(f"Error loading gcloud ADC credentials: {e}")
+            print("Make sure gcloud auth application-default login has been run with YouTube readonly scope.")
+            sys.exit(1)
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
