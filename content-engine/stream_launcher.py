@@ -493,15 +493,15 @@ def connect_obs() -> object:
     try:
         from obswebsocket import obsws
         
-        password = os.getenv("OBS_WEBSOCKET_PASSWORD")
+        password = os.getenv("OBS_WEBSOCKET_PASSWORD", "")
         
         if password:
             # Connect with authentication
-            obs = obsws(obsws_host="localhost", obsws_port=4455, password=password)
+            obs = obsws(host="localhost", port=4455, password=password)
             print("Connecting to OBS WebSocket with authentication")
         else:
             # Connect without authentication
-            obs = obsws(obsws_host="localhost", obsws_port=4455, password=None)
+            obs = obsws(host="localhost", port=4455, password="")
             print("Connecting to OBS WebSocket without authentication")
         
         obs.connect()
