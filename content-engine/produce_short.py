@@ -14,7 +14,7 @@ import logging
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from core.assembler import assemble_video, get_audio_duration
+from core.assembler import assemble_video
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -206,29 +206,52 @@ def compute_voice_schedule(
     return schedule
 
 
-def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:
+def estimate_tts_duration(text: str) -> float:
     """
-    Generate a TTS audio clip using pyttsx3 (Windows SAPI wrapper) and save to output_path.
+    Estimate TTS duration based on word count.
+    Rough approximation: ~0.5s per word.
+    """
+    word_count = len(text.split())
+    return word_count * 0.5
 
-    Uses Windows SAPI voices (David, Zira, etc.). Fully offline — no network required.
 
-    Args:
-        text: Text to synthesize.
-        voice: Voice name (e.g. "David", "Zira"). Matches Windows SAPI voice names.
-        output_path: Destination path for the generated MP3.
+def generate_all_voice_clips(
+    beats: list[dict],
+    voice_schedule: list[float | None],
+    voice_name: str,
+    temp_dir: Path
+) -> dict[int, Path]:
+    """
+    Generate all TTS clips before assembly begins.
+    Returns dict of segment_index -> voice_file_path.
+    Only generates clips for segments where 
+    voice_schedule[i] is not None and beat text is not empty.
+    All files written to disk before function returns.
+    No FFmpeg. No assembly. TTS only.
     """
     import pyttsx3
     engine = pyttsx3.init()
     
-    # Try to set the voice by name
+    # Set voice
     voices = engine.getProperty('voices')
     for v in voices:
-        if voice.lower() in v.name.lower():
+        if voice_name.lower() in v.name.lower():
             engine.setProperty('voice', v.id)
             break
     
-    engine.save_to_file(text, str(output_path))
-    engine.runAndWait()
+    voice_paths = {}
+    for i, beat in enumerate(beats):
+        if voice_schedule[i] is None:
+            continue
+        text = beat.get("line", "")
+        if not should_generate_voice(text):
+            continue
+        output_path = temp_dir / f"voice_{i}.mp3"
+        engine.save_to_file(text, str(output_path))
+        voice_paths[i] = output_path
+    
+    engine.runAndWait()  # Single blocking call after all saves queued
+    return voice_paths
 
 
 def produce_short_from_yaml(yaml_path: Path):
@@ -286,41 +309,28 @@ def produce_short_from_yaml(yaml_path: Path):
     temp_dir = Path("temp/shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate per-beat TTS voice clips if voice is enabled
-    voice_clips_generated = []
+    # PHASE 1: Estimate TTS durations for scheduling
     tts_durations = []
     if config.get("voice_enabled"):
-        voice_name = config.get("voice_name", "David")
-        logger.info(f"Voice enabled — generating TTS clips (voice: {voice_name})")
-        for i, segment in enumerate(segments):
-            raw_text = beats[i].get("line", "")
-            if should_generate_voice(raw_text):
-                voice_path = temp_dir / f"voice_{i}.mp3"
-                logger.info(f"  Segment {i}: TTS '{raw_text[:40]}'")
-                generate_voice_clip(raw_text, voice_name, voice_path)
-                segment["voice_path"] = str(voice_path)
-                voice_clips_generated.append(voice_path)
-                # Get TTS duration for scheduling
-                duration = get_audio_duration(voice_path)
+        for beat in beats:
+            text = beat.get("line", "")
+            if should_generate_voice(text):
+                duration = estimate_tts_duration(text)
                 tts_durations.append(duration)
-                logger.info(f"  Segment {i}: TTS duration {duration:.2f}s")
             else:
-                segment["voice_path"] = None
-                tts_durations.append(0.0)  # No voice clip
+                tts_durations.append(0.0)
     else:
-        for segment in segments:
-            segment["voice_path"] = None
-            tts_durations.append(0.0)
+        tts_durations = [0.0] * len(beats)
     
     # Compute voice schedule with gap constraints
+    voice_schedule = None
     if config.get("voice_enabled") and any(d > 0 for d in tts_durations):
         voice_delay = config.get("voice_delay", 0.3)
         voice_gap = config.get("voice_gap", 1.5)
         voice_schedule = compute_voice_schedule(segments, tts_durations, voice_delay, voice_gap)
         
-        # Store schedule in segments and log results
-        for i, (segment, scheduled_start) in enumerate(zip(segments, voice_schedule)):
-            segment["voice_start"] = scheduled_start
+        # Log schedule results
+        for i, scheduled_start in enumerate(voice_schedule):
             if scheduled_start is not None:
                 logger.info(f"  Segment {i}: voice scheduled at {scheduled_start:.2f}s")
             else:
@@ -329,9 +339,24 @@ def produce_short_from_yaml(yaml_path: Path):
         config["voice_schedule"] = voice_schedule
     else:
         # No voice scheduling needed
-        for segment in segments:
-            segment["voice_start"] = None
-        config["voice_schedule"] = None
+        voice_schedule = [None] * len(segments)
+        config["voice_schedule"] = voice_schedule
+    
+    # PHASE 2: Generate all TTS clips in one pass (before assembly)
+    voice_paths = {}
+    if config.get("voice_enabled") and voice_schedule:
+        voice_name = config.get("voice_name", "David")
+        logger.info(f"Voice enabled — generating TTS clips (voice: {voice_name})")
+        voice_paths = generate_all_voice_clips(beats, voice_schedule, voice_name, temp_dir)
+        logger.info(f"Generated {len(voice_paths)} voice clips")
+    
+    # Assign voice paths to segments
+    for i, segment in enumerate(segments):
+        if i in voice_paths:
+            segment["voice_path"] = str(voice_paths[i])
+        else:
+            segment["voice_path"] = None
+        segment["voice_start"] = voice_schedule[i] if voice_schedule else None
 
     # Output path
     output_path = output_dir / f"{name}.mp4"
@@ -350,7 +375,7 @@ def produce_short_from_yaml(yaml_path: Path):
         logger.info(f"Assembled {name}.mp4")
 
         # Clean up temp voice clips
-        for vp in voice_clips_generated:
+        for vp in voice_paths.values():
             try:
                 vp.unlink()
             except OSError:
