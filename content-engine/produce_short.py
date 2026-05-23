@@ -10,10 +10,11 @@ Usage:
 """
 
 import sys
+import asyncio
 import logging
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from core.assembler import assemble_video
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -93,6 +94,9 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
         "shorts_music_path": yaml_config.get("music_path", "assets/music/Pixelated_Passion.mp3"),
         "shorts_music_start": yaml_config.get("music_start", 0),
         "music_volume": yaml_config.get("music_volume", 0.20),
+        "voice_enabled": yaml_config.get("voice", False),
+        "voice_volume": yaml_config.get("voice_volume", 0.50),
+        "voice_name": yaml_config.get("voice_name", "en-US-GuyNeural"),
         "shorts_attribution_enabled": yaml_config.get("attribution") is not None,
         "shorts_attribution_y_pct": 0.05,
         "shorts_attribution_font_size": 30,
@@ -104,6 +108,53 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
         "shorts_lower_third_height_pct": 0.25
     }
     return config
+
+# =============================================================================
+# Pure Functions (Testable Without edge_tts or ffmpeg)
+# =============================================================================
+
+def should_generate_voice(segment_text: Optional[str]) -> bool:
+    """
+    Return True if a voice clip should be generated for this segment's text.
+
+    Args:
+        segment_text: The text string for this segment (may be None or empty).
+
+    Returns:
+        True if text is a non-empty, non-whitespace string.
+    """
+    return bool(segment_text and segment_text.strip())
+
+
+def build_voice_mix_filter(voice_volume: float) -> str:
+    """
+    Build the ffmpeg filter_complex string for mixing voice into a silent video.
+
+    Assumes input 0 is the video (no audio), input 1 is music, input 2 is voice.
+    Music and voice are mixed together at their respective volumes.
+
+    Args:
+        voice_volume: Voice track volume (0.0 to 1.0).
+
+    Returns:
+        ffmpeg filter_complex string.
+    """
+    return f"[2:a]volume={voice_volume}[v];[1:a][v]amix=inputs=2:duration=shortest[audio]"
+
+
+async def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:
+    """
+    Generate a TTS audio clip using edge_tts and save to output_path.
+
+    Args:
+        text: Text to synthesize.
+        voice: Edge TTS voice name (e.g. "en-US-GuyNeural").
+        output_path: Destination path for the generated MP3.
+    """
+    import edge_tts
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(str(output_path))
+
 
 def produce_short_from_yaml(yaml_path: Path):
     """
@@ -152,22 +203,41 @@ def produce_short_from_yaml(yaml_path: Path):
     if stack_text:
         logger.info(f"Applying text stacking (max {max_visible_lines} lines)")
         segments = apply_text_stacking(segments, max_visible_lines)
-    
+
     # Setup directories
     output_dir = Path("output/shorts")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     temp_dir = Path("temp/shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    # Generate per-beat TTS voice clips if voice is enabled
+    voice_clips_generated = []
+    if config.get("voice_enabled"):
+        voice_name = config.get("voice_name", "en-US-GuyNeural")
+        logger.info(f"Voice enabled — generating TTS clips (voice: {voice_name})")
+        for i, segment in enumerate(segments):
+            raw_text = beats[i].get("line", "")
+            if should_generate_voice(raw_text):
+                voice_path = temp_dir / f"voice_{i}.mp3"
+                logger.info(f"  Segment {i}: TTS '{raw_text[:40]}'")
+                asyncio.run(generate_voice_clip(raw_text, voice_name, voice_path))
+                segment["voice_path"] = str(voice_path)
+                voice_clips_generated.append(voice_path)
+            else:
+                segment["voice_path"] = None
+    else:
+        for segment in segments:
+            segment["voice_path"] = None
+
     # Output path
     output_path = output_dir / f"{name}.mp4"
-    
+
     # Assemble short
     try:
         assemble_video(
             segments,
-            None,  # Voice audio bypassed in shorts mode
+            None,  # Voice audio handled per-segment via segment["voice_path"]
             output_path,
             temp_dir,
             config,
@@ -175,6 +245,13 @@ def produce_short_from_yaml(yaml_path: Path):
             attribution=attribution
         )
         logger.info(f"Assembled {name}.mp4")
+
+        # Clean up temp voice clips
+        for vp in voice_clips_generated:
+            try:
+                vp.unlink()
+            except OSError:
+                pass
         
         # Verify file size
         if output_path.exists():

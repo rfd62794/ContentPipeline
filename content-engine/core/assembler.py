@@ -390,27 +390,80 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     else:
         final = combined
     
-    # Step 6: Add background music if configured
+    # Step 6: Mix audio — background music + optional per-segment voice overlay
     music_path = config.get("shorts_music_path")
-    music_start = config.get("shorts_music_start", 0)  # Default to 0 if not specified
+    music_start = config.get("shorts_music_start", 0)
+    music_volume = config.get("music_volume", 0.20)
+    voice_volume = config.get("voice_volume", 0.50)
+
+    # Collect voice clips from segments (None = segment has no voice)
+    voice_paths = [seg.get("voice_path") for seg in segments]
+    has_voice = any(vp and Path(vp).exists() for vp in voice_paths)
+
     if music_path and Path(music_path).exists():
-        # Add music as audio track (video has no audio in shorts mode)
-        # Use -shortest to match video duration, music at 0.25 volume
-        # Optionally trim music to start from a specific offset
         music_input = Path(music_path)
-        if music_start > 0:
-            # Trim music to start from specified offset
-            filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={config.get('music_volume', 0.20)}[audio]"
+        if has_voice:
+            # Build a concatenated voice track: silence for gaps, voice clip where present
+            voice_parts = []
+            for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
+                duration = seg.get("duration", 5.0)
+                if vp and Path(vp).exists():
+                    voice_parts.append(str(Path(vp)))
+                else:
+                    # Generate a silent audio clip of segment duration
+                    silence_path = temp_dir / f"silence_{i}.mp3"
+                    subprocess.run([
+                        get_ffmpeg_path(), "-y",
+                        "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono",
+                        "-t", str(duration), str(silence_path)
+                    ], capture_output=True, check=True)
+                    voice_parts.append(str(silence_path))
+
+            # Concatenate voice parts into one track
+            voice_concat_list = temp_dir / "voice_concat.txt"
+            with open(voice_concat_list, "w") as f:
+                for vp in voice_parts:
+                    f.write(f"file '{vp}'\n")
+            voice_track = temp_dir / "voice_track.mp3"
+            subprocess.run([
+                get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0",
+                "-i", str(voice_concat_list), str(voice_track)
+            ], capture_output=True, check=True)
+
+            # Mix: music (trimmed if needed) + voice at respective volumes
+            if music_start > 0:
+                music_filter = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={music_volume}[m]"
+            else:
+                music_filter = f"[1:a]volume={music_volume}[m]"
+            filter_complex = (
+                f"{music_filter};"
+                f"[2:a]volume={voice_volume}[v];"
+                f"[m][v]amix=inputs=2:duration=shortest[audio]"
+            )
+            result_audio = subprocess.run([
+                get_ffmpeg_path(), "-y",
+                "-i", str(final), "-i", str(music_input), "-i", str(voice_track),
+                "-filter_complex", filter_complex,
+                "-c:v", "copy", "-c:a", "aac",
+                "-map", "0:v", "-map", "[audio]", "-shortest", str(output_path)
+            ], capture_output=True, text=True)
+            if result_audio.returncode != 0:
+                logger.error(f"FFmpeg Voice+Music Mix failed: {result_audio.stderr[-500:]}")
+                raise subprocess.CalledProcessError(result_audio.returncode, "ffmpeg_voice_music_mix", output=result_audio.stdout, stderr=result_audio.stderr)
         else:
-            filter_complex = f"[1:a]volume={config.get('music_volume', 0.20)}[audio]"
-        result_music = subprocess.run([
-            get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
-            "-filter_complex", filter_complex,
-            "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "[audio]", "-shortest", str(output_path)
-        ], capture_output=True, text=True)
-        if result_music.returncode != 0:
-            logger.error(f"FFmpeg Music Mix failed: {result_music.stderr[-500:]}")
-            raise subprocess.CalledProcessError(result_music.returncode, "ffmpeg_music_mix", output=result_music.stdout, stderr=result_music.stderr)
+            # Music only (original path)
+            if music_start > 0:
+                filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={music_volume}[audio]"
+            else:
+                filter_complex = f"[1:a]volume={music_volume}[audio]"
+            result_music = subprocess.run([
+                get_ffmpeg_path(), "-y", "-i", str(final), "-i", str(music_input),
+                "-filter_complex", filter_complex,
+                "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "[audio]", "-shortest", str(output_path)
+            ], capture_output=True, text=True)
+            if result_music.returncode != 0:
+                logger.error(f"FFmpeg Music Mix failed: {result_music.stderr[-500:]}")
+                raise subprocess.CalledProcessError(result_music.returncode, "ffmpeg_music_mix", output=result_music.stdout, stderr=result_music.stderr)
     else:
         # No music, just copy the final video
         shutil.copy(str(final), str(output_path))
