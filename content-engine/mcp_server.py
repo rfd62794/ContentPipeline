@@ -120,6 +120,10 @@ async def list_tools() -> list[Tool]:
                     "installed_only": {
                         "type": "boolean",
                         "description": "Only return installed games (default: false)"
+                    },
+                    "refresh": {
+                        "type": "boolean",
+                        "description": "Bypass cache and fetch fresh YouTube + SteamSpy data (default: false)"
                     }
                 }
             }
@@ -181,6 +185,10 @@ async def list_tools() -> list[Tool]:
                     "installed_only": {
                         "type": "boolean",
                         "description": "Only recommend installed games (default: true)"
+                    },
+                    "refresh": {
+                        "type": "boolean",
+                        "description": "Bypass cache and fetch fresh YouTube + SteamSpy data (default: false)"
                     }
                 }
             }
@@ -240,6 +248,7 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
     limit = arguments.get("limit", 10)
     min_playtime = arguments.get("min_playtime", 0)
     installed_only = arguments.get("installed_only", False)
+    refresh = arguments.get("refresh", False)
     
     client = get_game_metrics_client()
     
@@ -250,7 +259,8 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
         steam_library=steam_library,
         min_hours=min_playtime,
         installed_only=installed_only,
-        limit=limit
+        limit=limit,
+        refresh=refresh
     )
     result = {
         "count": len(games),
@@ -331,19 +341,19 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
     limit = arguments.get("limit", 5)
     min_playtime = arguments.get("min_playtime", 1.0)
     installed_only = arguments.get("installed_only", True)
+    refresh = arguments.get("refresh", False)
     
     limit = min(limit, 20)  # Cap at 20
     
     client = get_game_metrics_client()
     
-    # Get library metrics with filters
-    # Get library metrics with filters
     steam_library = get_steam_library()
     games = client.get_game_metrics(
         steam_library=steam_library,
         min_hours=min_playtime,
         installed_only=installed_only,
-        limit=limit * 2  # Get more to filter
+        limit=limit * 2,  # Get more to filter
+        refresh=refresh
     )
     
     # Sort by content demand score (descending)
