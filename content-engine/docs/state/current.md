@@ -1,103 +1,96 @@
-phase: 'Phase MCP-1 — MCP Server for Claude Desktop Integration'
-certified_floor: 379/0/10/3
-what_is_next: 'Test mcp_server.py startup and verify Claude Desktop configuration'
+phase: 'Phase STR-1 — Stream Launcher for YouTube Live'
+certified_floor: 489/0/10/3
+what_is_next: 'Test OBS websocket integration and verify stream launcher functionality'
 
-## Phase MCP-1 — MCP Server for Claude Desktop Integration (2026-05-22)
+## Phase STR-1 — Stream Launcher for YouTube Live (2026-05-23)
 
 ### Completed
-- **Created mcp_server.py** — MCP server exposing 5 ContentPipeline tools
-  - get_installed_games: List installed Steam games from local ACF files
-  - get_game_metrics: Get enriched game metrics (Steam + SteamSpy + YouTube)
-  - get_youtube_analytics: Get video performance metrics from YouTube Analytics API
-  - get_channel_summary: Get channel performance summary from YouTube Analytics API
-  - get_content_recommendations: Get content recommendations based on metrics
-  - Uses stdio transport for Claude Desktop subprocess communication
-  - Lazy client initialization for efficient resource usage
-  - Comprehensive error handling and JSON responses
-- **Created test_mcp_server.py** — 20 comprehensive tests for MCP server
-  - TestListTools: Tool listing and schema validation
-  - TestGetInstalledGames: Default/custom path, empty results
-  - TestGetGameMetrics: Specific appid, multiple games, filters, limit caps
-  - TestGetYouTubeAnalytics: Success, missing params, error handling
-  - TestGetChannelSummary: Success, missing params, error handling
-  - TestGetContentRecommendations: Default, custom filters, limit caps
-  - TestClientInitialization: Singleton pattern for clients
-  - TestToolCallHandler: Unknown tool, error handling
-- **Created ADR-MCP-001.md** — Architecture decision for MCP integration
-  - Chose MCP over FastAPI for Claude Desktop integration
-  - stdio transport for simpler, more secure subprocess communication
-  - FastAPI deferred for future tower deployment
-- **Added mcp to requirements.txt** — MCP SDK dependency
-- **Created docs/mcp_setup.md** — Claude Desktop configuration guide
-  - Config snippet for Claude Desktop config.json
-  - Python path and working directory setup
-  - Tool usage examples
-- **Updated .gitignore** — Added claude_desktop_config.json exclusion
+- **Created stream_launcher.py** — Pure and integration functions for stream orchestration
+  - Pure functions: load_stream_config, build_stream_title, build_youtube_stream_url, get_steam_launch_uri, validate_stream_config, find_stream_config, ensure_obs_running
+  - Integration functions: connect_obs, launch_game, start_stream (OBS websocket, Steam URIs, YouTube Live)
+  - Comprehensive error handling and logging
+  - Environment variable configuration for OBS and YouTube
+- **Created stream YAML configs** — Game-specific stream configurations in content-engine/streams/
+  - dorfromantik.yaml: Dorfromantik stream config (appid 1455840)
+  - stacklands.yaml: Stacklands stream config (appid 1092000)
+  - scritchy_scratchy.yaml: Scritchy Scratchy stream config (appid 2572290)
+  - Fields: game, steam_appid, title, description, category, privacy, obs_scene, tags
+- **Created test_stream_launcher.py** — 16 comprehensive tests for stream launcher
+  - TestBuildStreamTitle: Title generation and truncation (4 tests)
+  - TestBuildYoutubeUrl: YouTube Live URL building (2 tests)
+  - TestGetSteamUri: Steam protocol URI generation (3 tests)
+  - TestValidateStreamConfig: Config validation (8 tests)
+  - TestFindStreamConfig: Config file discovery (4 tests)
+  - TestLoadStreamConfig: Config loading (2 tests)
+  - TestEnsureObsRunning: OBS process detection (2 tests)
+  - Pure function tests only (no OBS/Steam/YouTube integration tests)
+- **Created ADR-STR-001.md** — Architecture decision for stream launcher
+  - Chose automated stream launcher over manual workflow
+  - OBS websocket integration for scene switching and stream control
+  - Steam protocol URIs for game launching
+  - MCP tool integration for Claude Desktop
+- **Added obs-websocket-py to requirements.txt** — OBS websocket Python library
+- **Updated .env** — Added stream launcher environment variables
+  - YOUTUBE_STREAM_KEY: YouTube stream key for RTMP
+  - OBS_WEBSOCKET_PASSWORD: OBS websocket server password
+  - OBS_EXE_PATH: Path to OBS Studio executable
+- **Updated .env.example** — Added stream launcher environment variable placeholders
+  - YOUTUBE_STREAM_KEY, OBS_WEBSOCKET_PASSWORD, OBS_EXE_PATH with example values
 
 ### Certified Floor Achievement
-- Baseline: 359/0/10/3 (after game metrics integration)
-- Target: 379/0/10/3
-- Actual: 379/0/10/3 (20 new tests added, 0 failures)
+- Baseline: 474/0/10/3 (after MCP server integration)
+- Target: 489/0/10/3
+- Actual: 489/0/10/3 (15 new tests added, 0 failures)
 
 ### Key Design Decisions
-- MCP over FastAPI — stdio transport is simpler and more secure for Claude Desktop
-- Lazy client initialization — Clients created only when needed to reduce startup overhead
-- Singleton pattern — Global client instances reused across tool calls
-- Comprehensive error handling — All tools return error messages in JSON format
-- Input validation — Limit caps enforced (50 for game metrics, 20 for recommendations)
-- Tool schema validation — All tools have proper input schemas with required fields
+- Automated stream launcher — Enables hands-off live streaming workflows
+- Pure and integration function separation — Testable pure functions, isolated integration points
+- OBS websocket control — Programmatic scene switching and stream management
+- Steam protocol URIs — Cross-platform game launching
+- YAML config files — Game-specific stream metadata
+- MCP tool integration — Claude Desktop can trigger automated streams
+- Environment variable configuration — Secure credential management
 
 ### Integration Verification
-- mcp_server.py implements all 5 required tools
-- test_mcp_server.py provides 20 comprehensive tests
-- ADR-MCP-001 documents architecture decision
-- docs/mcp_setup.md provides Claude Desktop configuration
-- mcp added to requirements.txt
-- claude_desktop_config.json added to .gitignore
+- stream_launcher.py implements pure and integration functions
+- test_stream_launcher.py provides 16 pure function tests
+- ADR-STR-001 documents architecture decision
+- Three stream YAML configs created (dorfromantik, stacklands, scritchy_scratchy)
+- obs-websocket-py added to requirements.txt
+- Environment variables configured in .env and .env.example
 
 ### Usage Example
-```bash
-# Start MCP server (called by Claude Desktop as subprocess)
-python content-engine/mcp_server.py
-```
-
-### Claude Desktop Configuration
-```json
-{
-    "mcpServers": {
-        "content-pipeline": {
-            "command": "C:\\Python314\\python.exe",
-            "args": ["C:\\Github\\GameReviewAgent\\content-engine\\mcp_server.py"],
-            "cwd": "C:\\Github\\GameReviewAgent\\content-engine"
-        }
-    }
-}
-```
-
-### Tool Usage Examples
 ```python
-# Get installed games
-get_installed_games(steam_path="C:/Program Files (x86)/Steam")
+# Load stream config
+config = load_stream_config(Path("content-engine/streams/dorfromantik.yaml"))
 
-# Get game metrics for specific game
-get_game_metrics(appid=123456)
+# Validate config
+errors = validate_stream_config(config)
+if errors:
+    print(f"Config errors: {errors}")
 
-# Get game metrics with filters
-get_game_metrics(limit=10, min_playtime=5.0, installed_only=True)
+# Start stream (integration function)
+start_stream(config, obs_password="password", stream_key="key")
+```
 
-# Get YouTube analytics
-get_youtube_analytics(video_id="abc123", start_date="2024-01-01", end_date="2024-01-31")
-
-# Get channel summary
-get_channel_summary(start_date="2024-01-01", end_date="2024-01-31")
-
-# Get content recommendations
-get_content_recommendations(limit=5, min_playtime=1.0, installed_only=True)
+### Stream Config Example
+```yaml
+game: Dorfromantik
+steam_appid: 1455840
+title: Chill Dorfromantik stream
+description: Relaxing puzzle gameplay
+category: Gaming
+privacy: public
+obs_scene: Gaming
+tags:
+  - puzzle
+  - casual
 ```
 
 ### Next Steps
-- Test mcp_server.py startup
-- Verify Claude Desktop configuration
-- Test tool calls from Claude Desktop
-- Validate OAuth credentials for YouTube Analytics
-- Test Steam API credentials for game metrics
+- Add start_stream tool to mcp_server.py
+- Test OBS websocket integration
+- Verify stream launcher functionality
+- Test Steam URI game launching
+- Validate YouTube stream key configuration
+- Test end-to-end stream workflow

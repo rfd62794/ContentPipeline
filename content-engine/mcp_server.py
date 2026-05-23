@@ -45,6 +45,7 @@ from steam_library import get_installed_games as steam_get_installed_games, Stea
 from game_metrics import GameMetricsClient, GameMetrics
 from youtube_analytics import YouTubeAnalytics, VideoStats, ChannelStats
 from sale_checker import get_sale_info as itad_get_sale_info, format_sale_result
+from stream_launcher import start_stream
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
