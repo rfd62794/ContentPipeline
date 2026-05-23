@@ -2,7 +2,7 @@
 YouTube Library Data Client
 
 Pulls channel metadata, video library, and playlist data from YouTube Data API v3.
-Uses gcloud ADC for authentication (same pattern as youtube_upload.py).
+Uses OAuth 2.0 with refresh token for persistent access to user channel data.
 """
 
 import os
@@ -14,13 +14,14 @@ import json
 
 # Google API imports
 try:
-    from google.auth import default
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
     from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 except ImportError:
     print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-api-python-client google-auth-httplib2")
+    print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
     sys.exit(1)
 
 
@@ -72,19 +73,63 @@ class YouTubePlaylist:
 # =============================================================================
 
 class YouTubeLibrary:
-    """Client for YouTube Data API v3 library data."""
+    """Client for YouTube Data API v3 library data using OAuth with refresh token."""
     
-    def __init__(self):
-        """Initialize YouTube library client using gcloud ADC."""
-        try:
-            credentials, project = default(
-                scopes=["https://www.googleapis.com/auth/youtube.readonly"]
-            )
-            self.service = build('youtube', 'v3', credentials=credentials)
-        except Exception as e:
-            print(f"Error during authentication: {e}")
-            print("Make sure gcloud auth application-default login has been run with YouTube read scope.")
+    SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
+    TOKEN_FILE = ".youtube_token.json"
+    CLIENT_SECRET_FILE = "client_secret.json"
+    
+    def __init__(self, client_secret_path: Optional[str] = None):
+        """
+        Initialize YouTube library client using OAuth with refresh token.
+        
+        Args:
+            client_secret_path: Path to client_secret.json. If not provided, looks in current directory.
+        """
+        self.credentials = None
+        self.service = None
+        
+        # Determine client secret path
+        if client_secret_path:
+            self.client_secret_path = client_secret_path
+        else:
+            self.client_secret_path = self.CLIENT_SECRET_FILE
+        
+        # Load or create credentials
+        self._load_credentials()
+        
+        # Build service
+        if self.credentials:
+            self.service = build('youtube', 'v3', credentials=self.credentials)
+        else:
+            print("Error: Could not obtain credentials")
             sys.exit(1)
+    
+    def _load_credentials(self):
+        """Load existing credentials or run OAuth flow."""
+        # Check for existing token
+        if os.path.exists(self.TOKEN_FILE):
+            self.credentials = Credentials.from_authorized_user_file(self.TOKEN_FILE, self.SCOPES)
+            # Refresh if expired
+            if self.credentials.expired and self.credentials.refresh_token:
+                self.credentials.refresh(Request())
+        
+        # If no valid credentials, run OAuth flow
+        if not self.credentials or not self.credentials.valid:
+            if not os.path.exists(self.client_secret_path):
+                print(f"Error: {self.client_secret_path} not found")
+                print("Create client_secret.json from Google Cloud Console:")
+                print("1. Go to console.cloud.google.com")
+                print("2. Create OAuth 2.0 credentials (Desktop application)")
+                print("3. Download client_secret.json")
+                sys.exit(1)
+            
+            flow = InstalledAppFlow.from_client_secrets_file(self.client_secret_path, self.SCOPES)
+            self.credentials = flow.run_local_server(port=0)
+            
+            # Save credentials for future use
+            with open(self.TOKEN_FILE, 'w') as token:
+                token.write(self.credentials)
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
