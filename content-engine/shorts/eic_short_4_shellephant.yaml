@@ -46,4 +46,4 @@ beats:
   - clip_start: "8:30"
     clip_end: "8:34"
     duration: 4
-    line: ""
+    line: "VICTORY!"
