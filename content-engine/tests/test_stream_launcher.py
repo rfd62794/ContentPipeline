@@ -514,6 +514,91 @@ class TestFindGameExe:
 class TestGameRegistry:
     """Test game registry functions."""
     
+    def test_load_registry_missing_file(self):
+        """Test load_game_registry returns empty dict when file missing."""
+        with patch('stream_launcher.Path') as mock_path:
+            mock_path_instance = MagicMock()
+            mock_path_instance.exists.return_value = False
+            mock_path.return_value = mock_path_instance
+            
+            result = load_game_registry()
+            assert result == {}
+    
+    def test_load_registry_existing(self):
+        """Test load_game_registry loads existing registry."""
+        test_data = {"1455840": {"exe_name": "Dorfromantik.exe", "install_path": "/path", "last_seen": "2026-05-23"}}
+        
+        # Test by mocking json.load directly
+        with patch('stream_launcher.json.load', return_value=test_data):
+            with patch('stream_launcher.Path') as mock_path:
+                mock_path_instance = MagicMock()
+                mock_path_instance.exists.return_value = True
+                mock_path.return_value = mock_path_instance
+                
+                result = load_game_registry()
+                assert result == test_data
+    
+    def test_save_registry_writes_json(self):
+        """Test save_game_registry writes JSON file."""
+        test_data = {"1455840": {"exe_name": "Dorfromantik.exe"}}
+        
+        # Test by mocking json.dump directly
+        with patch('stream_launcher.json.dump') as mock_dump:
+            with patch('stream_launcher.Path') as mock_path:
+                mock_path_instance = MagicMock()
+                mock_temp_instance = MagicMock()
+                mock_path_instance.with_suffix.return_value = mock_temp_instance
+                mock_path.return_value = mock_path_instance
+                
+                save_game_registry(test_data)
+            
+            # Verify json.dump was called with test_data
+            mock_dump.assert_called_once()
+            assert mock_dump.call_args[0][0] == test_data
+    
+    def test_registry_entry_persists_across_calls(self):
+        """Test registry entry persists across multiple calls."""
+        registry = {}
+        
+        # First call adds entry
+        updated = update_game_registry_entry(registry, 1455840, "Dorfromantik.exe", "/path")
+        assert "1455840" in updated
+        
+        # Second call updates entry
+        updated2 = update_game_registry_entry(updated, 1455840, "Dorfromantik.exe", "/newpath")
+        assert updated2["1455840"]["install_path"] == "/newpath"
+        
+        # Original registry should not be mutated
+        assert "1455840" not in registry
+    
+    def test_registry_handles_multiple_games(self):
+        """Test registry handles multiple game entries."""
+        registry = {}
+        
+        # Add multiple games
+        registry = update_game_registry_entry(registry, 1455840, "Dorfromantik.exe", "/path1")
+        registry = update_game_registry_entry(registry, 1092000, "Stacklands.exe", "/path2")
+        registry = update_game_registry_entry(registry, 1462210, "Scritchy Scratchy.exe", "/path3")
+        
+        # Verify all entries exist
+        assert len(registry) == 3
+        assert get_exe_from_registry(registry, 1455840) == "Dorfromantik.exe"
+        assert get_exe_from_registry(registry, 1092000) == "Stacklands.exe"
+        assert get_exe_from_registry(registry, 1462210) == "Scritchy Scratchy.exe"
+    
+    def test_registry_timestamp_format(self):
+        """Test registry timestamp is in ISO format."""
+        registry = {}
+        result = update_game_registry_entry(registry, 1455840, "Dorfromantik.exe", "/path")
+        
+        timestamp = result["1455840"]["last_seen"]
+        # ISO format should have T and colons
+        assert "T" in timestamp
+        assert ":" in timestamp
+        # Should be parseable as datetime
+        from datetime import datetime
+        datetime.fromisoformat(timestamp)
+    
     def test_update_entry_new_appid(self):
         """Test update_game_registry_entry adds new appid."""
         registry = {}
