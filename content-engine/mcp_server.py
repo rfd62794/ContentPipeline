@@ -39,7 +39,9 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # ContentPipeline imports
-from steam_library import get_installed_games, SteamLibrary, GameInfo
+# Export for tests
+__all__ = ["steam_get_installed_games"]
+from steam_library import get_installed_games as steam_get_installed_games, SteamLibrary, GameInfo
 from game_metrics import GameMetricsClient, GameMetrics
 from youtube_analytics import YouTubeAnalytics, VideoStats, ChannelStats
 
@@ -217,9 +219,9 @@ async def handle_get_installed_games(arguments: Any) -> list[TextContent]:
     """Handle get_installed_games tool call."""
     steam_path = arguments.get("steam_path")
     if steam_path:
-        games = get_installed_games(Path(steam_path))
+        games = steam_get_installed_games(Path(steam_path))
     else:
-        games = get_installed_games()
+        games = steam_get_installed_games()
     
     result = {
         "count": len(games),

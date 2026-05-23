@@ -17,6 +17,7 @@ from mcp_server import (
     handle_get_channel_summary,
     handle_get_content_recommendations
 )
+from mcp_server import steam_get_installed_games
 from youtube_analytics import YouTubeAnalytics
 
 
@@ -99,7 +100,7 @@ class TestGetInstalledGames:
     def test_get_installed_games_default_path(self):
         """Test getting installed games with default path."""
         import asyncio
-        with patch('mcp_server.get_installed_games') as mock_get:
+        with patch('mcp_server.steam_get_installed_games') as mock_get:
             mock_get.return_value = [
                 {"appid": 123, "name": "Game1", "installdir": "game1"},
                 {"appid": 456, "name": "Game2", "installdir": "game2"}
@@ -116,7 +117,7 @@ class TestGetInstalledGames:
     def test_get_installed_games_custom_path(self):
         """Test getting installed games with custom path."""
         import asyncio
-        with patch('mcp_server.get_installed_games') as mock_get:
+        with patch('mcp_server.steam_get_installed_games') as mock_get:
             mock_get.return_value = [{"appid": 789, "name": "Game3", "installdir": "game3"}]
             
             result = asyncio.run(handle_get_installed_games({"steam_path": "C:/Steam"}))
@@ -128,7 +129,7 @@ class TestGetInstalledGames:
     def test_get_installed_games_empty(self):
         """Test getting installed games when none found."""
         import asyncio
-        with patch('mcp_server.get_installed_games') as mock_get:
+        with patch('mcp_server.steam_get_installed_games') as mock_get:
             mock_get.return_value = []
             
             result = asyncio.run(handle_get_installed_games({}))
