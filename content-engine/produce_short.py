@@ -231,6 +231,8 @@ def generate_all_voice_clips(
     """
     import subprocess
     import sys
+    import logging
+    logger = logging.getLogger(__name__)
     
     voice_paths = {}
     for i, beat in enumerate(beats):
@@ -240,11 +242,12 @@ def generate_all_voice_clips(
         if not should_generate_voice(text):
             continue
         output_path = temp_dir / f"voice_{i}.mp3"
+        logger.info(f"Generating TTS for segment {i}: '{text[:30]}'")
         subprocess.run(
             [sys.executable, "tts_worker.py", text, str(output_path), voice_name],
-            check=True,
-            timeout=30
+            check=True
         )
+        logger.info(f"TTS generated for segment {i}")
         voice_paths[i] = output_path
     
     return voice_paths
