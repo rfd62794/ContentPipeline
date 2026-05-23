@@ -16,6 +16,8 @@ import sys
 import time
 import threading
 import signal
+import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 import yaml
@@ -146,12 +148,86 @@ def is_game_running(process_name: str) -> bool:
     return False
 
 
+def load_game_registry() -> dict:
+    """Load registry JSON. Return empty dict if file missing."""
+    registry_path = Path(__file__).parent / "game_registry.json"
+    try:
+        if registry_path.exists():
+            with open(registry_path, 'r') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        print(f"Error loading game registry: {e}")
+        return {}
+
+
+def save_game_registry(registry: dict) -> None:
+    """Save registry to JSON. Atomic write."""
+    registry_path = Path(__file__).parent / "game_registry.json"
+    try:
+        # Write to temp file first, then rename for atomic write
+        temp_path = registry_path.with_suffix('.tmp')
+        with open(temp_path, 'w') as f:
+            json.dump(registry, f, indent=2)
+        temp_path.replace(registry_path)
+    except Exception as e:
+        print(f"Error saving game registry: {e}")
+
+
+def update_game_registry_entry(registry: dict, appid: int, exe_name: str, install_path: str) -> dict:
+    """Return new registry dict with updated entry.
+    Sets last_seen to current ISO datetime.
+    Does not mutate input dict."""
+    # Create a copy to avoid mutation
+    new_registry = registry.copy()
+    new_registry[str(appid)] = {
+        "exe_name": exe_name,
+        "install_path": str(install_path),
+        "last_seen": datetime.now().isoformat()
+    }
+    return new_registry
+
+
+def get_exe_from_registry(registry: dict, appid: int) -> Optional[str]:
+    """Return exe_name from registry if appid exists.
+    Return None if not found."""
+    entry = registry.get(str(appid))
+    if entry:
+        return entry.get("exe_name")
+    return None
+
+
 def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Optional[str]:
-    """Find the game executable by scanning Steam install directory.
+    """Find the game executable using registry first, then fallback to scanning.
     Looks up installdir from steam_library ACF parser, then scans
     C:/Program Files (x86)/Steam/steamapps/common/{installdir}/
     Returns filename of largest .exe found, or None if not found."""
     try:
+        # 1. Load registry
+        registry = load_game_registry()
+        
+        # 2. Check registry for appid
+        registry_exe = get_exe_from_registry(registry, steam_appid)
+        if registry_exe:
+            # 3. Verify exe exists at install_path
+            entry = registry.get(str(steam_appid))
+            install_path = Path(entry.get("install_path", "")) if entry else None
+            if install_path and install_path.exists():
+                exe_full_path = install_path / registry_exe
+                if exe_full_path.exists():
+                    # Update last_seen and save
+                    updated_registry = update_game_registry_entry(
+                        registry, steam_appid, registry_exe, install_path
+                    )
+                    save_game_registry(updated_registry)
+                    print(f"Using cached exe from registry: {registry_exe}")
+                    return registry_exe
+                else:
+                    print(f"Cached exe not found at {exe_full_path}, falling through to scan")
+            else:
+                print(f"Cached install path not found, falling through to scan")
+        
+        # 4. Fall through to full scan
         from steam_library import SteamLibrary
         
         # Initialize Steam library
@@ -191,10 +267,16 @@ def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Option
             print(f"No .exe files found in {install_dir}")
             return None
         
-        # Return the largest .exe file
+        # 5. Return the largest .exe file and update registry
         largest_exe = max(exe_files, key=lambda x: x[1])
-        print(f"Found game executable: {largest_exe[0]} ({largest_exe[1] / (1024*1024):.1f} MB)")
-        return largest_exe[0]
+        exe_name = largest_exe[0]
+        print(f"Found game executable: {exe_name} ({largest_exe[1] / (1024*1024):.1f} MB)")
+        
+        # Update registry with scan result
+        updated_registry = update_game_registry_entry(registry, steam_appid, exe_name, install_dir)
+        save_game_registry(updated_registry)
+        
+        return exe_name
         
     except Exception as e:
         print(f"Error finding game executable: {e}")

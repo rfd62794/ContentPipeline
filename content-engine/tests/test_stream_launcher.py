@@ -9,6 +9,8 @@ import pytest
 from pathlib import Path
 import tempfile
 import yaml
+import json
+import os
 from unittest.mock import patch, MagicMock
 from stream_launcher import (
     load_stream_config,
@@ -22,6 +24,10 @@ from stream_launcher import (
     is_game_focused,
     is_game_running,
     find_game_exe,
+    load_game_registry,
+    save_game_registry,
+    update_game_registry_entry,
+    get_exe_from_registry,
 )
 
 
@@ -503,3 +509,199 @@ class TestFindGameExe:
                 result = find_game_exe(1455840, steam_path)
                 
                 assert result is None
+
+
+class TestGameRegistry:
+    """Test game registry functions."""
+    
+    def test_update_entry_new_appid(self):
+        """Test update_game_registry_entry adds new appid."""
+        registry = {}
+        result = update_game_registry_entry(registry, 1455840, "Dorfromantik.exe", "/path")
+        
+        assert "1455840" in result
+        assert result["1455840"]["exe_name"] == "Dorfromantik.exe"
+        assert result["1455840"]["install_path"] == "/path"
+        assert "last_seen" in result["1455840"]
+        # Original registry should not be mutated
+        assert "1455840" not in registry
+    
+    def test_update_entry_existing_appid(self):
+        """Test update_game_registry_entry updates existing appid."""
+        registry = {
+            "1455840": {"exe_name": "Old.exe", "install_path": "/oldpath", "last_seen": "2026-01-01"}
+        }
+        result = update_game_registry_entry(registry, 1455840, "New.exe", "/newpath")
+        
+        assert result["1455840"]["exe_name"] == "New.exe"
+        assert result["1455840"]["install_path"] == "/newpath"
+        assert result["1455840"]["last_seen"] != "2026-01-01"
+        # Original registry should not be mutated
+        assert registry["1455840"]["exe_name"] == "Old.exe"
+    
+    def test_update_entry_no_mutation(self):
+        """Test update_game_registry_entry does not mutate input dict."""
+        registry = {"1455840": {"exe_name": "Old.exe"}}
+        original_registry = json.loads(json.dumps(registry))
+        
+        update_game_registry_entry(registry, 1455840, "New.exe", "/path")
+        
+        assert registry == original_registry
+    
+    def test_get_exe_found(self):
+        """Test get_exe_from_registry returns exe_name when found."""
+        registry = {
+            "1455840": {"exe_name": "Dorfromantik.exe", "install_path": "/path"}
+        }
+        result = get_exe_from_registry(registry, 1455840)
+        assert result == "Dorfromantik.exe"
+    
+    def test_get_exe_not_found(self):
+        """Test get_exe_from_registry returns None when appid not found."""
+        registry = {
+            "1455840": {"exe_name": "Dorfromantik.exe"}
+        }
+        result = get_exe_from_registry(registry, 999999)
+        assert result is None
+    
+    def test_update_sets_last_seen_timestamp(self):
+        """Test update_game_registry_entry sets ISO datetime timestamp."""
+        registry = {}
+        result = update_game_registry_entry(registry, 1455840, "Dorfromantik.exe", "/path")
+        
+        last_seen = result["1455840"]["last_seen"]
+        # Should be ISO format datetime
+        assert "T" in last_seen
+        assert ":" in last_seen
+    
+    def test_find_game_exe_uses_registry_first(self):
+        """Test find_game_exe uses registry entry when available and valid."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create mock install directory with exe
+            install_dir = Path(tmpdir) / "steamapps" / "common" / "Dorfromantik"
+            install_dir.mkdir(parents=True)
+            exe_file = install_dir / "Dorfromantik.exe"
+            exe_file.write_bytes(b"x" * 1000)
+            
+            # Create registry with entry
+            registry = {
+                "1455840": {
+                    "exe_name": "Dorfromantik.exe",
+                    "install_path": str(install_dir),
+                    "last_seen": "2026-05-23T15:30:00"
+                }
+            }
+            
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = registry
+                with patch('stream_launcher.save_game_registry') as mock_save:
+                    with patch('stream_launcher.update_game_registry_entry') as mock_update:
+                        mock_update.return_value = registry
+                        
+                        result = find_game_exe(1455840, Path(tmpdir))
+                        
+                        assert result == "Dorfromantik.exe"
+                        # Should have called save to update last_seen
+                        mock_save.assert_called_once()
+    
+    def test_find_game_exe_registry_miss_falls_through_to_scan(self):
+        """Test find_game_exe falls through to scan when registry entry missing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create mock install structure
+            steam_path = Path(tmpdir)
+            common_dir = steam_path / "steamapps" / "common" / "Dorfromantik"
+            common_dir.mkdir(parents=True)
+            
+            large_exe = common_dir / "Dorfromantik.exe"
+            large_exe.write_bytes(b"x" * 10000)
+            
+            # Empty registry
+            registry = {}
+            
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = registry
+                with patch('stream_launcher.save_game_registry') as mock_save:
+                    with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                        mock_game_info = MagicMock()
+                        mock_game_info.installdir = "Dorfromantik"
+                        mock_game_info.appid = 1455840
+                        
+                        mock_steam_instance = MagicMock()
+                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_lib.return_value = mock_steam_instance
+                        
+                        result = find_game_exe(1455840, steam_path)
+                        
+                        assert result == "Dorfromantik.exe"
+                        # Should have saved new registry entry
+                        mock_save.assert_called_once()
+    
+    def test_find_game_exe_updates_registry_after_scan(self):
+        """Test find_game_exe updates registry after successful scan."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            steam_path = Path(tmpdir)
+            common_dir = steam_path / "steamapps" / "common" / "Dorfromantik"
+            common_dir.mkdir(parents=True)
+            
+            large_exe = common_dir / "Dorfromantik.exe"
+            large_exe.write_bytes(b"x" * 10000)
+            
+            registry = {}
+            
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = registry
+                with patch('stream_launcher.save_game_registry') as mock_save:
+                    with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                        mock_game_info = MagicMock()
+                        mock_game_info.installdir = "Dorfromantik"
+                        mock_game_info.appid = 1455840
+                        
+                        mock_steam_instance = MagicMock()
+                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_lib.return_value = mock_steam_instance
+                        
+                        result = find_game_exe(1455840, steam_path)
+                        
+                        # Verify save was called with updated registry
+                        assert mock_save.called
+                        saved_registry = mock_save.call_args[0][0]
+                        assert "1455840" in saved_registry
+                        assert saved_registry["1455840"]["exe_name"] == "Dorfromantik.exe"
+    
+    def test_find_game_exe_validates_exe_exists(self):
+        """Test find_game_exe validates exe exists before using registry entry."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create registry entry pointing to non-existent exe
+            install_dir = Path(tmpdir) / "steamapps" / "common" / "Dorfromantik"
+            install_dir.mkdir(parents=True)
+            # Don't create the exe file initially
+            
+            registry = {
+                "1455840": {
+                    "exe_name": "Dorfromantik.exe",
+                    "install_path": str(install_dir),
+                    "last_seen": "2026-05-23T15:30:00"
+                }
+            }
+            
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = registry
+                with patch('stream_launcher.save_game_registry') as mock_save:
+                    with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                        # Mock scan to find exe
+                        mock_game_info = MagicMock()
+                        mock_game_info.installdir = "Dorfromantik"
+                        mock_game_info.appid = 1455840
+                        
+                        mock_steam_instance = MagicMock()
+                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_lib.return_value = mock_steam_instance
+                        
+                        # Create exe during scan (simulate finding it)
+                        exe_file = install_dir / "Dorfromantik.exe"
+                        exe_file.write_bytes(b"x" * 10000)
+                        
+                        result = find_game_exe(1455840, Path(tmpdir))
+                        
+                        # Should have fallen through to scan and found exe
+                        assert result == "Dorfromantik.exe"

@@ -10,3 +10,4 @@ cache/***/__pycache__/
 .youtube_cache/
 /secrets/*
 content-engine/metrics_history.db
+content-engine/game_registry.json
