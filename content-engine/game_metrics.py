@@ -252,7 +252,7 @@ class GameMetricsClient:
         """
         self.credentials = None
         self.youtube_service = None
-        self.cache_dir = Path(cache_dir) if cache_dir else Path(".youtube_cache")
+        self.cache_dir = Path(cache_dir) if cache_dir else self.CACHE_FILE.parent
         self.cache_file = self.cache_dir / "game_metrics.json"
         
         # Determine client secret path

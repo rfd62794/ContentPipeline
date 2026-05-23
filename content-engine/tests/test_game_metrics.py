@@ -459,26 +459,25 @@ class TestFormatMetricsTable:
 class TestGameMetricsClientInit:
     """Test GameMetricsClient initialization."""
     
-    @patch('game_metrics.Path')
-    def test_init_default_cache_dir(self, mock_path):
+    def test_init_default_cache_dir(self):
         """Test initialization with default cache directory."""
-        mock_cache_dir = MagicMock()
-        mock_path.return_value = mock_cache_dir
         
         with patch('game_metrics.GameMetricsClient._load_credentials'):
             client = GameMetricsClient()
         
-        assert client.cache_dir == mock_cache_dir
+        # Should use absolute path from CACHE_FILE.parent
+        from pathlib import Path
+        expected_dir = Path(__file__).parent.parent / ".youtube_cache"
+        assert client.cache_dir == expected_dir
     
-    @patch('game_metrics.Path')
-    def test_init_custom_cache_dir(self, mock_path):
+    def test_init_custom_cache_dir(self):
         """Test initialization with custom cache directory."""
-        mock_cache_dir = MagicMock()
-        mock_path.return_value = mock_cache_dir
         
         with patch('game_metrics.GameMetricsClient._load_credentials'):
             client = GameMetricsClient(cache_dir='/custom/cache')
         
+        assert str(client.cache_dir) == '/custom/cache'
+    
         mock_path.assert_called_with('/custom/cache')
 
 
@@ -501,18 +500,20 @@ class TestGameMetricsClientCache:
         
         assert result == cache_data
     
-    @patch('game_metrics.Path')
-    def test_load_cache_not_exists(self, mock_path):
+    def test_load_cache_not_exists(self):
         """Test loading cache when file doesn't exist."""
-        mock_cache_file = MagicMock()
-        mock_cache_file.exists.return_value = False
-        mock_path.return_value = mock_cache_file
+        import tempfile
         
-        with patch('game_metrics.GameMetricsClient._load_credentials'):
-            client = GameMetricsClient()
-            result = client.load_cache()
-        
-        assert result == {}
+        # Use a temporary cache directory that doesn't exist
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir) / "nonexistent_cache"
+            
+            with patch('game_metrics.GameMetricsClient._load_credentials'):
+                client = GameMetricsClient(cache_dir=str(cache_dir))
+                result = client.load_cache()
+            
+            assert result == {}
+    
     
     @patch('game_metrics.Path')
     def test_save_cache(self, mock_path):
