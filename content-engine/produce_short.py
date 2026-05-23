@@ -321,6 +321,7 @@ def produce_short_from_yaml(yaml_path: Path):
     else:
         tts_durations = [0.0] * len(beats)
     
+    print("DEBUG: RIGHT BEFORE voice scheduling")
     # Compute voice schedule with gap constraints
     voice_schedule = None
     print("DEBUG: About to start voice scheduling")
@@ -352,6 +353,8 @@ def produce_short_from_yaml(yaml_path: Path):
         import traceback
         traceback.print_exc()
         raise
+    
+    print("DEBUG: AFTER voice scheduling try/except block")
     # PHASE 2: Generate all TTS clips in one pass (before assembly)
     voice_paths = {}
     print(f"DEBUG: voice_enabled={config.get('voice_enabled')}, voice_schedule={voice_schedule}")
