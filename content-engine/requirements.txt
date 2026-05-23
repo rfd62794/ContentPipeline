@@ -30,3 +30,6 @@ google-auth-oauthlib>=0.5.0
 
 # YouTube Analytics (Phase YT-2)
 # Reuses same dependencies as YouTube Upload
+
+# MCP Server (Phase MCP-1)
+mcp>=1.0.0

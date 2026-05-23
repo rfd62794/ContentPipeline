@@ -67,3 +67,5 @@ node.exe
 
 # Local Scripts
 scripts/__pycache__/
+# Claude Desktop Configuration
+claude_desktop_config.json

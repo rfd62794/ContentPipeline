@@ -1,88 +1,103 @@
-phase: 'Phase YT-1 — YouTube Upload with Metadata Override Architecture'
-certified_floor: 257/0/10
-what_is_next: 'Robert adds YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET to .env, then tests OAuth flow'
+phase: 'Phase MCP-1 — MCP Server for Claude Desktop Integration'
+certified_floor: 379/0/10/3
+what_is_next: 'Test mcp_server.py startup and verify Claude Desktop configuration'
 
-## Phase YT-1 — YouTube Upload with Metadata Override Architecture (2026-05-22)
+## Phase MCP-1 — MCP Server for Claude Desktop Integration (2026-05-22)
 
 ### Completed
-- **Created .meta.yaml schema** — Metadata override layer alongside existing short YAMLs
-  - Manual override fields: title, description, tags, schedule, privacy
-  - `auto_generate: true/false` flag for Layer 1 auto-generation
-  - Created .meta.yaml files for all 5 EIC shorts (all fields empty, auto_generate: false)
-- **Created metadata_builder.py** — Layer 1 auto-generation + Layer 3 override resolver
-  - Pure functions only: load_short_yaml, load_meta_yaml, resolve_metadata
-  - Layer 1 generation: generate_title_layer1, generate_description_layer1, generate_tags_layer1
-  - Validation: validate_metadata (title length, tag limits, privacy values)
-  - Schedule formatting: format_schedule (ISO to RFC 3339)
-- **Created youtube_upload.py** — OAuth client + resumable upload CLI
-  - OAuth2 flow with local token cache (.youtube_token.json)
-  - Resumable upload with 8MB chunks and progress display
-  - build_video_resource pure function for YouTube API body construction
-  - Mandatory confirmation prompt before upload
-  - Integration with Steam library for metadata enrichment
-- **Created comprehensive test suite** (20 new tests, 257/0/10)
-  - tests/test_metadata_builder.py: 20 pure function tests
-  - TestLoadShortYaml: YAML loading and error handling
-  - TestLoadMetaYaml: Default values and partial overrides
-  - TestResolveMetadata: Layer 3 wins, Layer 1 used when empty, no mutation
-  - TestGenerateTitleLayer1: Title generation with/without Steam metadata
-  - TestGenerateDescriptionLayer1: Description generation with char limits
-  - TestGenerateTagsLayer1: Tag generation with 500-char limit enforcement
-  - TestValidateMetadata: Title length, tag limits, privacy validation
-  - TestFormatSchedule: ISO to RFC 3339 conversion
-  - tests/test_youtube_upload.py: 9 pure function tests
-  - TestBuildVideoResource: YouTube API body construction, privacy mapping, tags
-- **Created 2 ADR files** — Key technical decisions documented
-  - ADR-YT-001: Three-layer metadata override architecture (manual > auto > default)
-  - ADR-YT-002: OAuth token local file storage (.youtube_token.json)
-- **Updated requirements.txt** — Added Google dependencies (google-auth-oauthlib, google-api-python-client, google-auth-httplib2)
-- **Updated .gitignore** — Added .youtube_token.json exclusion (both repo root and content-engine)
+- **Created mcp_server.py** — MCP server exposing 5 ContentPipeline tools
+  - get_installed_games: List installed Steam games from local ACF files
+  - get_game_metrics: Get enriched game metrics (Steam + SteamSpy + YouTube)
+  - get_youtube_analytics: Get video performance metrics from YouTube Analytics API
+  - get_channel_summary: Get channel performance summary from YouTube Analytics API
+  - get_content_recommendations: Get content recommendations based on metrics
+  - Uses stdio transport for Claude Desktop subprocess communication
+  - Lazy client initialization for efficient resource usage
+  - Comprehensive error handling and JSON responses
+- **Created test_mcp_server.py** — 20 comprehensive tests for MCP server
+  - TestListTools: Tool listing and schema validation
+  - TestGetInstalledGames: Default/custom path, empty results
+  - TestGetGameMetrics: Specific appid, multiple games, filters, limit caps
+  - TestGetYouTubeAnalytics: Success, missing params, error handling
+  - TestGetChannelSummary: Success, missing params, error handling
+  - TestGetContentRecommendations: Default, custom filters, limit caps
+  - TestClientInitialization: Singleton pattern for clients
+  - TestToolCallHandler: Unknown tool, error handling
+- **Created ADR-MCP-001.md** — Architecture decision for MCP integration
+  - Chose MCP over FastAPI for Claude Desktop integration
+  - stdio transport for simpler, more secure subprocess communication
+  - FastAPI deferred for future tower deployment
+- **Added mcp to requirements.txt** — MCP SDK dependency
+- **Created docs/mcp_setup.md** — Claude Desktop configuration guide
+  - Config snippet for Claude Desktop config.json
+  - Python path and working directory setup
+  - Tool usage examples
+- **Updated .gitignore** — Added claude_desktop_config.json exclusion
 
 ### Certified Floor Achievement
-- Baseline: 237/0/10 (after Steam library and Store API integration)
-- Target: 257/0/10
-- Actual: 257/0/10 (20 new tests added, 0 failures)
+- Baseline: 359/0/10/3 (after game metrics integration)
+- Target: 379/0/10/3
+- Actual: 379/0/10/3 (20 new tests added, 0 failures)
 
 ### Key Design Decisions
-- Three-layer override architecture — Layer 3 (manual) always wins, Layer 1 (auto) used only when auto_generate true and field empty
-- Safe by default — auto_generate defaults false, system requires explicit opt-in for auto-generation
-- Pure function architecture — All business logic unit-testable without OAuth or network calls
-- OAuth token local storage — .youtube_token.json gitignored, auto-refresh on expiry
-- Mandatory confirmation — Never auto-upload without explicit user confirmation
-- Steam metadata integration — Optional enrichment from Steam Store API for Layer 1 generation
-- YouTube API compliance — Enforces 100-char title limit, 500-char tag limit, 5000-char description limit
+- MCP over FastAPI — stdio transport is simpler and more secure for Claude Desktop
+- Lazy client initialization — Clients created only when needed to reduce startup overhead
+- Singleton pattern — Global client instances reused across tool calls
+- Comprehensive error handling — All tools return error messages in JSON format
+- Input validation — Limit caps enforced (50 for game metrics, 20 for recommendations)
+- Tool schema validation — All tools have proper input schemas with required fields
 
 ### Integration Verification
-- .meta.yaml files created for all 5 EIC shorts with empty fields
-- metadata_builder.py pure functions fully unit-tested
-- youtube_upload.py build_video_resource pure function tested
-- OAuth flow implemented but requires Robert's credentials to test
-- .youtube_token.json added to .gitignore in both locations
+- mcp_server.py implements all 5 required tools
+- test_mcp_server.py provides 20 comprehensive tests
+- ADR-MCP-001 documents architecture decision
+- docs/mcp_setup.md provides Claude Desktop configuration
+- mcp added to requirements.txt
+- claude_desktop_config.json added to .gitignore
 
 ### Usage Example
 ```bash
-# Upload short with manual metadata (current workflow)
-python content-engine/youtube_upload.py --short eic_short_4_shellephant
-
-# Upload with Steam metadata enrichment
-python content-engine/youtube_upload.py --short eic_short_4_shellephant --steam-path "C:/Program Files (x86)/Steam"
+# Start MCP server (called by Claude Desktop as subprocess)
+python content-engine/mcp_server.py
 ```
 
-### Metadata Override Example
-```yaml
-# shorts/eic_short_4_shellephant.meta.yaml
-auto_generate: false
-title: "Everything is Crab — the Shellephant Boss Fight"
-description: "I picked a fight with the Shellephant. It didn't go well."
-tags: ["Everything is Crab", "boss fight", "roguelike"]
-privacy: "public"
-schedule: "2026-05-23T21:00:00"
-category_id: "20"
-made_for_kids: false
+### Claude Desktop Configuration
+```json
+{
+    "mcpServers": {
+        "content-pipeline": {
+            "command": "C:\\Python314\\python.exe",
+            "args": ["C:\\Github\\GameReviewAgent\\content-engine\\mcp_server.py"],
+            "cwd": "C:\\Github\\GameReviewAgent\\content-engine"
+        }
+    }
+}
+```
+
+### Tool Usage Examples
+```python
+# Get installed games
+get_installed_games(steam_path="C:/Program Files (x86)/Steam")
+
+# Get game metrics for specific game
+get_game_metrics(appid=123456)
+
+# Get game metrics with filters
+get_game_metrics(limit=10, min_playtime=5.0, installed_only=True)
+
+# Get YouTube analytics
+get_youtube_analytics(video_id="abc123", start_date="2024-01-01", end_date="2024-01-31")
+
+# Get channel summary
+get_channel_summary(start_date="2024-01-01", end_date="2024-01-31")
+
+# Get content recommendations
+get_content_recommendations(limit=5, min_playtime=1.0, installed_only=True)
 ```
 
 ### Next Steps
-- Robert adds YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET to .env
-- Test OAuth consent flow and token caching
-- Test resumable upload with real video file
-- Test scheduled publish time setting
+- Test mcp_server.py startup
+- Verify Claude Desktop configuration
+- Test tool calls from Claude Desktop
+- Validate OAuth credentials for YouTube Analytics
+- Test Steam API credentials for game metrics
