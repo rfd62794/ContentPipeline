@@ -39,7 +39,11 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # ContentPipeline imports
-from steam_library import get_installed_games, SteamLibrary, GameInfo
+# Export for tests
+__all__ = ["steam_get_installed_games"]
+from steam_library import get_installed_games as steam_get_installed_games, SteamLibrary, GameInfo
+
+
 from game_metrics import GameMetricsClient, GameMetrics
 from youtube_analytics import YouTubeAnalytics, VideoStats, ChannelStats
 
@@ -217,9 +221,9 @@ async def handle_get_installed_games(arguments: Any) -> list[TextContent]:
     """Handle get_installed_games tool call."""
     steam_path = arguments.get("steam_path")
     if steam_path:
-        games = get_installed_games(Path(steam_path))
+        games = steam_get_installed_games(Path(steam_path))
     else:
-        games = get_installed_games()
+        games = steam_get_installed_games()
     
     result = {
         "count": len(games),
@@ -337,19 +341,35 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
     
     limit = min(limit, 20)  # Cap at 20
     
-    client = get_game_metrics_client()
+    # Get installed games
+    from steam_library import get_installed_games
+    installed_games = steam_get_installed_games()
     
-    # Get library metrics with filters
-    games = client.get_library_metrics(
-        limit=limit * 2,  # Get more to filter
-        min_playtime=min_playtime,
-        installed_only=installed_only
+    # Get game metrics for each installed game
+    client = get_game_metrics_client()
+    games_with_metrics = []
+    
+    for game in installed_games[:limit * 2]:  # Get more to filter
+        appid = game['appid']
+        try:
+            metrics = client.get_game_metrics(appid)
+            if metrics:
+                games_with_metrics.append(metrics)
+        except Exception as e:
+            # Skip games that fail to load metrics
+            continue
+    
+    # Filter by playtime
+    from game_metrics import filter_by_playtime
+    filtered_games = filter_by_playtime(
+        [g.__dict__ if hasattr(g, '__dict__') else g for g in games_with_metrics],
+        min_playtime
     )
     
     # Sort by content demand score (descending)
     from game_metrics import sort_by_metric
     sorted_games = sort_by_metric(
-        [g.__dict__ if hasattr(g, '__dict__') else g for g in games],
+        filtered_games,
         'content_demand_score',
         descending=True
     )
