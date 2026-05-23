@@ -341,6 +341,7 @@ def produce_short_from_yaml(yaml_path: Path):
         voice_schedule = [None] * len(segments)
         config["voice_schedule"] = voice_schedule
     
+    print("DEBUG: After voice scheduling, about to start PHASE 2")
     # PHASE 2: Generate all TTS clips in one pass (before assembly)
     voice_paths = {}
     print(f"DEBUG: voice_enabled={config.get('voice_enabled')}, voice_schedule={voice_schedule}")
