@@ -44,6 +44,7 @@ __all__ = ["steam_get_installed_games"]
 from steam_library import get_installed_games as steam_get_installed_games, SteamLibrary, GameInfo
 from game_metrics import GameMetricsClient, GameMetrics
 from youtube_analytics import YouTubeAnalytics, VideoStats, ChannelStats
+from sale_checker import get_sale_info as itad_get_sale_info, format_sale_result
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -204,6 +205,25 @@ async def list_tools() -> list[Tool]:
                     }
                 }
             }
+        ),
+        Tool(
+            name="get_sale_info",
+            description="Look up current sale prices and historical lows for games via IsThereAnyDeal. Requires ITAD_API_KEY in environment.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "game_names": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of game title strings to look up"
+                    },
+                    "country": {
+                        "type": "string",
+                        "description": "ISO 3166-1 alpha-2 country code for pricing (default: US)"
+                    }
+                },
+                "required": ["game_names"]
+            }
         )
     ]
 
@@ -222,6 +242,8 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             return await handle_get_channel_summary(arguments)
         elif name == "get_content_recommendations":
             return await handle_get_content_recommendations(arguments)
+        elif name == "get_sale_info":
+            return await handle_get_sale_info(arguments)
         else:
             return [TextContent(
                 type="text",
@@ -397,6 +419,27 @@ async def handle_get_content_recommendations(arguments: Any) -> list[TextContent
     return [TextContent(
         type="text",
         text=json.dumps(result, indent=2)
+    )]
+
+
+async def handle_get_sale_info(arguments: Any) -> list[TextContent]:
+    """Handle get_sale_info tool call."""
+    game_names = arguments.get("game_names", [])
+    country = arguments.get("country", "US")
+
+    if not game_names:
+        return [TextContent(type="text", text=json.dumps({"error": "game_names is required and must be non-empty"}))]
+
+    results = itad_get_sale_info(game_names, country=country)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "count": len(results),
+            "country": country,
+            "results": results,
+            "summary": [format_sale_result(r) for r in results]
+        }, indent=2)
     )]
 
 
