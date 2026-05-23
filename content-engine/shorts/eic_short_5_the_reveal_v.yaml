@@ -6,7 +6,7 @@ music_start: 0
 music_volume: 0.20
 voice: true
 voice_volume: 0.50
-voice_name: David
+voice_name: en-US-GuyNeural
 voice_delay: 0.3
 voice_gap: 1.5
 stack_text: true

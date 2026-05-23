@@ -95,7 +95,7 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
         "music_volume": yaml_config.get("music_volume", 0.20),
         "voice_enabled": yaml_config.get("voice", False),
         "voice_volume": yaml_config.get("voice_volume", 0.50),
-        "voice_name": yaml_config.get("voice_name", "David"),
+        "voice_name": yaml_config.get("voice_name", "en-US-GuyNeural"),
         "voice_delay": yaml_config.get("voice_delay", 0.3),
         "voice_gap": yaml_config.get("voice_gap", 1.5),
         "shorts_attribution_enabled": yaml_config.get("attribution") is not None,
@@ -206,47 +206,33 @@ def compute_voice_schedule(
     return schedule
 
 
+async def _generate_voice_async(text: str, voice: str, output_path: Path) -> None:
+    """
+    Async wrapper for edge-tts voice generation.
+    
+    Args:
+        text: Text to synthesize.
+        voice: Edge TTS voice name (e.g. "en-US-GuyNeural").
+        output_path: Destination path for the generated MP3.
+    """
+    import edge_tts
+    tts = edge_tts.Communicate(text, voice)
+    await tts.save(str(output_path))
+
+
 def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:
     """
-    Generate a TTS audio clip using Windows SAPI COM (pywin32) and save to output_path.
+    Generate a TTS audio clip using edge-tts and save to output_path.
 
-    Writes WAV via SAPI, then converts to MP3 via ffmpeg.
-    Fully offline — no network required.
+    Uses Microsoft Edge TTS online service. Requires internet connection.
 
     Args:
         text: Text to synthesize.
-        voice: SAPI voice description substring to match (e.g. "David", "Zira").
-               If no match found, uses the system default voice.
+        voice: Edge TTS voice name (e.g. "en-US-GuyNeural").
         output_path: Destination path for the generated MP3.
     """
-    import win32com.client
-    import subprocess
-    from core.assembler import get_ffmpeg_path
-
-    wav_path = output_path.with_suffix(".wav")
-
-    sapi = win32com.client.Dispatch("SAPI.SpVoice")
-
-    # Select voice by matching description substring (case-insensitive)
-    voices = sapi.GetVoices()
-    for i in range(voices.Count):
-        if voice.lower() in voices.Item(i).GetDescription().lower():
-            sapi.Voice = voices.Item(i)
-            break
-
-    # Write to WAV file via SpFileStream
-    stream = win32com.client.Dispatch("SAPI.SpFileStream")
-    stream.Open(str(wav_path), 3)  # SSFMCreateForWrite = 3
-    sapi.AudioOutputStream = stream
-    sapi.Speak(text)
-    stream.Close()
-
-    # Convert WAV -> MP3 via ffmpeg
-    subprocess.run(
-        [get_ffmpeg_path(), "-y", "-i", str(wav_path), str(output_path)],
-        capture_output=True, check=True
-    )
-    wav_path.unlink(missing_ok=True)
+    import asyncio
+    asyncio.run(_generate_voice_async(text, voice, output_path))
 
 
 def produce_short_from_yaml(yaml_path: Path):
