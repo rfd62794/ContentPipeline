@@ -42,6 +42,7 @@
 3:36-3:52 - Feeding In The Dark (Combatant Dies 3:41)
 3:53-3:57 - Finding POI At Night
 3:58-4:02 - Mud Pond Found (Thermoregulate: Increase Cold & Heat Adaptation By 10%)
+4:02-4:10
 
 ## 2:23 onward — unmapped
 [Continue logging from here]
