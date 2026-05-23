@@ -75,7 +75,7 @@ class YouTubePlaylist:
 class YouTubeLibrary:
     """Client for YouTube Data API v3 library data using OAuth with refresh token."""
     
-    SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
     TOKEN_FILE = ".youtube_token.json"
     CLIENT_SECRET_FILE = "client_secret.json"
     
