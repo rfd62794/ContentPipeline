@@ -442,23 +442,42 @@ class GameMetricsClient:
             games = [game for game in games if game.playtime_hours >= min_hours]
         
         # Enrich with SteamSpy and YouTube data
+        _empty_steamspy = {
+            'players_2weeks': 0,
+            'owners_estimate': '0 .. 0',
+            'positive_reviews': 0,
+            'negative_reviews': 0,
+        }
+        _empty_youtube = {'top_video_views': 0, 'recent_upload_count': 0, 'avg_views_top5': 0.0}
+
         metrics_list = []
         for game in games:
             appid_str = str(game.appid)
-            
-            # Fetch SteamSpy data (free API, no quota issues)
-            print(f"Fetching SteamSpy data for: {game.name}")
-            steamspy_data = self.fetch_steamspy_data(game.appid)
-            
-            # Check cache or fetch new YouTube data
-            if appid_str in cache and not refresh:
-                youtube_data = cache[appid_str]
+            cache_hit = appid_str in cache and not refresh
+
+            if cache_hit:
+                # Full cache hit: skip all network calls
+                entry = cache[appid_str]
+                if 'youtube' in entry:
+                    # New nested format
+                    steamspy_data = entry.get('steamspy', _empty_steamspy)
+                    youtube_data = entry.get('youtube', _empty_youtube)
+                else:
+                    # Legacy format: entry is a plain youtube dict
+                    steamspy_data = _empty_steamspy
+                    youtube_data = entry
             else:
-                # Handle Unicode in game names for Windows console
+                # refresh=True or cold cache: fetch both
+                spy_cache_file = self.steamspy_cache_dir / f"spy_{game.appid}.json"
+                if refresh or spy_cache_file.exists():
+                    steamspy_data = self.fetch_steamspy_data(game.appid)
+                else:
+                    steamspy_data = _empty_steamspy
+
                 safe_name = game.name.encode('ascii', 'ignore').decode('ascii') if game.name else 'Unknown'
                 print(f"Fetching YouTube data for: {safe_name}")
                 youtube_data = self.search_youtube_for_game(game.name)
-                cache[appid_str] = youtube_data
+                cache[appid_str] = {'steamspy': steamspy_data, 'youtube': youtube_data}
             
             # Merge metrics
             merged = merge_game_metrics(game, steamspy_data, youtube_data)
