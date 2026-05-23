@@ -5,3 +5,4 @@ __pycache__/*.pyc
 *.pyc
 __pycache__/*
 cache/***/__pycache__/
+.steam_cache/
