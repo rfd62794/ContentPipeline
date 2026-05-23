@@ -18,6 +18,7 @@ from mcp_server import (
     handle_get_content_recommendations
 )
 from youtube_analytics import YouTubeAnalytics
+from game_metrics import GameMetricsClient
 
 
 # =============================================================================
@@ -424,9 +425,14 @@ class TestClientInitialization:
     
     def test_get_game_metrics_client_singleton(self):
         """Test that GameMetricsClient is cached."""
-        client1 = get_game_metrics_client()
-        client2 = get_game_metrics_client()
-        assert client1 is client2
+        # Mock the GameMetricsClient to avoid real auth calls
+        with patch('mcp_server.GameMetricsClient') as mock_client_class:
+            mock_instance = MagicMock()
+            mock_client_class.return_value = mock_instance
+            
+            client1 = get_game_metrics_client()
+            client2 = get_game_metrics_client()
+            assert client1 is client2
     
     def test_get_youtube_analytics_singleton(self):
         """Test that YouTubeAnalytics is cached."""
