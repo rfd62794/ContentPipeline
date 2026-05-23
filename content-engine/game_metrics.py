@@ -284,6 +284,10 @@ class GameMetricsClient:
                 if self.credentials.expired and self.credentials.refresh_token:
                     self.credentials.refresh(Request())
             else:
+                import os
+                print(f"Looking for token at: {os.path.abspath('.youtube_token.json')}", file=sys.stderr)
+                print(f"Current working directory: {os.getcwd()}", file=sys.stderr)
+                print(f"Token file exists: {Path('.youtube_token.json').exists()}", file=sys.stderr)
                 raise RuntimeError("No valid credentials found. Run gcloud auth application-default login or ensure .youtube_token.json exists")
         
         # Build YouTube service
