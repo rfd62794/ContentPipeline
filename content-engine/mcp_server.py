@@ -101,7 +101,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_game_metrics",
-            description="Get enriched game metrics combining Steam, SteamSpy, and YouTube data",
+            description="Get enriched game metrics combining Steam, SteamSpy, and YouTube data. Warning: all_owned=True with refresh=True fires one YouTube API search per game. 50+ games = significant quota cost (100 units/game, 10000 units/day limit). Use refresh=True sparingly.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -120,6 +120,10 @@ async def list_tools() -> list[Tool]:
                     "installed_only": {
                         "type": "boolean",
                         "description": "Only return installed games (default: false)"
+                    },
+                    "all_owned": {
+                        "type": "boolean",
+                        "description": "Return full owned Steam library (153+ games), ignoring installed_only filter (default: false)"
                     },
                     "refresh": {
                         "type": "boolean",
@@ -248,10 +252,15 @@ async def handle_get_game_metrics(arguments: Any) -> list[TextContent]:
     limit = arguments.get("limit", 10)
     min_playtime = arguments.get("min_playtime", 0)
     installed_only = arguments.get("installed_only", False)
+    all_owned = arguments.get("all_owned", False)
     refresh = arguments.get("refresh", False)
     
     client = get_game_metrics_client()
     
+    # all_owned overrides installed_only — return full library
+    if all_owned:
+        installed_only = False
+
     # Get metrics for multiple games
     limit = min(limit, 50)  # Cap at 50
     steam_library = get_steam_library()
