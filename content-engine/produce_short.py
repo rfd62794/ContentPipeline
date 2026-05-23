@@ -341,6 +341,7 @@ def produce_short_from_yaml(yaml_path: Path):
                 else:
                     logger.info(f"  Segment {i}: voice skipped (gap constraint)")
             
+            print("DEBUG: After last logger.info in voice scheduling")
             config["voice_schedule"] = voice_schedule
         else:
             # No voice scheduling needed
