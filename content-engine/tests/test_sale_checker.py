@@ -26,38 +26,30 @@ from sale_checker import (
 class TestParseLookupResponse:
     """Test parse_lookup_response pure function."""
 
-    def test_found_games(self):
-        raw = {
-            "Hades": {"id": "018d937f-590b-71e6-a6d0-2a8b6d0bf28f"},
-            "Skyrim": {"id": "018d937f-1234-71e6-a6d0-aabbccddeeff"},
-        }
-        result = parse_lookup_response(raw)
-        assert result["Hades"] == "018d937f-590b-71e6-a6d0-2a8b6d0bf28f"
-        assert result["Skyrim"] == "018d937f-1234-71e6-a6d0-aabbccddeeff"
+    def test_found_game(self):
+        raw = {"found": True, "game": {"id": "018d937f-33f0-7200-80fc-87f769196c84", "title": "Hades"}}
+        result = parse_lookup_response(raw, "Hades")
+        assert result == "018d937f-33f0-7200-80fc-87f769196c84"
 
-    def test_not_found_games_excluded(self):
-        raw = {
-            "Hades": {"id": "018d937f-590b-71e6-a6d0-2a8b6d0bf28f"},
-            "FakeGame9999": None,
-        }
-        result = parse_lookup_response(raw)
-        assert "Hades" in result
-        assert "FakeGame9999" not in result
+    def test_not_found_returns_none(self):
+        raw = {"found": False}
+        result = parse_lookup_response(raw, "FakeGame9999")
+        assert result is None
 
-    def test_empty_response(self):
-        assert parse_lookup_response({}) == {}
+    def test_found_false_with_game_key_returns_none(self):
+        raw = {"found": False, "game": None}
+        assert parse_lookup_response(raw, "X") is None
 
-    def test_missing_id_field_excluded(self):
-        raw = {"WeirdGame": {"name": "something", "id": ""}}
-        result = parse_lookup_response(raw)
-        assert "WeirdGame" not in result
+    def test_missing_id_in_game_returns_none(self):
+        raw = {"found": True, "game": {"title": "WeirdGame"}}
+        assert parse_lookup_response(raw, "WeirdGame") is None
 
 
 class TestParsePriceOverview:
     """Test parse_price_overview pure function."""
 
     def test_basic_parse(self):
-        raw = [
+        raw = {"prices": [
             {
                 "id": "abc123",
                 "current": {
@@ -70,7 +62,7 @@ class TestParsePriceOverview:
                     "price": {"amount": 1.24},
                 },
             }
-        ]
+        ]}
         id_to_name = {"abc123": "Hades"}
         results = parse_price_overview(raw, id_to_name)
         assert len(results) == 1
@@ -83,7 +75,7 @@ class TestParsePriceOverview:
         assert r["store_name"] == "Steam"
 
     def test_no_current_price(self):
-        raw = [{"id": "abc123", "current": None, "lowest": None}]
+        raw = {"prices": [{"id": "abc123", "current": None, "lowest": None}]}
         id_to_name = {"abc123": "SomeGame"}
         results = parse_price_overview(raw, id_to_name)
         r = results[0]
@@ -93,7 +85,7 @@ class TestParsePriceOverview:
         assert r["on_sale"] is False
 
     def test_full_price_not_on_sale(self):
-        raw = [
+        raw = {"prices": [
             {
                 "id": "xyz",
                 "current": {
@@ -104,14 +96,14 @@ class TestParsePriceOverview:
                 },
                 "lowest": {"price": {"amount": 7.49}},
             }
-        ]
+        ]}
         id_to_name = {"xyz": "Risk of Rain 2"}
         results = parse_price_overview(raw, id_to_name)
         assert results[0]["on_sale"] is False
         assert results[0]["current_discount_pct"] == 0
 
     def test_unknown_id_uses_id_as_name(self):
-        raw = [{"id": "unknown-id", "current": None, "lowest": None}]
+        raw = {"prices": [{"id": "unknown-id", "current": None, "lowest": None}]}
         results = parse_price_overview(raw, {})
         assert results[0]["name"] == "unknown-id"
 
@@ -193,29 +185,35 @@ class TestLookupGameIds:
     """Test lookup_game_ids with mocked HTTP."""
 
     def test_successful_lookup(self):
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "Hades": {"id": "abc123"},
-            "Skyrim": {"id": "def456"},
-        }
-        mock_response.raise_for_status = MagicMock()
+        def mock_get(url, params=None, headers=None, timeout=None):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            title = params.get("title", "")
+            responses = {
+                "Hades": {"found": True, "game": {"id": "abc123", "title": "Hades"}},
+                "Skyrim": {"found": True, "game": {"id": "def456", "title": "Skyrim"}},
+            }
+            resp.json.return_value = responses.get(title, {"found": False})
+            return resp
 
-        with patch("sale_checker.requests.post", return_value=mock_response) as mock_post:
+        with patch("sale_checker.requests.get", side_effect=mock_get) as mock_g:
             result = lookup_game_ids(["Hades", "Skyrim"], "test-key")
 
         assert result == {"Hades": "abc123", "Skyrim": "def456"}
-        call_kwargs = mock_post.call_args
-        assert call_kwargs[1]["headers"]["ITAD-API-Key"] == "test-key"
+        assert mock_g.call_count == 2
 
     def test_partial_lookup(self):
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "Hades": {"id": "abc123"},
-            "FakeGame": None,
-        }
-        mock_response.raise_for_status = MagicMock()
+        def mock_get(url, params=None, headers=None, timeout=None):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            title = params.get("title", "")
+            if title == "Hades":
+                resp.json.return_value = {"found": True, "game": {"id": "abc123"}}
+            else:
+                resp.json.return_value = {"found": False}
+            return resp
 
-        with patch("sale_checker.requests.post", return_value=mock_response):
+        with patch("sale_checker.requests.get", side_effect=mock_get):
             result = lookup_game_ids(["Hades", "FakeGame"], "test-key")
 
         assert "Hades" in result
@@ -226,7 +224,7 @@ class TestFetchPriceOverview:
     """Test fetch_price_overview with mocked HTTP."""
 
     def test_successful_fetch(self):
-        mock_raw = [
+        mock_raw = {"prices": [
             {
                 "id": "abc123",
                 "current": {
@@ -237,7 +235,7 @@ class TestFetchPriceOverview:
                 },
                 "lowest": {"price": {"amount": 1.24}},
             }
-        ]
+        ]}
         mock_response = MagicMock()
         mock_response.json.return_value = mock_raw
         mock_response.raise_for_status = MagicMock()
@@ -254,11 +252,11 @@ class TestGetSaleInfo:
     """Test get_sale_info end-to-end with mocked HTTP."""
 
     def test_full_flow_found_games(self):
-        lookup_raw = {
-            "Hades": {"id": "abc123"},
-            "Skyrim": {"id": "def456"},
+        lookup_responses = {
+            "Hades": {"found": True, "game": {"id": "abc123", "title": "Hades"}},
+            "Skyrim": {"found": True, "game": {"id": "def456", "title": "Skyrim"}},
         }
-        prices_raw = [
+        prices_raw = {"prices": [
             {
                 "id": "abc123",
                 "current": {
@@ -279,20 +277,24 @@ class TestGetSaleInfo:
                 },
                 "lowest": {"price": {"amount": 9.99}},
             },
-        ]
+        ]}
+
+        def mock_get(url, params=None, headers=None, timeout=None):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            resp.json.return_value = lookup_responses.get(params.get("title", ""), {"found": False})
+            return resp
 
         def mock_post(url, **kwargs):
             resp = MagicMock()
             resp.raise_for_status = MagicMock()
-            if "lookup" in url:
-                resp.json.return_value = lookup_raw
-            else:
-                resp.json.return_value = prices_raw
+            resp.json.return_value = prices_raw
             return resp
 
-        with patch("sale_checker.requests.post", side_effect=mock_post):
-            with patch.dict("os.environ", {"ITAD_API_KEY": "test-key"}):
-                results = get_sale_info(["Hades", "Skyrim"])
+        with patch("sale_checker.requests.get", side_effect=mock_get):
+            with patch("sale_checker.requests.post", side_effect=mock_post):
+                with patch.dict("os.environ", {"ITAD_API_KEY": "test-key"}):
+                    results = get_sale_info(["Hades", "Skyrim"])
 
         names = [r["name"] for r in results]
         assert "Hades" in names
@@ -303,19 +305,13 @@ class TestGetSaleInfo:
         assert hades["current_discount_pct"] == 75
 
     def test_not_found_game_included(self):
-        lookup_raw = {"FakeGame9999": None}
-        prices_raw = []
-
-        def mock_post(url, **kwargs):
+        def mock_get(url, params=None, headers=None, timeout=None):
             resp = MagicMock()
             resp.raise_for_status = MagicMock()
-            if "lookup" in url:
-                resp.json.return_value = lookup_raw
-            else:
-                resp.json.return_value = prices_raw
+            resp.json.return_value = {"found": False}
             return resp
 
-        with patch("sale_checker.requests.post", side_effect=mock_post):
+        with patch("sale_checker.requests.get", side_effect=mock_get):
             with patch.dict("os.environ", {"ITAD_API_KEY": "test-key"}):
                 results = get_sale_info(["FakeGame9999"])
 
@@ -332,11 +328,11 @@ class TestGetSaleInfo:
                 get_sale_info(["Hades"])
 
     def test_mixed_found_and_not_found(self):
-        lookup_raw = {
-            "Hades": {"id": "abc123"},
-            "FakeGame": None,
+        lookup_responses = {
+            "Hades": {"found": True, "game": {"id": "abc123"}},
+            "FakeGame": {"found": False},
         }
-        prices_raw = [
+        prices_raw = {"prices": [
             {
                 "id": "abc123",
                 "current": {
@@ -347,20 +343,24 @@ class TestGetSaleInfo:
                 },
                 "lowest": {"price": {"amount": 1.24}},
             }
-        ]
+        ]}
+
+        def mock_get(url, params=None, headers=None, timeout=None):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            resp.json.return_value = lookup_responses.get(params.get("title", ""), {"found": False})
+            return resp
 
         def mock_post(url, **kwargs):
             resp = MagicMock()
             resp.raise_for_status = MagicMock()
-            if "lookup" in url:
-                resp.json.return_value = lookup_raw
-            else:
-                resp.json.return_value = prices_raw
+            resp.json.return_value = prices_raw
             return resp
 
-        with patch("sale_checker.requests.post", side_effect=mock_post):
-            with patch.dict("os.environ", {"ITAD_API_KEY": "test-key"}):
-                results = get_sale_info(["Hades", "FakeGame"])
+        with patch("sale_checker.requests.get", side_effect=mock_get):
+            with patch("sale_checker.requests.post", side_effect=mock_post):
+                with patch.dict("os.environ", {"ITAD_API_KEY": "test-key"}):
+                    results = get_sale_info(["Hades", "FakeGame"])
 
         assert len(results) == 2
         names = [r["name"] for r in results]

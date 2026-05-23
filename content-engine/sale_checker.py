@@ -4,8 +4,8 @@ IsThereAnyDeal (ITAD) Sale Checker
 Looks up current prices and historical lows for games using the ITAD API v2.9.0.
 
 Endpoints used:
-  POST /lookup/games/id/title/v1  — resolve game names -> ITAD game IDs
-  POST /prices/overview/v1        — current price + historical low per game ID
+  GET  /games/lookup/v1?title=X   — resolve one game name -> ITAD game ID (one call per name)
+  POST /games/overview/v2         — current price + historical low per game ID
 
 Requires ITAD_API_KEY in environment (or .env file).
 """
@@ -26,36 +26,35 @@ ITAD_API_KEY_ENV = "ITAD_API_KEY"
 # Pure Functions (Testable Without Network)
 # =============================================================================
 
-def parse_lookup_response(raw: dict) -> dict[str, str]:
+def parse_lookup_response(raw: dict, name: str) -> Optional[str]:
     """
-    Parse the /lookup/games/id/title/v1 response into a name -> game_id map.
+    Parse a single GET /games/lookup/v1 response into an ITAD game ID.
 
     Args:
-        raw: Raw API response dict mapping game name -> {id: str} or null
+        raw: Raw API response: {"found": bool, "game": {"id": str, ...}} or {"found": false}
+        name: The original game name queried (for logging only)
 
     Returns:
-        Dict mapping original game name -> ITAD game ID (only found games)
+        ITAD game ID string if found, else None
     """
-    result = {}
-    for name, data in raw.items():
-        if data and isinstance(data, dict) and data.get("id"):
-            result[name] = data["id"]
-    return result
+    if raw.get("found") and raw.get("game"):
+        return raw["game"].get("id")
+    return None
 
 
 def parse_price_overview(raw: dict, id_to_name: dict[str, str]) -> list[dict]:
     """
-    Parse the /prices/overview/v1 response into a flat list of sale results.
+    Parse the POST /games/overview/v2 response into a flat list of sale results.
 
     Args:
-        raw: Raw API response — list of game price objects
+        raw: Raw API response — {"prices": [...]} where each item has id, current, lowest
         id_to_name: Map of ITAD game ID -> original game name
 
     Returns:
         List of dicts with price info per game
     """
     results = []
-    for item in raw:
+    for item in raw.get("prices", []):
         game_id = item.get("id", "")
         name = id_to_name.get(game_id, game_id)
 
@@ -148,6 +147,8 @@ def lookup_game_ids(game_names: list[str], api_key: str) -> dict[str, str]:
     """
     Resolve a list of game names to ITAD game IDs.
 
+    Calls GET /games/lookup/v1?title=X once per name (bulk POST not supported).
+
     Args:
         game_names: List of game title strings
         api_key: ITAD API key
@@ -155,15 +156,20 @@ def lookup_game_ids(game_names: list[str], api_key: str) -> dict[str, str]:
     Returns:
         Dict mapping game name -> ITAD game ID (only found entries)
     """
-    url = f"{ITAD_BASE_URL}/lookup/games/id/title/v1"
-    headers = {"ITAD-API-Key": api_key, "Content-Type": "application/json"}
-    response = requests.post(url, json=game_names, headers=headers, timeout=10)
-    response.raise_for_status()
-    return parse_lookup_response(response.json())
+    url = f"{ITAD_BASE_URL}/games/lookup/v1"
+    headers = {"ITAD-API-Key": api_key}
+    result = {}
+    for name in game_names:
+        response = requests.get(url, params={"title": name}, headers=headers, timeout=10)
+        response.raise_for_status()
+        game_id = parse_lookup_response(response.json(), name)
+        if game_id:
+            result[name] = game_id
+    return result
 
 
 def fetch_price_overview(game_ids: list[str], api_key: str,
-                         country: str = "US") -> list[dict]:
+                         country: str = "US") -> dict:
     """
     Fetch current prices and historical lows for a list of ITAD game IDs.
 
@@ -173,9 +179,9 @@ def fetch_price_overview(game_ids: list[str], api_key: str,
         country: ISO 3166-1 alpha-2 country code for pricing
 
     Returns:
-        Raw list of price objects from the API
+        Raw API response dict: {"prices": [...], ...}
     """
-    url = f"{ITAD_BASE_URL}/prices/overview/v1"
+    url = f"{ITAD_BASE_URL}/games/overview/v2"
     headers = {"ITAD-API-Key": api_key, "Content-Type": "application/json"}
     params = {"country": country}
     response = requests.post(url, json=game_ids, headers=headers,
