@@ -908,9 +908,13 @@ def start_stream(game_name: str,
             "error": "Failed to update YouTube stream metadata"
         }
     
-    # 4. Launch game (non-blocking)
-    print(f"Launching game: {config.get('game')}")
-    launch_game(config.get("steam_appid"))
+    # 4. Check if game is already running, launch if not
+    game_process_name = config.get("game_process_name")
+    if game_process_name and is_game_running(game_process_name):
+        print(f"Game already running: {game_process_name}")
+    else:
+        print(f"Launching game: {config.get('game')}")
+        launch_game(config.get("steam_appid"))
     
     # 5. Ensure OBS is running
     obs_exe_path = os.getenv("OBS_EXE_PATH")
@@ -933,7 +937,6 @@ def start_stream(game_name: str,
     switch_obs_scene(obs_client, "Starting Soon")
     
     # 8. Wait for game window to appear
-    game_process_name = config.get("game_process_name")
     if game_process_name:
         print(f"Waiting for game window: {game_process_name}")
         window_title = wait_for_game_window(game_process_name, config.get("game"), timeout_seconds=30)
