@@ -25,16 +25,13 @@ from steam_library import SteamLibrary, GameInfo, get_installed_games
 
 # Google API imports
 try:
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    from google.auth.transport.requests import Request
-    from google.auth import default
-    from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 except ImportError:
     print("Error: Google API libraries not installed.")
     print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
     sys.exit(1)
+
+from core.youtube_auth import build_service
 
 
 # =============================================================================
@@ -250,44 +247,13 @@ class GameMetricsClient:
             client_secret_path: Path to client_secret.json
             cache_dir: Directory for cache (default: .youtube_cache)
         """
-        self.credentials = None
-        self.youtube_service = None
         self.cache_dir = Path(cache_dir) if cache_dir else self.CACHE_FILE.parent
         self.cache_file = self.cache_dir / "game_metrics.json"
-        
-        # Determine client secret path
-        if client_secret_path:
-            self.client_secret_path = client_secret_path
-        else:
-            self.client_secret_path = self.CLIENT_SECRET_FILE
-        
-        # Load credentials
-        self._load_credentials()
-        
+        self.youtube_service = build_service("youtube", "v3", self.SCOPES)
+
         # Create cache directory
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    def _load_credentials(self):
-        """Load OAuth credentials from token file."""
-        token_path = Path(self.TOKEN_FILE)
-        
-        if not token_path.exists():
-            raise RuntimeError(
-                f"YouTube token not found at {token_path}. "
-                "Run youtube_upload.py once to authenticate."
-            )
-        
-        self.credentials = Credentials.from_authorized_user_file(
-            str(token_path), self.SCOPES
-        )
-        
-        if self.credentials.expired and self.credentials.refresh_token:
-            self.credentials.refresh(Request())
-            with open(token_path, "w") as f:
-                f.write(self.credentials.to_json())
-        
-        self.youtube_service = build("youtube", "v3", credentials=self.credentials)
-        
+
         self.steamspy_cache_dir = Path(self.STEAMSPY_CACHE_DIR)
         self.steamspy_cache_dir.mkdir(parents=True, exist_ok=True)
     

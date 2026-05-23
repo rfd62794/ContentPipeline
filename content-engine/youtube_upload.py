@@ -17,15 +17,14 @@ load_dotenv()
 
 # Google API imports
 try:
-    from google.auth import default
-    from google.auth.transport.requests import Request
-    from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
     from googleapiclient.errors import HttpError
 except ImportError:
     print("Error: Google API libraries not installed.")
     print("Run: pip install google-auth google-api-python-client google-auth-httplib2")
     sys.exit(1)
+
+from core.youtube_auth import build_service
 
 from metadata_builder import (
     load_short_yaml,
@@ -42,17 +41,12 @@ SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 
 def get_authenticated_service():
     """
-    Use gcloud Application Default Credentials (ADC) for authentication.
-    Credentials are managed by gcloud auth layer.
-    Returns authenticated YouTube service object.
-    
+    Return an authenticated YouTube service object.
+
     Returns:
         Authenticated YouTube service object.
     """
-    credentials, project = default(
-        scopes=["https://www.googleapis.com/auth/youtube.upload"]
-    )
-    return build('youtube', 'v3', credentials=credentials)
+    return build_service('youtube', 'v3', SCOPES)
 
 
 def build_video_resource(metadata: Dict[str, Any]) -> Dict[str, Any]:
