@@ -129,7 +129,7 @@ class YouTubeLibrary:
             
             # Save credentials for future use
             with open(self.TOKEN_FILE, 'w') as token:
-                token.write(self.credentials)
+                token.write(self.credentials.to_json())
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
@@ -185,7 +185,20 @@ class YouTubeLibrary:
                 ).execute()
                 
                 for item in response.get('items', []):
-                    video_id = item['id']['videoId']
+                    # Only process video items (skip channels, playlists)
+                    item_id = item.get('id')
+                    
+                    # Handle both string ID and dict with videoId
+                    if isinstance(item_id, dict):
+                        if 'videoId' not in item_id:
+                            continue  # Skip non-video items
+                        video_id = item_id['videoId']
+                    else:
+                        # String ID - check if it's a video ID (not channel UC... or playlist PL...)
+                        if item_id.startswith('UC') or item_id.startswith('PL'):
+                            continue
+                        video_id = item_id
+                    
                     snippet = item.get('snippet', {})
                     
                     # Get detailed video info including status

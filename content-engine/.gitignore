@@ -26,6 +26,7 @@ cache/
 
 # YouTube OAuth Token
 .youtube_token.json
+client_secret.json
 
 # YouTube Library Cache
 .youtube_cache/
