@@ -22,7 +22,7 @@ database/*.db-shm
 cache/
 
 # Steam API Cache
-steam_cache/
+.steam_cache/
 
 
 # Audio artifacts

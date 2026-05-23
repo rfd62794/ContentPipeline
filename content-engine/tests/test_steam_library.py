@@ -19,9 +19,12 @@ from steam_library import (
     get_installed_games,
     SteamWebAPI,
     SteamWebAPIError,
+    SteamStoreAPI,
+    SteamStoreAPIError,
     SteamLibrary,
     GameInfo,
-    print_library_table
+    print_library_table,
+    print_game_metadata
 )
 
 
@@ -371,6 +374,173 @@ class TestSteamWebAPI:
 
 
 # =============================================================================
+# Steam Store API Client Tests
+# =============================================================================
+
+class TestSteamStoreAPI:
+    """Tests for SteamStoreAPI with mocked HTTP calls and file I/O."""
+    
+    def test_init_default_cache_dir(self, tmp_path):
+        """Test initialization with default cache directory."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            api = SteamStoreAPI(cache_dir=Path(tmpdir))
+            assert api.cache_dir == Path(tmpdir)
+            assert api.cache_dir.exists()
+    
+    def test_init_custom_rate_limit(self):
+        """Test initialization with custom rate limit."""
+        api = SteamStoreAPI(requests_per_second=5.0)
+        assert api.min_request_interval == 0.2  # 1/5 = 0.2 seconds
+    
+    @patch('steam_library.requests.get')
+    def test_get_app_details_success(self, mock_get):
+        """Test successful app details fetch."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            '12345': {
+                'success': True,
+                'data': {
+                    'name': 'Test Game',
+                    'short_description': 'A test game',
+                    'genres': [{'description': 'Action'}],
+                    'developers': ['Test Dev']
+                }
+            }
+        }
+        mock_get.return_value = mock_response
+        
+        api = SteamStoreAPI()
+        details = api.get_app_details(12345, use_cache=False)
+        
+        assert details is not None
+        assert details['name'] == 'Test Game'
+        assert details['short_description'] == 'A test game'
+    
+    @patch('steam_library.requests.get')
+    def test_get_app_details_not_found(self, mock_get):
+        """Test handling of app not found."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            '12345': {
+                'success': False
+            }
+        }
+        mock_get.return_value = mock_response
+        
+        api = SteamStoreAPI()
+        details = api.get_app_details(12345, use_cache=False)
+        
+        assert details is None
+    
+    @patch('steam_library.requests.get')
+    def test_get_app_details_cache_hit(self, mock_get, tmp_path):
+        """Test that cache is used when available."""
+        # Pre-populate cache
+        cache_file = tmp_path / "12345.json"
+        cached_data = {
+            'name': 'Cached Game',
+            'short_description': 'From cache'
+        }
+        import json
+        with open(cache_file, 'w') as f:
+            json.dump(cached_data, f)
+        
+        api = SteamStoreAPI(cache_dir=tmp_path)
+        details = api.get_app_details(12345, use_cache=True)
+        
+        # Should not make HTTP request
+        mock_get.assert_not_called()
+        assert details['name'] == 'Cached Game'
+    
+    @patch('steam_library.requests.get')
+    def test_get_app_details_cache_miss(self, mock_get, tmp_path):
+        """Test that HTTP request is made on cache miss."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            '12345': {
+                'success': True,
+                'data': {'name': 'Fresh Game'}
+            }
+        }
+        mock_get.return_value = mock_response
+        
+        api = SteamStoreAPI(cache_dir=tmp_path)
+        details = api.get_app_details(12345, use_cache=True)
+        
+        # Should make HTTP request
+        mock_get.assert_called_once()
+        assert details['name'] == 'Fresh Game'
+    
+    def test_parse_app_details(self):
+        """Test parsing of Store API response."""
+        api = SteamStoreAPI()
+        raw_details = {
+            'name': 'Test Game',
+            'short_description': '<p>A test game</p>',
+            'detailed_description': '<p>Detailed description</p>',
+            'developers': ['Dev One', 'Dev Two'],
+            'publishers': ['Pub One'],
+            'release_date': {'date': '2024-01-01'},
+            'genres': [{'description': 'Action'}, {'description': 'RPG'}],
+            'steamspy_tags': ['Tag1', 'Tag2', 'Tag3'],
+            'header_image': 'http://example.com/header.jpg',
+            'screenshots': [
+                {'path_full': 'http://example.com/ss1.jpg'},
+                {'path_full': 'http://example.com/ss2.jpg'}
+            ],
+            'price_overview': {
+                'final_formatted': '$19.99',
+                'discount_percent': 10
+            }
+        }
+        
+        parsed = api.parse_app_details(raw_details)
+        
+        assert parsed['name'] == 'Test Game'
+        assert parsed['description'] == 'A test game'  # HTML stripped
+        assert parsed['developers'] == ['Dev One', 'Dev Two']
+        assert parsed['publishers'] == ['Pub One']
+        assert parsed['release_date'] == '2024-01-01'
+        assert parsed['genres'] == ['Action', 'RPG']
+        assert parsed['tags'] == ['Tag1', 'Tag2', 'Tag3']
+        assert parsed['header_image'] == 'http://example.com/header.jpg'
+        assert len(parsed['screenshots']) == 2
+        assert parsed['price'] == '$19.99'
+        assert parsed['discount_percent'] == 10
+    
+    def test_parse_app_details_free_game(self):
+        """Test parsing of free game."""
+        api = SteamStoreAPI()
+        raw_details = {
+            'name': 'Free Game',
+            'is_free': True,
+            'price_overview': None
+        }
+        
+        parsed = api.parse_app_details(raw_details)
+        
+        assert parsed['price'] == 'Free to Play'
+        assert parsed['discount_percent'] == 0
+    
+    def test_rate_limiting(self):
+        """Test that rate limiting delays requests."""
+        import time
+        api = SteamStoreAPI(requests_per_second=100.0)  # 100 req/s = 0.01s interval
+        
+        start = time.time()
+        api._rate_limit()
+        api._rate_limit()
+        elapsed = time.time() - start
+        
+        # Should have waited at least 0.01 seconds
+        assert elapsed >= 0.01
+
+
+# =============================================================================
 # SteamLibrary Class Tests
 # =============================================================================
 
@@ -552,6 +722,99 @@ class TestSteamLibrary:
         assert games[0].name == 'Alpha'
         assert games[1].name == 'Beta'
         assert games[2].name == 'Zelda'
+    
+    @patch('steam_library.get_installed_games')
+    @patch('steam_library.SteamWebAPI')
+    @patch('steam_library.SteamStoreAPI')
+    def test_get_library_with_metadata(self, mock_store_api_class, mock_api_class, mock_get_installed):
+        """Test fetching library with Store API metadata."""
+        # Mock local games
+        mock_get_installed.return_value = [
+            {'appid': 12345, 'name': 'Local Game', 'installdir': 'LocalGame'},
+        ]
+        
+        # Mock web API
+        mock_api = MagicMock()
+        mock_api.get_owned_games.return_value = [
+            {'appid': 12345, 'name': 'Web Game', 'playtime_forever': 120},
+        ]
+        mock_api_class.return_value = mock_api
+        
+        # Mock Store API
+        mock_store_api = MagicMock()
+        mock_store_api.get_parsed_app_details.return_value = {
+            'genres': ['Action', 'RPG'],
+            'tags': ['Open World', 'Singleplayer'],
+            'description': 'A great game',
+            'developers': ['Dev Studio'],
+            'publishers': ['Publisher'],
+            'release_date': '2024-01-01',
+            'header_image': 'http://example.com/header.jpg',
+            'screenshots': ['http://example.com/ss1.jpg']
+        }
+        mock_store_api_class.return_value = mock_store_api
+        
+        library = SteamLibrary()
+        games = library.get_library_with_metadata()
+        
+        assert len(games) == 1
+        game = games[0]
+        assert game.genres == ['Action', 'RPG']
+        assert game.tags == ['Open World', 'Singleplayer']
+        assert game.description == 'A great game'
+        assert game.developers == ['Dev Studio']
+        assert game.publishers == ['Publisher']
+        assert game.release_date == '2024-01-01'
+        assert game.header_image == 'http://example.com/header.jpg'
+        assert len(game.screenshots) == 1
+    
+    @patch('steam_library.get_installed_games')
+    @patch('steam_library.SteamWebAPI')
+    @patch('steam_library.SteamStoreAPI')
+    def test_get_library_with_metadata_limit(self, mock_store_api_class, mock_api_class, mock_get_installed):
+        """Test metadata fetching with limit."""
+        # Mock 5 games
+        mock_get_installed.return_value = [
+            {'appid': i, 'name': f'Game {i}', 'installdir': f'Game{i}'} for i in range(1, 6)
+        ]
+        
+        mock_api = MagicMock()
+        mock_api.get_owned_games.return_value = [
+            {'appid': i, 'name': f'Game {i}', 'playtime_forever': 0} for i in range(1, 6)
+        ]
+        mock_api_class.return_value = mock_api
+        
+        mock_store_api = MagicMock()
+        mock_store_api.get_parsed_app_details.return_value = {'genres': ['Action']}
+        mock_store_api_class.return_value = mock_store_api
+        
+        library = SteamLibrary()
+        games = library.get_library_with_metadata(limit=3)
+        
+        # Should fetch metadata for only 3 games
+        assert mock_store_api.get_parsed_app_details.call_count == 3
+    
+    @patch('steam_library.get_installed_games')
+    @patch('steam_library.SteamWebAPI')
+    def test_library_store_api_disabled(self, mock_api_class, mock_get_installed):
+        """Test library with Store API disabled."""
+        mock_get_installed.return_value = [
+            {'appid': 12345, 'name': 'Local Game', 'installdir': 'LocalGame'},
+        ]
+        
+        mock_api = MagicMock()
+        mock_api.get_owned_games.return_value = [
+            {'appid': 12345, 'name': 'Web Game', 'playtime_forever': 120},
+        ]
+        mock_api_class.return_value = mock_api
+        
+        library = SteamLibrary(enable_store_api=False)
+        games = library.get_library_with_metadata()
+        
+        # Should return basic library without metadata
+        assert len(games) == 1
+        assert games[0].genres == []
+        assert games[0].tags == []
 
 
 # =============================================================================
@@ -595,6 +858,70 @@ class TestPrintLibraryTable:
         
         # Name should be truncated to fit table
         assert len(captured.out.split('\n')[2].split()[2]) <= 50
+
+
+class TestPrintGameMetadata:
+    """Tests for print_game_metadata CLI function."""
+    
+    def test_print_game_metadata_full(self, capsys):
+        """Test printing full game metadata."""
+        game = GameInfo(
+            appid=12345,
+            name='Test Game',
+            installdir='TestGame',
+            installed=True,
+            playtime_hours=5.5,
+            genres=['Action', 'RPG'],
+            tags=['Open World', 'Singleplayer', 'Story Rich'],
+            description='A great test game with exciting gameplay',
+            developers=['Test Studio'],
+            publishers=['Test Publisher'],
+            release_date='2024-01-15',
+            header_image='http://example.com/header.jpg',
+            screenshots=['http://example.com/ss1.jpg', 'http://example.com/ss2.jpg']
+        )
+        
+        print_game_metadata(game)
+        captured = capsys.readouterr()
+        
+        assert 'Test Game' in captured.out
+        assert 'AppID: 12345' in captured.out
+        assert 'INSTALLED' in captured.out
+        assert '5.5 hours' in captured.out
+        assert 'Action, RPG' in captured.out
+        assert 'Open World' in captured.out
+        assert 'Test Studio' in captured.out
+        assert '2024-01-15' in captured.out
+    
+    def test_print_game_metadata_minimal(self, capsys):
+        """Test printing game with minimal metadata."""
+        game = GameInfo(
+            appid=12345,
+            name='Minimal Game',
+            installed=False,
+            playtime_hours=0.0
+        )
+        
+        print_game_metadata(game)
+        captured = capsys.readouterr()
+        
+        assert 'Minimal Game' in captured.out
+        assert 'Not Installed' in captured.out
+        assert 'INSTALLED' not in captured.out
+    
+    def test_print_game_metadata_long_description_truncated(self, capsys):
+        """Test that long descriptions are truncated."""
+        game = GameInfo(
+            appid=12345,
+            name='Test Game',
+            description='A' * 300  # Very long description
+        )
+        
+        print_game_metadata(game)
+        captured = capsys.readouterr()
+        
+        # Should contain truncation indicator
+        assert '...' in captured.out
 
 
 # =============================================================================
