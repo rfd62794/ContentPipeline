@@ -276,9 +276,7 @@ class GameMetricsClient:
             )
             self.credentials = credentials
         except Exception as e:
-            print(f"Error loading gcloud ADC credentials: {e}")
-            print("Make sure gcloud auth application-default login has been run with YouTube readonly scope.")
-            sys.exit(1)
+            raise RuntimeError("Google ADC credentials not found. Run: gcloud auth application-default login")
         
         # Build YouTube service
         self.youtube_service = build('youtube', 'v3', credentials=self.credentials)

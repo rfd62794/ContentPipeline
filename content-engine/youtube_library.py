@@ -115,9 +115,7 @@ class YouTubeLibrary:
             )
             self.credentials = credentials
         except Exception as e:
-            print(f"Error loading gcloud ADC credentials: {e}")
-            print("Make sure gcloud auth application-default login has been run with YouTube readonly scope.")
-            sys.exit(1)
+            raise RuntimeError("Google ADC credentials not found. Run: gcloud auth application-default login")
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """

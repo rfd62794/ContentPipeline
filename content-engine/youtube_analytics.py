@@ -108,9 +108,7 @@ class YouTubeAnalytics:
             )
             self.credentials = credentials
         except Exception as e:
-            print(f"Error loading gcloud ADC credentials: {e}")
-            print("Make sure gcloud auth application-default login has been run with YouTube Analytics readonly scope.")
-            sys.exit(1)
+            raise RuntimeError("Google ADC credentials not found. Run: gcloud auth application-default login")
     
     def get_video_stats(self, video_id: str, start_date: str, end_date: str) -> Optional[VideoStats]:
         """
