@@ -33,3 +33,6 @@ google-auth-oauthlib>=0.5.0
 
 # MCP Server (Phase MCP-1)
 mcp>=1.0.0
+
+# Testing (async support for MCP tests)
+pytest-asyncio>=0.21.0
