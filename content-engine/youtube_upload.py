@@ -17,15 +17,14 @@ load_dotenv()
 
 # Google API imports
 try:
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
+    from google.auth import default
     from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
     from googleapiclient.errors import HttpError
 except ImportError:
     print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth-oauthlib google-api-python-client google-auth-httplib2")
+    print("Run: pip install google-auth google-api-python-client google-auth-httplib2")
     sys.exit(1)
 
 from metadata_builder import (
@@ -41,51 +40,18 @@ from metadata_builder import (
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 
 
-def get_authenticated_service(client_id: str, client_secret: str, token_path: str):
+def get_authenticated_service():
     """
-    OAuth2 flow. Load token from token_path if exists and valid.
-    Run browser consent flow if token missing or expired.
-    Save refreshed token to token_path.
+    Use gcloud Application Default Credentials (ADC) for authentication.
+    Credentials are managed by gcloud auth layer.
     Returns authenticated YouTube service object.
-    
-    Args:
-        client_id: OAuth client ID from Google Cloud Console.
-        client_secret: OAuth client secret from Google Cloud Console.
-        token_path: Path to store OAuth token JSON.
     
     Returns:
         Authenticated YouTube service object.
     """
-    credentials = None
-    
-    # Load existing token if available
-    if os.path.exists(token_path):
-        with open(token_path, 'r', encoding='utf-8') as f:
-            token_data = json.load(f)
-            credentials = Credentials.from_authorized_user_info(token_data, SCOPES)
-    
-    # Refresh or obtain new credentials
-    if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
-            # Create OAuth flow with client credentials
-            client_config = {
-                'installed': {
-                    'client_id': client_id,
-                    'client_secret': client_secret,
-                    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                    'token_uri': 'https://oauth2.googleapis.com/token',
-                    'redirect_uris': ['urn:ietf:wg:oauth:2.0:oob', 'http://localhost']
-                }
-            }
-            flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            credentials = flow.run_local_server(port=0)
-        
-        # Save credentials
-        with open(token_path, 'w', encoding='utf-8') as f:
-            json.dump(credentials.to_json(), f)
-    
+    credentials, project = default(
+        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    )
     return build('youtube', 'v3', credentials=credentials)
 
 
@@ -292,14 +258,6 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    # Load environment variables
-    client_id = os.getenv('YOUTUBE_CLIENT_ID')
-    client_secret = os.getenv('YOUTUBE_CLIENT_SECRET')
-    
-    if not client_id or not client_secret:
-        print("Error: YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET must be set in .env")
-        sys.exit(1)
-    
     # Load short and meta YAMLs
     short_path = f"shorts/{args.short}.yaml"
     meta_path = f"shorts/{args.short}.meta.yaml"
@@ -374,12 +332,12 @@ def main() -> None:
         print("Upload cancelled.")
         sys.exit(0)
     
-    # Authenticate
-    token_path = ".youtube_token.json"
+    # Authenticate using gcloud ADC
     try:
-        service = get_authenticated_service(client_id, client_secret, token_path)
+        service = get_authenticated_service()
     except Exception as e:
         print(f"Error during authentication: {e}")
+        print("Make sure gcloud auth application-default login has been run with YouTube upload scope.")
         sys.exit(1)
     
     # Upload

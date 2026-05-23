@@ -24,6 +24,6 @@ sounddevice>=0.4.6
 scipy>=1.10.0
 
 # YouTube Upload (Phase YT-1)
-google-auth-oauthlib>=1.0.0
+google-auth>=2.0.0
 google-api-python-client>=2.100.0
 google-auth-httplib2>=0.1.0
