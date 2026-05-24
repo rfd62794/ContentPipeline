@@ -261,10 +261,11 @@ def produce_short_from_yaml(yaml_path: Path):
                 except Exception as e:
                     logger.error(f"  Segment {i}: TTS failed: {e}")
                     segment["voice_path"] = None
+            else:
+                logger.info(f"  Segment {i}: Skipping (no text)")
                 segment["voice_path"] = None
     else:
-        for segment in segments:
-            segment["voice_path"] = None
+        logger.info("Voice disabled")
 
     # Output path
     output_path = output_dir / f"{name}.mp4"
