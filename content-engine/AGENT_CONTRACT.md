@@ -126,3 +126,34 @@ Violations of ADR compliance are treated as test failures.
 ---
 
 *AGENT_CONTRACT.md v1.0 — ContentEngine — RFD IT Services Ltd. — April 2026*
+
+---
+
+## 7. Git Workflow Rules
+
+### 7.1 Branch Protection
+
+**RULE:** Changes on `develop` or feature branches must pass tests and receive Director confirmation before merging to `main`.
+
+- All changes must be made on `develop` or feature branches, never directly on `main`
+- Before merging to `main`:
+  1. Run full test suite: `pytest` must report **0 failures**
+  2. Director reviews changes and confirms stability
+  3. Only then may changes be merged to `main`
+- No automatic merges. No exceptions.
+
+### 7.2 Branch Structure
+
+| Branch | Purpose | Protection |
+|--------|---------|------------|
+| `main` | Production-ready code | Tests pass + Director approval required for merge |
+| `develop` | Integration branch for features | Tests pass before feature branch merge |
+| `feature/*` | Feature development | Tests pass before develop merge |
+
+### 7.3 Merge Checklist
+
+Before merging any branch to `main`:
+- [ ] All tests pass (`pytest` reports 0 failures)
+- [ ] Director reviews changes
+- [ ] Director confirms stability
+- [ ] Merge performed by Director or with explicit Director approval
