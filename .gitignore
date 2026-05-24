@@ -12,3 +12,7 @@ cache/***/__pycache__/
 content-engine/metrics_history.db
 content-engine/game_registry.json
 sessions/*.txt
+
+# uv
+.venv/
+uv.lock
