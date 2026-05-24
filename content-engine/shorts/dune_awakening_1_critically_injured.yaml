@@ -1,0 +1,25 @@
+name: dune_awakening_1_critically_injured
+source: "C:/Users/cheat/Videos/2026-05-24 14-50-43.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "40:05"
+    clip_end: "40:09"
+    duration: 4
+    line: "Ooh, that hurt."
+
+  - clip_start: "40:09"
+    clip_end: "40:13"
+    duration: 4
+    line: "Critically injured."
+
+  - clip_start: "40:16"
+    clip_end: "40:20"
+    duration: 4
+    line: "Sick."

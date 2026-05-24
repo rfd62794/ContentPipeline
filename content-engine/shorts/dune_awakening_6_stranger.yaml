@@ -1,0 +1,30 @@
+name: dune_awakening_6_stranger
+source: "C:/Users/cheat/Videos/2026-05-24 14-50-43.mp4"
+attribution: null
+music_path: assets/music/sentimental_jazz.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "54:24"
+    clip_end: "54:28"
+    duration: 4
+    line: "If you fly south, you'd be doing me a huge favor."
+
+  - clip_start: "55:25"
+    clip_end: "55:29"
+    duration: 4
+    line: "I might have just gotten a free trip back to my base."
+
+  - clip_start: "57:25"
+    clip_end: "57:30"
+    duration: 5
+    line: "My alternative was sand biking away from the sandworm."
+
+  - clip_start: "58:01"
+    clip_end: "58:05"
+    duration: 4
+    line: "Thank you, sir."

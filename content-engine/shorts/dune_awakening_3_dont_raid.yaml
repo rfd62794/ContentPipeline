@@ -1,0 +1,35 @@
+name: dune_awakening_3_dont_raid
+source: "C:/Users/cheat/Videos/2026-05-24 14-50-43.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "46:24"
+    clip_end: "46:28"
+    duration: 4
+    line: "Oh, it's the owner of this base."
+
+  - clip_start: "46:34"
+    clip_end: "46:38"
+    duration: 4
+    line: "Good to know I got a neighbor."
+
+  - clip_start: "46:49"
+    clip_end: "46:53"
+    duration: 4
+    line: "Oh, this is a chance to raid."
+
+  - clip_start: "46:54"
+    clip_end: "46:58"
+    duration: 4
+    line: "Don't raid."
+
+  - clip_start: "47:09"
+    clip_end: "47:13"
+    duration: 4
+    line: "Or not."

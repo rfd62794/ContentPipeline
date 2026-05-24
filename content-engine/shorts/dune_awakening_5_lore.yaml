@@ -1,0 +1,30 @@
+name: dune_awakening_5_lore
+source: "C:/Users/cheat/Videos/2026-05-24 14-50-43.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "0:42"
+    clip_end: "0:47"
+    duration: 5
+    line: "I'm not a politics guy."
+
+  - clip_start: "0:47"
+    clip_end: "0:51"
+    duration: 4
+    line: "The books get way too deep in the politics too fast."
+
+  - clip_start: "0:51"
+    clip_end: "0:55"
+    duration: 4
+    line: "The lore is amazing as a concept."
+
+  - clip_start: "1:10"
+    clip_end: "1:15"
+    duration: 5
+    line: "I'm in a low-pop server. That's okay."
