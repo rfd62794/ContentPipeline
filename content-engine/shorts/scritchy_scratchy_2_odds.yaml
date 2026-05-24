@@ -1,0 +1,30 @@
+name: scritchy_scratchy_2_odds
+source: C:/Users/cheat/Videos/Scritchy Scratchy/2026-05-24 01-36-00.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "7:03"
+    clip_end: "7:07"
+    duration: 4
+    line: "You do not want the penny odds."
+
+  - clip_start: "6:57"
+    clip_end: "7:01"
+    duration: 4
+    line: "Scratch luck. All the way."
+
+  - clip_start: "4:30"
+    clip_end: "4:34"
+    duration: 4
+    line: "Money bag 80%."
+
+  - clip_start: "7:17"
+    clip_end: "7:22"
+    duration: 5
+    line: "Still gonna lose. But not nearly as often."
