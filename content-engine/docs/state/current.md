@@ -1,5 +1,5 @@
 phase: 'Phase STR-2 — Stream Overlays + Test Modes'
-certified_floor: 530/0/10/3
+certified_floor: 561/0/10/3
 what_is_next: 'Configure OBS Studio scenes and test end-to-end streaming workflow'
 
 ## Phase STR-2 — Stream Overlays + Test Modes (2026-05-23)
