@@ -252,11 +252,15 @@ def produce_short_from_yaml(yaml_path: Path):
             raw_text = beats[i].get("line", "")
             if should_generate_voice(raw_text):
                 voice_path = temp_dir / f"voice_{i}.mp3"
-                logger.info(f"  Segment {i}: TTS '{raw_text[:40]}'")
-                generate_voice_clip(raw_text, voice_name, voice_path)
-                segment["voice_path"] = str(voice_path)
-                voice_clips_generated.append(voice_path)
-            else:
+                logger.info(f"  Segment {i}: TTS '{raw_text[:40]}' -> {voice_path}")
+                try:
+                    generate_voice_clip(raw_text, voice_name, voice_path)
+                    logger.info(f"  Segment {i}: TTS complete, file exists: {voice_path.exists()}")
+                    segment["voice_path"] = str(voice_path)
+                    voice_clips_generated.append(voice_path)
+                except Exception as e:
+                    logger.error(f"  Segment {i}: TTS failed: {e}")
+                    segment["voice_path"] = None
                 segment["voice_path"] = None
     else:
         for segment in segments:
