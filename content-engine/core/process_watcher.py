@@ -4,7 +4,7 @@ Process Watcher — Detect game process and trigger OBS recording
 Contract:
 - is_running(process_name) returns True if process is running
 - watch(process_name, scene, poll_interval) blocks until process exits after being detected
-- All OBS calls go through OBSManager parameter
+- All OBS calls go through obs parameter (duck typing — accepts any object with recording methods)
 - Process name is never hardcoded — caller provides it
 - Uses subprocess only (tasklist) — no external dependencies
 """
@@ -13,7 +13,7 @@ import subprocess
 import time
 import threading
 from typing import Optional
-from core.obs_manager import OBSManager, OBSCapture, OBSScenes
+from core.obs_manager import OBSManager
 
 
 class ProcessWatcher:
@@ -24,12 +24,10 @@ class ProcessWatcher:
         Initialize ProcessWatcher.
         
         Args:
-            obs: OBSManager instance for recording control
+            obs: Object with recording control methods (OBSManager or duck-typed mock)
             logger: Logger instance for state transition logging
         """
         self.obs = obs
-        self.capture = OBSCapture(obs)
-        self.scenes = OBSScenes(obs)
         self.logger = logger
         self._stop_flag = threading.Event()
     
@@ -51,13 +49,11 @@ class ProcessWatcher:
                 text=True,
                 timeout=10
             )
-            # Process is running if its name appears in output
             return process_name in result.stdout
         except Exception:
-            # Never crash on subprocess errors
             return False
     
-    def watch(self, process_name: str, scene: Optional[str] = None, poll_interval: int = 5, focus_watcher = None) -> str:
+    def watch(self, process_name: str, scene: Optional[str] = None, poll_interval: int = 5, focus_watcher=None) -> str:
         """
         Watch for process and trigger OBS recording.
         
@@ -84,59 +80,49 @@ class ProcessWatcher:
         try:
             while not self._stop_flag.is_set():
                 if state == "WAITING":
-                    # Check if process is running
                     if self.is_running(process_name):
                         self.logger.info(f"ProcessWatcher: Detected {process_name}")
                         
-                        # Switch scene if provided
                         if scene:
-                            if self.scenes.switch_scene(scene):
+                            if self.obs.switch_scene(scene):
                                 self.logger.info(f"ProcessWatcher: Switched to scene: {scene}")
                         
-                        # Start recording
-                        if self.capture.start_recording():
+                        if self.obs.start_recording():
                             self.logger.info(f"ProcessWatcher: Recording started")
                             state = "RECORDING"
                 
                 elif state == "RECORDING":
-                    # Check if process is still running
                     if not self.is_running(process_name):
                         self.logger.info(f"ProcessWatcher: Process {process_name} no longer running")
                         
-                        # Resume before stopping if paused
                         if paused:
-                            if self.capture.resume_recording():
+                            if self.obs.resume_record():
                                 self.logger.info(f"ProcessWatcher: Recording resumed before stop")
                         
-                        # Stop recording
-                        filepath = self.capture.stop_recording()
+                        filepath = self.obs.stop_recording()
                         if filepath:
                             self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
                         
-                        # Resolve path to correct subfolder
                         filepath = self.resolve_recording_path(filepath, process_name)
                         
                         state = "DONE"
                         return filepath
                     
-                    # Focus detection if focus_watcher provided
                     if focus_watcher:
                         focused = focus_watcher.is_process_focused(process_name)
                         
                         if focused and paused:
-                            if self.capture.resume_recording():
+                            if self.obs.resume_record():
                                 self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
                             paused = False
                         
                         elif not focused and not paused:
-                            if self.capture.pause_recording():
+                            if self.obs.pause_record():
                                 self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
                             paused = True
                 
-                # Wait before next poll
                 time.sleep(poll_interval)
             
-            # Stopped manually
             self.logger.info("ProcessWatcher: Stopped manually")
             return ""
             
@@ -159,11 +145,9 @@ class ProcessWatcher:
             Folder name as string, or empty string if resolution fails
         """
         if isinstance(entry, str):
-            # v1 format: flat string
             self.logger.warning("ProcessWatcher: v1 schema detected (flat string), consider migrating to v2 dict format")
             return entry
         elif isinstance(entry, dict):
-            # v2 format: dict with 'folder' key
             return entry.get('folder', '')
         else:
             self.logger.warning(f"ProcessWatcher: Unknown schema format for entry: {type(entry)}")
@@ -186,7 +170,6 @@ class ProcessWatcher:
         from pathlib import Path
         
         try:
-            # Load game_folders.json
             mapping_file = Path(mapping_path)
             if not mapping_file.exists():
                 self.logger.info(f"ProcessWatcher: No folder mapping found at {mapping_path}")
@@ -195,31 +178,23 @@ class ProcessWatcher:
             with open(mapping_file, 'r', encoding='utf-8') as f:
                 mapping = json.load(f)
             
-            # Look up process name in mapping
             entry = mapping.get(process_name)
             if not entry:
                 self.logger.info(f"ProcessWatcher: No folder mapping for {process_name}")
                 return raw_path
             
-            # Extract folder name (handles both v1 and v2 schema)
             subfolder = self._get_folder(entry)
             if not subfolder:
                 self.logger.info(f"ProcessWatcher: No folder name found for {process_name}")
                 return raw_path
             
-            # Extract filename from raw_path
             raw_path_obj = Path(raw_path)
             filename = raw_path_obj.name
-            
-            # Extract base directory from raw_path
-            base_dir = raw_path_obj.parent.parent  # Go up from game-specific folder to Videos
-            
-            # Build corrected path
+            base_dir = raw_path_obj.parent.parent
             corrected_path = base_dir / subfolder / filename
             
             self.logger.info(f"ProcessWatcher: Resolved path: {raw_path} -> {corrected_path}")
             
-            # Move file to corrected location
             if raw_path_obj.exists():
                 corrected_path.parent.mkdir(parents=True, exist_ok=True)
                 import shutil
