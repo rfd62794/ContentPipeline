@@ -1,0 +1,10 @@
+# Live Session
+# Game: Scritchy Scratchy
+# Date: 2026-05-24 01:31:32
+# Duration: 00:26
+# Model: base
+# OBS Recording: Scritchy Scratchy_20260524_013059.mp4 at 2026-05-24 01:30:59
+
+[00:00] Yeah, changes this time, but we're gonna run this test again.
+[00:17] Money, money, money, money, money, money, and funding.
+[00:23] Let's see if it saves the video.

@@ -10,9 +10,14 @@ max_visible_lines: 5
 
 beats:
   - clip_start: "4:14"
-    clip_end: "4:39"
-    duration: 25
+    clip_end: "4:25"
+    duration: 11
     line: "Penny 1%. Dollar 19%. Money bag 80%."
+
+  - clip_start: "4:25"
+    clip_end: "4:39"
+    duration: 14
+    line: "The odds are right there."
 
   - clip_start: "4:39"
     clip_end: "4:46"
