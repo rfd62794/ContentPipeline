@@ -24,13 +24,9 @@ dependencies = [
     "obsws-python>=1.8.0",
     "edge-tts>=6.1.0",
     "pytest-asyncio>=0.21.0",
-    "torch>=2.0.0",
-    "torchaudio>=2.0.0",
-    "torchvision>=0.15.0",
-    # CUDA 12.1 versions for GPU support
-    # torch==2.5.1+cu121
-    # torchaudio==2.5.1+cu121
-    # torchvision==0.20.1+cu121
+    "torch==2.5.1+cu121",
+    "torchaudio==2.5.1+cu121",
+    "torchvision==0.20.1+cu121",
 ]
 
 [project.optional-dependencies]
@@ -41,3 +37,13 @@ dev = [
 
 [dependency-groups]
 dev = []
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu121" }]
+torchvision = [{ index = "pytorch-cu121" }]
+torchaudio = [{ index = "pytorch-cu121" }]
