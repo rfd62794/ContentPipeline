@@ -35,6 +35,6 @@ beats:
     line: "There it is."
 
   - clip_start: "11:38"
-    clip_end: "11:43"
-    duration: 5
+    clip_end: "11:41"
+    duration: 3
     line: "2.5 million."
