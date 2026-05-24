@@ -13,15 +13,16 @@ from dataclasses import dataclass
 import json
 from datetime import datetime, timedelta
 
-# Google API imports
-try:
-    from googleapiclient.errors import HttpError
-except ImportError:
-    print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
-    sys.exit(1)
 
-from core.youtube_auth import build_service
+# Google API imports
+_google_api_available = False
+_HttpError = None
+try:
+    from googleapiclient.errors import HttpError as _HttpError
+    from core.youtube_auth import build_service
+    _google_api_available = True
+except ImportError:
+    pass
 
 
 # =============================================================================
@@ -75,7 +76,10 @@ class YouTubeAnalytics:
         Args:
             client_secret_path: Path to client_secret.json. If not provided, looks in current directory.
         """
-        self.service = build_service('youtubeAnalytics', 'v2', self.SCOPES)
+        if _google_api_available:
+            self.service = build_service('youtubeAnalytics', 'v2', self.SCOPES)
+        else:
+            self.service = None
     
     def get_video_stats(self, video_id: str, start_date: str, end_date: str) -> Optional[VideoStats]:
         """
@@ -89,6 +93,9 @@ class YouTubeAnalytics:
         Returns:
             VideoStats object or None if error.
         """
+        if not _google_api_available or self.service is None:
+            return None
+        
         try:
             response = self.service.reports().query(
                 ids=f'channel==MINE',
@@ -115,8 +122,9 @@ class YouTubeAnalytics:
                 start_date=start_date,
                 end_date=end_date
             )
-        except HttpError as e:
-            print(f"Error fetching video stats: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching video stats: {e}")
             return None
     
     def get_retention_curve(self, video_id: str) -> List[RetentionPoint]:
@@ -129,6 +137,9 @@ class YouTubeAnalytics:
         Returns:
             List of RetentionPoint objects.
         """
+        if not _google_api_available or self.service is None:
+            return []
+        
         try:
             response = self.service.reports().query(
                 ids=f'channel==MINE',
@@ -146,8 +157,9 @@ class YouTubeAnalytics:
                 ))
             
             return points
-        except HttpError as e:
-            print(f"Error fetching retention curve: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching retention curve: {e}")
             return []
     
     def get_traffic_sources(self, video_id: str) -> Dict[str, int]:
@@ -160,6 +172,9 @@ class YouTubeAnalytics:
         Returns:
             Dictionary mapping source_type to view_count.
         """
+        if not _google_api_available or self.service is None:
+            return {}
+        
         try:
             response = self.service.reports().query(
                 ids=f'channel==MINE',
@@ -175,8 +190,9 @@ class YouTubeAnalytics:
                 sources[source_type] = view_count
             
             return sources
-        except HttpError as e:
-            print(f"Error fetching traffic sources: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching traffic sources: {e}")
             return {}
     
     def get_channel_stats(self, start_date: str, end_date: str) -> Optional[ChannelStats]:
@@ -190,6 +206,9 @@ class YouTubeAnalytics:
         Returns:
             ChannelStats object or None if error.
         """
+        if not _google_api_available or self.service is None:
+            return None
+        
         try:
             response = self.service.reports().query(
                 ids='channel==MINE',
@@ -210,8 +229,9 @@ class YouTubeAnalytics:
                 start_date=start_date,
                 end_date=end_date
             )
-        except HttpError as e:
-            print(f"Error fetching channel stats: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching channel stats: {e}")
             return None
 
 
