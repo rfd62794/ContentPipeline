@@ -465,7 +465,7 @@ class TestFindGameExe:
                 mock_game_info.appid = 1455840
                 
                 mock_steam_instance = MagicMock()
-                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                mock_steam_instance.get_installed_only.return_value = [mock_game_info]
                 mock_steam_lib_class.return_value = mock_steam_instance
                 
                 result = find_game_exe(1455840, steam_path)
@@ -482,31 +482,41 @@ class TestFindGameExe:
             
             # Don't create any exe files
             
-            with patch('steam_library.SteamLibrary') as mock_steam_lib:
-                mock_game_info = MagicMock()
-                mock_game_info.installdir = "Dorfromantik"
-                mock_steam_instance = MagicMock()
-                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
-                mock_steam_lib.return_value = mock_steam_instance
-                
-                result = find_game_exe(1455840, steam_path)
-                
-                assert result is None
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = {}
+                with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                    mock_game_info = MagicMock()
+                    mock_game_info.installdir = "Dorfromantik"
+                    mock_game_info.appid = 1455840
+                    mock_game_info.name = "Dorfromantik"
+                    
+                    mock_steam_instance = MagicMock()
+                    mock_steam_instance.get_installed_only.return_value = [mock_game_info]
+                    mock_steam_lib.return_value = mock_steam_instance
+                    
+                    result = find_game_exe(1455840, steam_path)
+                    
+                    assert result is None
     
     def test_find_game_exe_installdir_not_found(self):
         """Test find_game_exe returns None when installdir not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             steam_path = Path(tmpdir)
             
-            with patch('steam_library.SteamLibrary') as mock_steam_lib:
-                # Mock game info without installdir
-                mock_game_info = MagicMock()
-                mock_game_info.installdir = None
-                mock_steam_instance = MagicMock()
-                mock_steam_instance.get_installed_games.return_value = [mock_game_info]
-                mock_steam_lib.return_value = mock_steam_instance
-                
-                result = find_game_exe(1455840, steam_path)
+            with patch('stream_launcher.load_game_registry') as mock_load:
+                mock_load.return_value = {}
+                with patch('steam_library.SteamLibrary') as mock_steam_lib:
+                    # Mock game info without installdir
+                    mock_game_info = MagicMock()
+                    mock_game_info.installdir = None
+                    mock_game_info.appid = 1455840
+                    mock_game_info.name = "Dorfromantik"
+                    
+                    mock_steam_instance = MagicMock()
+                    mock_steam_instance.get_installed_only.return_value = [mock_game_info]
+                    mock_steam_lib.return_value = mock_steam_instance
+                    
+                    result = find_game_exe(1455840, steam_path)
                 
                 assert result is None
 
@@ -669,7 +679,7 @@ class TestGameRegistry:
                         mock_game_info.appid = 1455840
                         
                         mock_steam_instance = MagicMock()
-                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_instance.get_installed_only.return_value = [mock_game_info]
                         mock_steam_lib.return_value = mock_steam_instance
                         
                         result = find_game_exe(1455840, steam_path)
@@ -699,7 +709,7 @@ class TestGameRegistry:
                         mock_game_info.appid = 1455840
                         
                         mock_steam_instance = MagicMock()
-                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_instance.get_installed_only.return_value = [mock_game_info]
                         mock_steam_lib.return_value = mock_steam_instance
                         
                         result = find_game_exe(1455840, steam_path)
@@ -736,7 +746,7 @@ class TestGameRegistry:
                         mock_game_info.appid = 1455840
                         
                         mock_steam_instance = MagicMock()
-                        mock_steam_instance.get_installed_games.return_value = [mock_game_info]
+                        mock_steam_instance.get_installed_only.return_value = [mock_game_info]
                         mock_steam_lib.return_value = mock_steam_instance
                         
                         # Create exe during scan (simulate finding it)
