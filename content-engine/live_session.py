@@ -26,7 +26,10 @@ if os.path.exists(content_engine_path):
 
 from review_session import format_timestamp, transcribe
 from stream_launcher import load_game_registry, is_game_running, get_active_window_title, is_game_focused, launch_game
-from core.obs_manager import OBSManager, build_obs_recording_path, format_recording_note
+from core.obs_manager import (
+    OBSManager, OBSBoot, OBSCapture, OBSScenes, OBSSources,
+    build_obs_recording_path, format_recording_note
+)
 
 TEMP_WAV = os.path.join("sessions", ".tmp_live_recording.wav")
 
@@ -291,7 +294,7 @@ def main() -> None:
             pass
         
         obs_manager = OBSManager()
-        if not obs_manager.ensure_obs_running():
+        if not OBSBoot.ensure_obs_running():
             try:
                 sys.stdout.write("Failed to ensure OBS is running\n")
                 sys.stdout.flush()
@@ -307,7 +310,8 @@ def main() -> None:
                 pass
             sys.exit(1)
         
-        if not obs_manager.start_recording():
+        capture = OBSCapture(obs_manager)
+        if not capture.start_recording():
             try:
                 sys.stdout.write("Failed to start OBS recording\n")
                 sys.stdout.flush()
@@ -356,7 +360,7 @@ def main() -> None:
             except OSError:
                 pass
             
-            obs_recording_path = obs_manager.stop_recording()
+            obs_recording_path = capture.stop_recording()
             if obs_recording_path:
                 try:
                     sys.stdout.write(f"OBS recording saved: {obs_recording_path}\n")

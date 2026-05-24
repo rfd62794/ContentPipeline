@@ -13,6 +13,7 @@ import subprocess
 import time
 import threading
 from typing import Optional
+from core.obs_manager import OBSManager, OBSCapture, OBSScenes
 
 
 class ProcessWatcher:
@@ -27,6 +28,8 @@ class ProcessWatcher:
             logger: Logger instance for state transition logging
         """
         self.obs = obs
+        self.capture = OBSCapture(obs)
+        self.scenes = OBSScenes(obs)
         self.logger = logger
         self._stop_flag = threading.Event()
     
@@ -87,11 +90,11 @@ class ProcessWatcher:
                         
                         # Switch scene if provided
                         if scene:
-                            if self.obs.switch_scene(scene):
+                            if self.scenes.switch_scene(scene):
                                 self.logger.info(f"ProcessWatcher: Switched to scene: {scene}")
                         
                         # Start recording
-                        if self.obs.start_recording():
+                        if self.capture.start_recording():
                             self.logger.info(f"ProcessWatcher: Recording started")
                             state = "RECORDING"
                 
@@ -102,11 +105,11 @@ class ProcessWatcher:
                         
                         # Resume before stopping if paused
                         if paused:
-                            if self.obs.resume_record():
+                            if self.capture.resume_record():
                                 self.logger.info(f"ProcessWatcher: Recording resumed before stop")
                         
                         # Stop recording
-                        filepath = self.obs.stop_recording()
+                        filepath = self.capture.stop_recording()
                         if filepath:
                             self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
                         
@@ -121,12 +124,12 @@ class ProcessWatcher:
                         focused = focus_watcher.is_process_focused(process_name)
                         
                         if focused and paused:
-                            if self.obs.resume_record():
+                            if self.capture.resume_record():
                                 self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
                             paused = False
                         
                         elif not focused and not paused:
-                            if self.obs.pause_record():
+                            if self.capture.pause_record():
                                 self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
                             paused = True
                 

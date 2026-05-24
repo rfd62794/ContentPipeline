@@ -14,7 +14,9 @@ from pathlib import Path
 # Add content-engine to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent / "content-engine"))
 
-from core.obs_manager import OBSManager
+from core.obs_manager import (
+    OBSManager, OBSBoot, OBSCapture, OBSScenes, OBSSources
+)
 from core.process_watcher import ProcessWatcher
 from core.focus_watcher import FocusWatcher
 from core.game_launcher import GameLauncher

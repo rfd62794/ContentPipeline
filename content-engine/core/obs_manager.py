@@ -2,31 +2,31 @@
 OBS Manager — Single interface for OBS Studio control.
 
 Provides unified interface to OBS Studio via WebSocket API using obsws_python.
-Combines recording, streaming, scene switching, and source management.
+Split into four scoped classes with a shared connection base.
 
 Contract:
-- connect() -> bool: Establish connection to OBS
-- disconnect() -> None: Close WebSocket connection
-- ensure_obs_running(exe_path) -> bool: Launch OBS if not running
-- is_connected() -> bool: Check connection status
+- OBSManager.connect() -> bool: Establish connection to OBS
+- OBSManager.disconnect() -> None: Close WebSocket connection
+- OBSManager.is_connected() -> bool: Check connection status
+- OBSBoot.ensure_obs_running(exe_path) -> bool: Launch OBS if not running
 
-Scenes:
+Scenes (OBSScenes):
 - switch_scene(scene_name) -> bool: Switch to specified scene
 - list_scenes() -> list[str]: Get list of available scenes
 
-Recording:
+Recording (OBSCapture):
 - start_recording() -> bool: Start recording
 - stop_recording() -> Optional[str]: Stop recording, return file path
 - pause_recording() -> bool: Pause recording
 - resume_recording() -> bool: Resume recording
 - is_recording() -> bool: Check recording status
 
-Streaming:
+Streaming (OBSCapture):
 - start_stream() -> bool: Start streaming output
 - stop_stream() -> bool: Stop streaming output
 - get_stream_stats() -> dict: Get streaming statistics
 
-Sources:
+Sources (OBSSources):
 - add_game_capture(scene_name, window_title, source_name) -> bool: Add game capture source
 - remove_game_capture(scene_name, source_name) -> bool: Remove game capture source
 - mute_source(source_name) -> bool: Mute audio source
@@ -83,10 +83,11 @@ class StreamStats:
 
 class OBSManager:
     """
-    Unified OBS Manager for recording, streaming, and source control.
+    OBS connection base.
     
-    Instance-based connection management with context manager support.
-    All methods return False/None on failure, never raise exceptions.
+    Manages WebSocket connection to OBS Studio only.
+    All recording, streaming, scene, and source operations
+    are handled by specialized classes that take this instance.
     """
 
     def __init__(self, host: str = 'localhost', port: int = 4455, password: str = ''):
@@ -146,7 +147,26 @@ class OBSManager:
         """Check if connected to OBS."""
         return self.connected
 
-    def ensure_obs_running(self, obs_exe_path: Optional[str] = None) -> bool:
+    def __enter__(self):
+        """Context manager entry."""
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.disconnect()
+
+
+class OBSBoot:
+    """
+    OBS process launching.
+    
+    Manages OBS Studio process lifecycle without WebSocket connection.
+    Static methods only — no OBSManager dependency.
+    """
+
+    @staticmethod
+    def ensure_obs_running(obs_exe_path: Optional[str] = None) -> bool:
         """
         Check if OBS is running. If not, launch it and wait up to 10 seconds.
         
@@ -204,45 +224,22 @@ class OBSManager:
         logger.error("OBS did not start within 10 seconds")
         return False
 
-    def switch_scene(self, scene_name: str) -> bool:
+
+class OBSCapture:
+    """
+    OBS recording and streaming operations.
+    
+    Takes an OBSManager instance and delegates all websocket calls through it.
+    """
+
+    def __init__(self, obs: OBSManager) -> None:
         """
-        Switch OBS to named scene.
+        Initialize OBS Capture.
         
         Args:
-            scene_name: Name of scene to switch to
-        
-        Returns:
-            True on success, False on failure
+            obs: OBSManager instance for WebSocket access
         """
-        if not self.connected:
-            logger.error("Not connected to OBS")
-            return False
-        
-        try:
-            self.client.set_current_program_scene(scene_name)
-            logger.info(f"Switched OBS to scene: {scene_name}")
-            return True
-        except Exception as e:
-            logger.error(f"Error switching OBS scene: {e}")
-            return False
-
-    def list_scenes(self) -> List[str]:
-        """
-        Get list of available scenes.
-        
-        Returns:
-            List of scene names, empty list on failure
-        """
-        if not self.connected:
-            logger.error("Not connected to OBS")
-            return []
-        
-        try:
-            scenes = self.client.get_scene_list()
-            return [scene.scene_name for scene in scenes.scenes]
-        except Exception as e:
-            logger.error(f"Error getting scene list: {e}")
-            return []
+        self.obs = obs
 
     def start_recording(self) -> bool:
         """
@@ -251,12 +248,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            self.client.start_record()
+            self.obs.client.start_record()
             logger.info("Started OBS recording")
             return True
         except obs.error.OBSSDKRequestError as e:
@@ -276,13 +273,13 @@ class OBSManager:
         Returns:
             File path of recorded video, None on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return None
         
         # Capture file path before stopping
         try:
-            settings = self.client.get_output_settings('simple_file_output')
+            settings = self.obs.client.get_output_settings('simple_file_output')
             file_path = settings.output_settings['path']
         except Exception as e:
             logger.error(f"Failed to get output settings: {e}")
@@ -290,7 +287,7 @@ class OBSManager:
         
         # Stop recording
         try:
-            self.client.stop_record()
+            self.obs.client.stop_record()
             logger.info(f"Stopped OBS recording: {file_path}")
             return file_path
         except obs.error.OBSSDKRequestError as e:
@@ -310,12 +307,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
 
         try:
-            self.client.pause_record()
+            self.obs.client.pause_record()
             logger.info("Paused OBS recording")
             return True
         except obs.error.OBSSDKRequestError as e:
@@ -335,12 +332,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
 
         try:
-            self.client.resume_record()
+            self.obs.client.resume_record()
             logger.info("Resumed OBS recording")
             return True
         except obs.error.OBSSDKRequestError as e:
@@ -360,11 +357,11 @@ class OBSManager:
         Returns:
             True if recording, False otherwise
         """
-        if not self.connected:
+        if not self.obs.connected:
             return False
         
         try:
-            status = self.client.get_record_status()
+            status = self.obs.client.get_record_status()
             return status.output_active
         except Exception as e:
             logger.error(f"Failed to get recording status: {e}")
@@ -377,12 +374,12 @@ class OBSManager:
         Returns:
             RecordingStatus object, None on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return None
         
         try:
-            status = self.client.get_record_status()
+            status = self.obs.client.get_record_status()
             return RecordingStatus(
                 active=status.output_active,
                 bytes_written=status.output_bytes,
@@ -400,12 +397,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            self.client.start_stream()
+            self.obs.client.start_stream()
             logger.info("Started OBS streaming")
             return True
         except Exception as e:
@@ -419,12 +416,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            self.client.stop_stream()
+            self.obs.client.stop_stream()
             logger.info("Stopped OBS streaming")
             return True
         except Exception as e:
@@ -438,12 +435,12 @@ class OBSManager:
         Returns:
             StreamStats object, None on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return None
         
         try:
-            stats = self.client.get_stream_status()
+            stats = self.obs.client.get_stream_status()
             return StreamStats(
                 bitrate=stats.output_bitrate,
                 dropped_frames=stats.output_dropped_frames,
@@ -453,6 +450,80 @@ class OBSManager:
         except Exception as e:
             logger.error(f"Failed to get stream stats: {e}")
             return None
+
+
+class OBSScenes:
+    """
+    OBS scene management.
+    
+    Takes an OBSManager instance and delegates all websocket calls through it.
+    """
+
+    def __init__(self, obs: OBSManager) -> None:
+        """
+        Initialize OBS Scenes.
+        
+        Args:
+            obs: OBSManager instance for WebSocket access
+        """
+        self.obs = obs
+
+    def switch_scene(self, scene_name: str) -> bool:
+        """
+        Switch OBS to named scene.
+        
+        Args:
+            scene_name: Name of scene to switch to
+        
+        Returns:
+            True on success, False on failure
+        """
+        if not self.obs.connected:
+            logger.error("Not connected to OBS")
+            return False
+        
+        try:
+            self.obs.client.set_current_program_scene(scene_name)
+            logger.info(f"Switched OBS to scene: {scene_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Error switching OBS scene: {e}")
+            return False
+
+    def list_scenes(self) -> List[str]:
+        """
+        Get list of available scenes.
+        
+        Returns:
+            List of scene names, empty list on failure
+        """
+        if not self.obs.connected:
+            logger.error("Not connected to OBS")
+            return []
+        
+        try:
+            scenes = self.obs.client.get_scene_list()
+            return [scene.scene_name for scene in scenes.scenes]
+        except Exception as e:
+            logger.error(f"Error getting scene list: {e}")
+            return []
+
+
+class OBSSources:
+    """
+    OBS source management.
+    
+    Takes an OBSManager instance and delegates all websocket calls through it.
+    """
+
+    def __init__(self, obs: OBSManager) -> None:
+        """
+        Initialize OBS Sources.
+        
+        Args:
+            obs: OBSManager instance for WebSocket access
+        """
+        self.obs = obs
 
     def add_game_capture(self, scene_name: str, window_title: str, source_name: str = "Game Capture") -> bool:
         """
@@ -468,7 +539,7 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
@@ -478,20 +549,20 @@ class OBSManager:
             logger.info(f"Source name: {source_name}")
             
             # Remove existing source if it exists
-            scene_items = self.client.get_scene_list()
+            scene_items = self.obs.client.get_scene_list()
             for scene in scene_items.scenes:
                 if scene.scene_name == scene_name:
                     # Get scene items
-                    items = self.client.get_scene_item_list(scene_name)
+                    items = self.obs.client.get_scene_item_list(scene_name)
                     for item in items.scene_items:
                         if item.source_name == source_name:
                             logger.info(f"Removing existing {source_name} from {scene_name}")
-                            self.client.remove_scene_item(scene_name, item.scene_item_id)
+                            self.obs.client.remove_scene_item(scene_name, item.scene_item_id)
                             break
                     break
             
             # Create the Game Capture source
-            self.client.create_input(
+            self.obs.client.create_input(
                 scene_name=scene_name,
                 input_name=source_name,
                 input_kind='game_capture',
@@ -500,7 +571,7 @@ class OBSManager:
             logger.info(f"Created {source_name} in {scene_name}")
             
             # Set source settings to capture specific window
-            self.client.set_input_settings(
+            self.obs.client.set_input_settings(
                 input_name=source_name,
                 input_settings={
                     'capture_mode': 'window',
@@ -511,10 +582,10 @@ class OBSManager:
             logger.info(f"Set {source_name} to capture window: {window_title}")
             
             # Position full screen
-            items = self.client.get_scene_item_list(scene_name)
+            items = self.obs.client.get_scene_item_list(scene_name)
             for item in items.scene_items:
                 if item.source_name == source_name:
-                    self.client.set_scene_item_transform(
+                    self.obs.client.set_scene_item_transform(
                         scene_name=scene_name,
                         scene_item_id=item.scene_item_id,
                         scene_item_transform={
@@ -545,15 +616,15 @@ class OBSManager:
         Returns:
             True if removed, False if not found or error
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            items = self.client.get_scene_item_list(scene_name)
+            items = self.obs.client.get_scene_item_list(scene_name)
             for item in items.scene_items:
                 if item.source_name == source_name:
-                    self.client.remove_scene_item(scene_name, item.scene_item_id)
+                    self.obs.client.remove_scene_item(scene_name, item.scene_item_id)
                     logger.info(f"Removed {source_name} from {scene_name}")
                     return True
             
@@ -573,12 +644,12 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            self.client.set_input_mute(input_name=source_name, input_muted=True)
+            self.obs.client.set_input_mute(input_name=source_name, input_muted=True)
             logger.info(f"Muted source: {source_name}")
             return True
         except Exception as e:
@@ -595,26 +666,17 @@ class OBSManager:
         Returns:
             True on success, False on failure
         """
-        if not self.connected:
+        if not self.obs.connected:
             logger.error("Not connected to OBS")
             return False
         
         try:
-            self.client.set_input_mute(input_name=source_name, input_muted=False)
+            self.obs.client.set_input_mute(input_name=source_name, input_muted=False)
             logger.info(f"Unmuted source: {source_name}")
             return True
         except Exception as e:
             logger.error(f"Error unmuting source: {e}")
             return False
-
-    def __enter__(self):
-        """Context manager entry."""
-        self.connect()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.disconnect()
 
 
 # Pure functions for path building and formatting

@@ -14,7 +14,10 @@ sys.modules['obsws_python'] = MagicMock()
 sys.modules['obsws_python.obs'] = MagicMock()
 sys.modules['obsws_python.error'] = MagicMock()
 
-from core.obs_manager import OBSManager, RecordingStatus, StreamStats, build_obs_recording_path, format_recording_note, parse_stream_stats
+from core.obs_manager import (
+    OBSManager, OBSBoot, OBSCapture, OBSScenes, OBSSources,
+    RecordingStatus, StreamStats, build_obs_recording_path, format_recording_note, parse_stream_stats
+)
 
 
 class TestOBSManager:
@@ -86,7 +89,7 @@ class TestOBSManager:
         mock_process_iter.return_value = iter([mock_proc])
         
         obs_mgr = OBSManager()
-        result = obs_mgr.ensure_obs_running()
+        result = OBSBoot.ensure_obs_running()
         
         assert result is True
     
@@ -113,7 +116,7 @@ class TestOBSManager:
         mock_psutil.side_effect = [iter([]), iter([mock_proc])]
         
         obs_mgr = OBSManager()
-        result = obs_mgr.ensure_obs_running()
+        result = OBSBoot.ensure_obs_running()
         
         assert result is True
         # Verify Popen was called with cwd parameter
@@ -127,9 +130,10 @@ class TestOBSManager:
         mock_client = Mock()
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
+        scenes = OBSScenes(obs_mgr)
         obs_mgr.connected = True
         
-        result = obs_mgr.switch_scene("Gaming")
+        result = scenes.switch_scene("Gaming")
         
         assert result is True
         mock_client.set_current_program_scene.assert_called_once_with("Gaming")
@@ -138,8 +142,9 @@ class TestOBSManager:
         """switch_scene() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        scenes = OBSScenes(obs_mgr)
         
-        result = obs_mgr.switch_scene("Gaming")
+        result = scenes.switch_scene("Gaming")
         
         assert result is False
     
@@ -158,18 +163,18 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        scenes = OBSScenes(obs_mgr)
         
-        scenes = obs_mgr.list_scenes()
-        
+        scenes = scenes.list_scenes()        
         assert scenes == ["Gaming", "Starting Soon"]
     
     def test_list_scenes_not_connected(self):
         """list_scenes() returns empty list when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        scenes = OBSScenes(obs_mgr)
         
-        scenes = obs_mgr.list_scenes()
-        
+        scenes = scenes.list_scenes()        
         assert scenes == []
     
     @patch('core.obs_manager.obs')
@@ -179,8 +184,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.start_recording()
+        result = capture.start_recording()
         
         assert result is True
         mock_client.start_record.assert_called_once()
@@ -189,8 +195,9 @@ class TestOBSManager:
         """start_recording() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.start_recording()
+        result = capture.start_recording()
         
         assert result is False
     
@@ -205,8 +212,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        file_path = obs_mgr.stop_recording()
+        file_path = capture.stop_recording()
         
         assert file_path == 'C:/Videos/test.mp4'
         mock_client.get_output_settings.assert_called_once_with('simple_file_output')
@@ -216,8 +224,9 @@ class TestOBSManager:
         """stop_recording() returns None when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        file_path = obs_mgr.stop_recording()
+        file_path = capture.stop_recording()
         
         assert file_path is None
     
@@ -228,8 +237,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.pause_recording()
+        result = capture.pause_recording()
         
         assert result is True
         mock_client.pause_record.assert_called_once()
@@ -238,8 +248,9 @@ class TestOBSManager:
         """pause_recording() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.pause_recording()
+        result = capture.pause_recording()
         
         assert result is False
     
@@ -250,8 +261,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.resume_recording()
+        result = capture.resume_recording()
         
         assert result is True
         mock_client.resume_record.assert_called_once()
@@ -260,8 +272,9 @@ class TestOBSManager:
         """resume_recording() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.resume_recording()
+        result = capture.resume_recording()
         
         assert result is False
     
@@ -276,8 +289,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.is_recording()
+        result = capture.is_recording()
         
         assert result is True
     
@@ -292,8 +306,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.is_recording()
+        result = capture.is_recording()
         
         assert result is False
     
@@ -304,8 +319,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.start_stream()
+        result = capture.start_stream()
         
         assert result is True
         mock_client.start_stream.assert_called_once()
@@ -314,8 +330,9 @@ class TestOBSManager:
         """start_stream() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.start_stream()
+        result = capture.start_stream()
         
         assert result is False
     
@@ -326,8 +343,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.stop_stream()
+        result = capture.stop_stream()
         
         assert result is True
         mock_client.stop_stream.assert_called_once()
@@ -336,8 +354,9 @@ class TestOBSManager:
         """stop_stream() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.stop_stream()
+        result = capture.stop_stream()
         
         assert result is False
     
@@ -348,8 +367,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        sources = OBSSources(obs_mgr)
         
-        result = obs_mgr.mute_source("Mic/Audio")
+        result = sources.mute_source("Mic/Audio")
         
         assert result is True
         mock_client.set_input_mute.assert_called_once_with(input_name="Mic/Audio", input_muted=True)
@@ -358,8 +378,9 @@ class TestOBSManager:
         """mute_source() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        sources = OBSSources(obs_mgr)
         
-        result = obs_mgr.mute_source("Mic/Audio")
+        result = sources.mute_source("Mic/Audio")
         
         assert result is False
     
@@ -370,8 +391,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        sources = OBSSources(obs_mgr)
         
-        result = obs_mgr.unmute_source("Mic/Audio")
+        result = sources.unmute_source("Mic/Audio")
         
         assert result is True
         mock_client.set_input_mute.assert_called_once_with(input_name="Mic/Audio", input_muted=False)
@@ -380,8 +402,9 @@ class TestOBSManager:
         """unmute_source() returns False when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        sources = OBSSources(obs_mgr)
         
-        result = obs_mgr.unmute_source("Mic/Audio")
+        result = sources.unmute_source("Mic/Audio")
         
         assert result is False
 
@@ -399,8 +422,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.start_recording()
+        result = capture.start_recording()
         
         assert result is False
         mock_client.start_record.assert_called_once()
@@ -420,8 +444,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        file_path = obs_mgr.stop_recording()
+        file_path = capture.stop_recording()
         
         assert file_path is None
         mock_client.get_output_settings.assert_called_once_with('simple_file_output')
@@ -439,8 +464,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.pause_recording()
+        result = capture.pause_recording()
         
         assert result is False
         mock_client.pause_record.assert_called_once()
@@ -457,8 +483,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        result = obs_mgr.resume_recording()
+        result = capture.resume_recording()
         
         assert result is False
         mock_client.resume_record.assert_called_once()
@@ -477,8 +504,9 @@ class TestOBSManager:
         obs_mgr = OBSManager()
         obs_mgr.client = mock_client
         obs_mgr.connected = True
+        capture = OBSCapture(obs_mgr)
         
-        status = obs_mgr.get_recording_status()
+        status = capture.get_recording_status()
         
         assert status is not None
         assert status.active is True
@@ -490,8 +518,9 @@ class TestOBSManager:
         """get_recording_status() returns None when not connected."""
         obs_mgr = OBSManager()
         obs_mgr.connected = False
+        capture = OBSCapture(obs_mgr)
         
-        status = obs_mgr.get_recording_status()
+        status = capture.get_recording_status()
         
         assert status is None
     
@@ -563,3 +592,117 @@ class TestPureFunctions:
         assert stats['dropped_frames'] == 0
         assert stats['total_frames'] == 0
         assert stats['duration'] == 0
+
+class TestNewClasses:
+    """Tests for the four new OBS classes after refactor."""
+    
+    def test_obs_boot_instantiates(self):
+        """OBSBoot class exists and ensure_obs_running is callable."""
+        assert hasattr(OBSBoot, 'ensure_obs_running')
+        assert callable(OBSBoot.ensure_obs_running)
+    
+    def test_obs_boot_is_static(self):
+        """OBSBoot.ensure_obs_running is a static method."""
+        import inspect
+        assert isinstance(inspect.getattr_static(OBSBoot, 'ensure_obs_running'), staticmethod)
+    
+    def test_obs_capture_instantiates(self):
+        """OBSCapture takes mock OBSManager and all methods are callable."""
+        mock_obs = Mock()
+        capture = OBSCapture(mock_obs)
+        
+        assert capture.obs == mock_obs
+        assert hasattr(capture, 'start_recording')
+        assert hasattr(capture, 'stop_recording')
+        assert hasattr(capture, 'pause_recording')
+        assert hasattr(capture, 'resume_recording')
+        assert hasattr(capture, 'is_recording')
+        assert hasattr(capture, 'get_recording_status')
+        assert hasattr(capture, 'start_stream')
+        assert hasattr(capture, 'stop_stream')
+        assert hasattr(capture, 'get_stream_stats')
+        
+        # Verify all methods are callable
+        assert callable(capture.start_recording)
+        assert callable(capture.stop_recording)
+        assert callable(capture.pause_recording)
+        assert callable(capture.resume_recording)
+        assert callable(capture.is_recording)
+        assert callable(capture.get_recording_status)
+        assert callable(capture.start_stream)
+        assert callable(capture.stop_stream)
+        assert callable(capture.get_stream_stats)
+    
+    def test_obs_scenes_instantiates(self):
+        """OBSScenes takes mock OBSManager and all methods are callable."""
+        mock_obs = Mock()
+        scenes = OBSScenes(mock_obs)
+        
+        assert scenes.obs == mock_obs
+        assert hasattr(scenes, 'switch_scene')
+        assert hasattr(scenes, 'list_scenes')
+        
+        assert callable(scenes.switch_scene)
+        assert callable(scenes.list_scenes)
+    
+    def test_obs_sources_instantiates(self):
+        """OBSSources takes mock OBSManager and all methods are callable."""
+        mock_obs = Mock()
+        sources = OBSSources(mock_obs)
+        
+        assert sources.obs == mock_obs
+        assert hasattr(sources, 'add_game_capture')
+        assert hasattr(sources, 'remove_game_capture')
+        assert hasattr(sources, 'mute_source')
+        assert hasattr(sources, 'unmute_source')
+        
+        assert callable(sources.add_game_capture)
+        assert callable(sources.remove_game_capture)
+        assert callable(sources.mute_source)
+        assert callable(sources.unmute_source)
+    
+    def test_obs_manager_has_no_recording_methods(self):
+        """OBSManager has no recording, streaming, scene, or source methods after refactor."""
+        obs_mgr = OBSManager()
+        
+        # Recording methods should NOT exist
+        assert not hasattr(obs_mgr, 'start_recording')
+        assert not hasattr(obs_mgr, 'stop_recording')
+        assert not hasattr(obs_mgr, 'pause_recording')
+        assert not hasattr(obs_mgr, 'resume_recording')
+        assert not hasattr(obs_mgr, 'is_recording')
+        assert not hasattr(obs_mgr, 'get_recording_status')
+        
+        # Streaming methods should NOT exist
+        assert not hasattr(obs_mgr, 'start_stream')
+        assert not hasattr(obs_mgr, 'stop_stream')
+        assert not hasattr(obs_mgr, 'get_stream_stats')
+        
+        # Scene methods should NOT exist
+        assert not hasattr(obs_mgr, 'switch_scene')
+        assert not hasattr(obs_mgr, 'list_scenes')
+        
+        # Source methods should NOT exist
+        assert not hasattr(obs_mgr, 'add_game_capture')
+        assert not hasattr(obs_mgr, 'remove_game_capture')
+        assert not hasattr(obs_mgr, 'mute_source')
+        assert not hasattr(obs_mgr, 'unmute_source')
+        
+        # Boot method should NOT exist
+        assert not hasattr(obs_mgr, 'ensure_obs_running')
+    
+    def test_obs_manager_connection_methods_present(self):
+        """OBSManager retains connection methods after refactor."""
+        obs_mgr = OBSManager()
+        
+        assert hasattr(obs_mgr, 'connect')
+        assert hasattr(obs_mgr, 'disconnect')
+        assert hasattr(obs_mgr, 'is_connected')
+        assert hasattr(obs_mgr, '__enter__')
+        assert hasattr(obs_mgr, '__exit__')
+        
+        assert callable(obs_mgr.connect)
+        assert callable(obs_mgr.disconnect)
+        assert callable(obs_mgr.is_connected)
+        assert callable(obs_mgr.__enter__)
+        assert callable(obs_mgr.__exit__)

@@ -24,7 +24,9 @@ import yaml
 from dotenv import load_dotenv
 import psutil
 
-from core.obs_manager import OBSManager
+from core.obs_manager import (
+    OBSManager, OBSBoot, OBSCapture, OBSScenes, OBSSources
+)
 
 try:
     import win32gui
@@ -768,6 +770,9 @@ class StreamMonitor:
     
     def __init__(self, obs_manager: OBSManager, config: dict, stream_start_time: datetime, session_count: int):
         self.obs_manager = obs_manager
+        self.capture = OBSCapture(obs_manager)
+        self.scenes = OBSScenes(obs_manager)
+        self.sources = OBSSources(obs_manager)
         self.config = config
         self.running = True
         self.game_name = config.get("game")
@@ -790,8 +795,8 @@ class StreamMonitor:
                 # Check if game is still running
                 if not is_game_running(self.game_process_name):
                     print(f"Game closed — stream ended")
-                    self.obs_manager.stop_stream()
-                    self.obs_manager.remove_game_capture("Gaming")
+                    self.capture.stop_stream()
+                    self.sources.remove_game_capture("Gaming")
                     self.running = False
                     break
                 
@@ -802,15 +807,15 @@ class StreamMonitor:
                 # Focus lost → switch to overlay + mute mic
                 if self.was_focused and not is_focused:
                     print(f"Focus lost — switching to overlay scene")
-                    self.obs_manager.switch_scene(self.obs_overlay_scene)
-                    self.obs_manager.mute_source(self.obs_mic_source)
+                    self.scenes.switch_scene(self.obs_overlay_scene)
+                    self.sources.mute_source(self.obs_mic_source)
                     self.was_focused = False
                 
                 # Focus returned → switch back to game + unmute mic
                 elif not self.was_focused and is_focused:
                     print(f"Focus returned — switching to game scene")
-                    self.obs_manager.switch_scene(self.obs_game_scene)
-                    self.obs_manager.unmute_source(self.obs_mic_source)
+                    self.scenes.switch_scene(self.obs_game_scene)
+                    self.sources.unmute_source(self.obs_mic_source)
                     self.was_focused = True
                 
                 # Update commit counter every 60 seconds
@@ -956,10 +961,15 @@ def start_stream(game_name: str,
             "success": False,
             "error": "Failed to connect to OBS"
         }
+    # Create OBS instances
+    scenes = OBSScenes(obs_manager)
+    capture = OBSCapture(obs_manager)
+    sources = OBSSources(obs_manager)
+
     
     # 7. Switch to Starting Soon scene
     print("Switching OBS scene to: Starting Soon")
-    obs_manager.switch_scene("Starting Soon")
+    scenes.switch_scene("Starting Soon")
     
     # 8. Wait for game window to appear
     if game_process_name:
@@ -969,7 +979,7 @@ def start_stream(game_name: str,
         if window_title:
             # 9. Add Game Capture source dynamically
             print(f"Adding Game Capture source for window: {window_title}")
-            obs_manager.add_game_capture("Gaming", window_title)
+            sources.add_game_capture("Gaming", window_title)
             
             # Update registry with window title
             steam_appid = config.get("steam_appid")
@@ -991,11 +1001,11 @@ def start_stream(game_name: str,
     
     # 10. Switch to Gaming scene
     print(f"Switching OBS scene to: Gaming")
-    obs_manager.switch_scene("Gaming")
+    scenes.switch_scene("Gaming")
     
     # 11. Start OBS streaming
     print("Starting OBS streaming")
-    obs_manager.start_stream()
+    capture.start_stream()
     
     # 12. Track session count in registry
     steam_appid = config.get("steam_appid")
@@ -1088,6 +1098,11 @@ def start_test_stream(
                 "success": False,
                 "error": "Failed to connect to OBS"
             }
+        # Create OBS instances
+        scenes = OBSScenes(obs_manager)
+        capture = OBSCapture(obs_manager)
+        sources = OBSSources(obs_manager)
+
         
         # Start virtual camera
         try:
