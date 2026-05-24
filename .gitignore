@@ -11,3 +11,4 @@ cache/***/__pycache__/
 /secrets/*
 content-engine/metrics_history.db
 content-engine/game_registry.json
+sessions/*.txt
