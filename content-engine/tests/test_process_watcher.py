@@ -68,7 +68,7 @@ class TestProcessWatcher:
         mock_is_running.side_effect = [False, True, False]
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
         
         logger = Mock()
@@ -91,14 +91,23 @@ class TestProcessWatcher:
         # Verify recording was started
         obs.start_recording.assert_called_once()
     
-    @patch('core.process_watcher.ProcessWatcher.is_running')
-    def test_watch_stops_recording(self, mock_is_running):
+    @patch('core.process_watcher.subprocess.run')
+    def test_watch_stops_recording(self, mock_run):
         """watch() calls obs.stop_recording() when process gone."""
-        # Simulate process starting then stopping
-        mock_is_running.side_effect = [False, True, False]
+        # Simulate process starting then stopping using a callable
+        call_count = [0]
+        def run_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return MagicMock(stdout="No tasks", returncode=0)  # Not running initially
+            elif call_count[0] == 2:
+                return MagicMock(stdout="Everything is Crab.exe", returncode=0)  # Running
+            else:
+                return MagicMock(stdout="No tasks", returncode=0)  # Stopped
+        mock_run.side_effect = run_side_effect
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
         
         logger = Mock()
@@ -117,15 +126,24 @@ class TestProcessWatcher:
         # Verify recording was stopped
         obs.stop_recording.assert_called_once()
     
-    @patch('core.process_watcher.ProcessWatcher.is_running')
-    def test_watch_returns_filepath(self, mock_is_running):
+    @patch('core.process_watcher.subprocess.run')
+    def test_watch_returns_filepath(self, mock_run):
         """watch() returns string from obs.stop_recording()."""
-        # Simulate process starting then stopping
-        mock_is_running.side_effect = [False, True, False]
+        # Simulate process starting then stopping using a callable
+        call_count = [0]
+        def run_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return MagicMock(stdout="No tasks", returncode=0)  # Not running initially
+            elif call_count[0] == 2:
+                return MagicMock(stdout="Everything is Crab.exe", returncode=0)  # Running
+            else:
+                return MagicMock(stdout="No tasks", returncode=0)  # Stopped
+        mock_run.side_effect = run_side_effect
         
         expected_filepath = "/path/to/recording.mp4"
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = expected_filepath
         
         logger = Mock()
@@ -207,17 +225,24 @@ class TestProcessWatcher:
         # Should return raw_path unchanged
         assert result == raw_path
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
-    def test_watch_pauses_on_focus_loss(self, mock_is_running):
+    @patch('core.process_watcher.subprocess.run')
+    def test_watch_pauses_on_focus_loss(self, mock_run):
         """watch() calls obs.pause_record() when focus lost."""
-        # Simulate process running, then focus lost, then process ends
-        mock_is_running.side_effect = [True, True, True, False]
+        # Simulate process running, then focus lost, then process ends using a callable
+        call_count = [0]
+        def run_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 3:
+                return MagicMock(stdout="Everything is Crab.exe", returncode=0)  # Running
+            else:
+                return MagicMock(stdout="No tasks", returncode=0)  # Stopped
+        mock_run.side_effect = run_side_effect
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
-        obs.pause_record.return_value = None
-        obs.resume_record.return_value = None
+        obs.pause_record.return_value = True
+        obs.resume_record.return_value = True
         
         focus_watcher = Mock()
         focus_watcher.is_process_focused.side_effect = [True, False, False, False]
@@ -242,17 +267,24 @@ class TestProcessWatcher:
         # Should have called pause_record when focus lost
         obs.pause_record.assert_called_once()
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
-    def test_watch_resumes_on_focus_gain(self, mock_is_running):
+    @patch('core.process_watcher.subprocess.run')
+    def test_watch_resumes_on_focus_gain(self, mock_run):
         """watch() calls obs.resume_record() when focus regained."""
-        # Simulate process running, focus lost, focus regained, then process ends
-        mock_is_running.side_effect = [True, True, True, True, False]
+        # Simulate process running, focus lost, focus regained, then process ends using a callable
+        call_count = [0]
+        def run_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 4:
+                return MagicMock(stdout="Everything is Crab.exe", returncode=0)  # Running
+            else:
+                return MagicMock(stdout="No tasks", returncode=0)  # Stopped
+        mock_run.side_effect = run_side_effect
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
-        obs.pause_record.return_value = None
-        obs.resume_record.return_value = None
+        obs.pause_record.return_value = True
+        obs.resume_record.return_value = True
         
         focus_watcher = Mock()
         focus_watcher.is_process_focused.side_effect = [True, False, True, True, False]
@@ -285,7 +317,7 @@ class TestProcessWatcher:
         mock_is_running.side_effect = [False, True, False]
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
         
         logger = Mock()
@@ -313,10 +345,10 @@ class TestProcessWatcher:
         mock_is_running.side_effect = [True, True, True, False]
         
         obs = Mock()
-        obs.start_recording.return_value = None
+        obs.start_recording.return_value = True
         obs.stop_recording.return_value = "/path/to/recording.mp4"
-        obs.pause_record.return_value = None
-        obs.resume_record.return_value = None
+        obs.pause_record.return_value = True
+        obs.resume_record.return_value = True
         
         focus_watcher = Mock()
         focus_watcher.is_process_focused.side_effect = [True, False, False, False]
