@@ -19,6 +19,11 @@ from typing import Optional
 # Add parent directory to PATH for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Add content-engine to PATH for FFmpeg (required by Whisper)
+content_engine_path = str(Path(__file__).parent)
+if os.path.exists(content_engine_path):
+    os.environ["PATH"] = content_engine_path + os.pathsep + os.environ.get("PATH", "")
+
 from review_session import format_timestamp, transcribe
 from stream_launcher import load_game_registry, is_game_running, get_active_window_title, is_game_focused, launch_game
 
