@@ -236,8 +236,8 @@ def main() -> None:
         if monitor_thread.is_alive():
             monitor_thread.join(timeout=2)
         
-        # Transcribe if recording completed and game didn't close unexpectedly
-        if os.path.exists(TEMP_WAV) and not monitor.is_game_closed():
+        # Transcribe if recording completed (game close is normal stop)
+        if os.path.exists(TEMP_WAV):
             print("Transcribing audio...")
             try:
                 segments = transcribe(TEMP_WAV, args.model)
@@ -263,7 +263,7 @@ def main() -> None:
             except Exception as e:
                 print(f"Error during transcription: {e}", file=sys.stderr)
         else:
-            print("Recording incomplete or game closed — session not saved")
+            print("Recording incomplete — session not saved")
         
         # Cleanup temp file (regardless of how session ends)
         if os.path.exists(TEMP_WAV):
