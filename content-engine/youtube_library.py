@@ -12,15 +12,16 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import json
 
-# Google API imports
-try:
-    from googleapiclient.errors import HttpError
-except ImportError:
-    print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
-    sys.exit(1)
 
-from core.youtube_auth import build_service
+# Google API imports
+_google_api_available = False
+_HttpError = None
+try:
+    from googleapiclient.errors import HttpError as _HttpError
+    from core.youtube_auth import build_service
+    _google_api_available = True
+except ImportError:
+    pass
 
 
 # =============================================================================
@@ -82,7 +83,10 @@ class YouTubeLibrary:
         Args:
             client_secret_path: Path to client_secret.json. If not provided, looks in current directory.
         """
-        self.service = build_service('youtube', 'v3', self.SCOPES)
+        if _google_api_available:
+            self.service = build_service('youtube', 'v3', self.SCOPES)
+        else:
+            self.service = None
     
     def get_channel_metadata(self) -> Optional[YouTubeChannel]:
         """
@@ -91,6 +95,9 @@ class YouTubeLibrary:
         Returns:
             YouTubeChannel object or None if not found.
         """
+        if not _google_api_available or self.service is None:
+            return None
+        
         try:
             response = self.service.channels().list(
                 part='snippet,statistics',
@@ -113,8 +120,9 @@ class YouTubeLibrary:
                 video_count=int(statistics.get('videoCount', 0)),
                 custom_url=snippet.get('customUrl')
             )
-        except HttpError as e:
-            print(f"Error fetching channel metadata: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching channel metadata: {e}")
             return None
     
     def get_video_library(self) -> List[YouTubeVideo]:
@@ -124,6 +132,9 @@ class YouTubeLibrary:
         Returns:
             List of YouTubeVideo objects.
         """
+        if not _google_api_available or self.service is None:
+            return []
+        
         videos = []
         next_page_token = None
         
@@ -184,8 +195,9 @@ class YouTubeLibrary:
                 if not next_page_token:
                     break
         
-        except HttpError as e:
-            print(f"Error fetching video library: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching video library: {e}")
         
         return videos
     
@@ -196,6 +208,9 @@ class YouTubeLibrary:
         Returns:
             List of YouTubePlaylist objects.
         """
+        if not _google_api_available or self.service is None:
+            return []
+        
         playlists = []
         next_page_token = None
         
@@ -237,8 +252,9 @@ class YouTubeLibrary:
                 if not next_page_token:
                     break
         
-        except HttpError as e:
-            print(f"Error fetching playlists: {e}")
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error fetching playlists: {e}")
         
         return playlists
 
