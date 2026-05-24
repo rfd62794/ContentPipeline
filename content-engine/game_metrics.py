@@ -24,15 +24,16 @@ from datetime import datetime, timedelta, date
 # Steam library imports
 from steam_library import SteamLibrary, GameInfo, get_installed_games
 
-# Google API imports
-try:
-    from googleapiclient.errors import HttpError
-except ImportError:
-    print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
-    sys.exit(1)
 
-from core.youtube_auth import build_service
+# Google API imports
+_google_api_available = False
+_HttpError = None
+try:
+    from googleapiclient.errors import HttpError as _HttpError
+    from core.youtube_auth import build_service
+    _google_api_available = True
+except ImportError:
+    pass
 
 
 # =============================================================================
@@ -379,7 +380,11 @@ class GameMetricsClient:
         """
         self.cache_dir = Path(cache_dir) if cache_dir else self.CACHE_FILE.parent
         self.cache_file = self.cache_dir / "game_metrics.json"
-        self.youtube_service = build_service("youtube", "v3", self.SCOPES)
+        
+        if _google_api_available:
+            self.youtube_service = build_service("youtube", "v3", self.SCOPES)
+        else:
+            self.youtube_service = None
 
         # Create cache directory
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -474,6 +479,13 @@ class GameMetricsClient:
         Returns:
             Dict with top_video_views, recent_upload_count, avg_views_top5
         """
+        if not _google_api_available or self.youtube_service is None:
+            return {
+                'top_video_views': 0,
+                'recent_upload_count': 0,
+                'avg_views_top5': 0.0
+            }
+        
         query = f"{game_name} gameplay"
         published_after = (datetime.now() - timedelta(days=days_back)).isoformat() + 'Z'
         
@@ -527,7 +539,13 @@ class GameMetricsClient:
                 'avg_views_top5': avg_views_top5
             }
             
-        except HttpError as e:
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                safe_name = game_name.encode('ascii', 'ignore').decode('ascii') if game_name else 'Unknown'
+                print(f"YouTube API error for {safe_name}: {e}")
+                if 'quota' in str(e).lower() or 'ratelimit' in str(e).lower():
+                    raise _QuotaExceededError() from e
+            time.sleep(self.RATE_LIMIT_DELAY)
             safe_name = game_name.encode('ascii', 'ignore').decode('ascii') if game_name else 'Unknown'
             print(f"YouTube API error for {safe_name}: {e}")
             if 'quota' in str(e).lower() or 'ratelimit' in str(e).lower():
