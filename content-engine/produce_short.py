@@ -177,7 +177,7 @@ def generate_voice_clip(text: str, voice: str, output_path: Path) -> None:
     stream = win32com.client.Dispatch("SAPI.SpFileStream")
     stream.Open(str(wav_path), 3)  # SSFMCreateForWrite = 3
     sapi.AudioOutputStream = stream
-    sapi.Speak(text)
+    sapi.Speak(text, 0)  # SVSFDefault — explicit synchronous mode
     stream.Close()
 
     # Convert WAV -> MP3 via ffmpeg
