@@ -245,6 +245,11 @@ def produce_short_from_yaml(yaml_path: Path):
     temp_dir = Path("temp/shorts")
     temp_dir.mkdir(parents=True, exist_ok=True)
 
+    # Clear temp directory to prevent cached voice files from interfering
+    for file in temp_dir.glob("*"):
+        file.unlink()
+    logger.info(f"Cleared temp directory: {temp_dir}")
+
     # Generate per-beat TTS voice clips if voice is enabled
     voice_clips_generated = []
     if config.get("voice_enabled"):
