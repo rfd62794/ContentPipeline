@@ -14,7 +14,7 @@ from pathlib import Path
 # Add content-engine to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent / "content-engine"))
 
-from core.obs_capture import OBSCapture
+from core.obs_manager import OBSManager
 from core.process_watcher import ProcessWatcher
 from core.focus_watcher import FocusWatcher
 from core.game_launcher import GameLauncher
@@ -62,8 +62,11 @@ def main():
     # Connect to OBS
     logger.info("Connecting to OBS...")
     try:
-        obs = OBSCapture()
-        obs.connect()
+        obs = OBSManager()
+        if not obs.connect():
+            logger.stage_error("OBS Connection", "Failed to connect")
+            print("Error: Failed to connect to OBS", file=sys.stderr)
+            sys.exit(1)
         logger.info("Connected to OBS successfully")
     except Exception as e:
         logger.stage_error("OBS Connection", str(e))

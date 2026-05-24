@@ -4,7 +4,7 @@ Process Watcher — Detect game process and trigger OBS recording
 Contract:
 - is_running(process_name) returns True if process is running
 - watch(process_name, scene, poll_interval) blocks until process exits after being detected
-- All OBS calls go through OBSCapture parameter
+- All OBS calls go through OBSManager parameter
 - Process name is never hardcoded — caller provides it
 - Uses subprocess only (tasklist) — no external dependencies
 """
@@ -23,7 +23,7 @@ class ProcessWatcher:
         Initialize ProcessWatcher.
         
         Args:
-            obs: OBSCapture instance for recording control
+            obs: OBSManager instance for recording control
             logger: Logger instance for state transition logging
         """
         self.obs = obs
@@ -87,13 +87,13 @@ class ProcessWatcher:
                         
                         # Switch scene if provided
                         if scene:
-                            self.obs.set_scene(scene)
-                            self.logger.info(f"ProcessWatcher: Switched to scene: {scene}")
+                            if self.obs.switch_scene(scene):
+                                self.logger.info(f"ProcessWatcher: Switched to scene: {scene}")
                         
                         # Start recording
-                        self.obs.start_recording()
-                        self.logger.info(f"ProcessWatcher: Recording started")
-                        state = "RECORDING"
+                        if self.obs.start_recording():
+                            self.logger.info(f"ProcessWatcher: Recording started")
+                            state = "RECORDING"
                 
                 elif state == "RECORDING":
                     # Check if process is still running
@@ -102,12 +102,13 @@ class ProcessWatcher:
                         
                         # Resume before stopping if paused
                         if paused:
-                            self.obs.resume_record()
-                            self.logger.info(f"ProcessWatcher: Recording resumed before stop")
+                            if self.obs.resume_record():
+                                self.logger.info(f"ProcessWatcher: Recording resumed before stop")
                         
                         # Stop recording
                         filepath = self.obs.stop_recording()
-                        self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
+                        if filepath:
+                            self.logger.info(f"ProcessWatcher: Recording stopped: {filepath}")
                         
                         # Resolve path to correct subfolder
                         filepath = self.resolve_recording_path(filepath, process_name)
@@ -120,13 +121,13 @@ class ProcessWatcher:
                         focused = focus_watcher.is_process_focused(process_name)
                         
                         if focused and paused:
-                            self.obs.resume_record()
-                            self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
+                            if self.obs.resume_record():
+                                self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
                             paused = False
                         
                         elif not focused and not paused:
-                            self.obs.pause_record()
-                            self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
+                            if self.obs.pause_record():
+                                self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
                             paused = True
                 
                 # Wait before next poll

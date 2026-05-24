@@ -24,6 +24,8 @@ import yaml
 from dotenv import load_dotenv
 import psutil
 
+from core.obs_manager import OBSManager
+
 try:
     import win32gui
 except ImportError:
@@ -764,8 +766,8 @@ class StreamMonitor:
     Handles focus loss → overlay + mic mute, game close → end stream.
     Also updates commit counter every 60 seconds."""
     
-    def __init__(self, obs_client: object, config: dict, stream_start_time: datetime, session_count: int):
-        self.obs_client = obs_client
+    def __init__(self, obs_manager: OBSManager, config: dict, stream_start_time: datetime, session_count: int):
+        self.obs_manager = obs_manager
         self.config = config
         self.running = True
         self.game_name = config.get("game")
@@ -788,8 +790,8 @@ class StreamMonitor:
                 # Check if game is still running
                 if not is_game_running(self.game_process_name):
                     print(f"Game closed — stream ended")
-                    stop_obs_stream(self.obs_client)
-                    remove_game_capture_source(self.obs_client, "Gaming")
+                    self.obs_manager.stop_stream()
+                    self.obs_manager.remove_game_capture("Gaming")
                     self.running = False
                     break
                 
@@ -800,15 +802,15 @@ class StreamMonitor:
                 # Focus lost → switch to overlay + mute mic
                 if self.was_focused and not is_focused:
                     print(f"Focus lost — switching to overlay scene")
-                    switch_obs_scene(self.obs_client, self.obs_overlay_scene)
-                    mute_obs_mic(self.obs_client, self.obs_mic_source)
+                    self.obs_manager.switch_scene(self.obs_overlay_scene)
+                    self.obs_manager.mute_source(self.obs_mic_source)
                     self.was_focused = False
                 
                 # Focus returned → switch back to game + unmute mic
                 elif not self.was_focused and is_focused:
                     print(f"Focus returned — switching to game scene")
-                    switch_obs_scene(self.obs_client, self.obs_game_scene)
-                    unmute_obs_mic(self.obs_client, self.obs_mic_source)
+                    self.obs_manager.switch_scene(self.obs_game_scene)
+                    self.obs_manager.unmute_source(self.obs_mic_source)
                     self.was_focused = True
                 
                 # Update commit counter every 60 seconds
@@ -941,15 +943,15 @@ def start_stream(game_name: str,
     
     # 5. Ensure OBS is running
     obs_exe_path = os.getenv("OBS_EXE_PATH")
-    if not ensure_obs_running(obs_exe_path):
+    obs_manager = OBSManager()
+    if not obs_manager.ensure_obs_running(obs_exe_path):
         return {
             "success": False,
             "error": "Failed to ensure OBS is running"
         }
     
     # 6. Connect to OBS
-    obs_client = connect_obs()
-    if not obs_client:
+    if not obs_manager.connect():
         return {
             "success": False,
             "error": "Failed to connect to OBS"
@@ -957,7 +959,7 @@ def start_stream(game_name: str,
     
     # 7. Switch to Starting Soon scene
     print("Switching OBS scene to: Starting Soon")
-    switch_obs_scene(obs_client, "Starting Soon")
+    obs_manager.switch_scene("Starting Soon")
     
     # 8. Wait for game window to appear
     if game_process_name:
@@ -967,7 +969,7 @@ def start_stream(game_name: str,
         if window_title:
             # 9. Add Game Capture source dynamically
             print(f"Adding Game Capture source for window: {window_title}")
-            add_game_capture_source(obs_client, "Gaming", window_title)
+            obs_manager.add_game_capture("Gaming", window_title)
             
             # Update registry with window title
             steam_appid = config.get("steam_appid")
@@ -989,11 +991,11 @@ def start_stream(game_name: str,
     
     # 10. Switch to Gaming scene
     print(f"Switching OBS scene to: Gaming")
-    switch_obs_scene(obs_client, "Gaming")
+    obs_manager.switch_scene("Gaming")
     
     # 11. Start OBS streaming
     print("Starting OBS streaming")
-    start_obs_stream(obs_client)
+    obs_manager.start_stream()
     
     # 12. Track session count in registry
     steam_appid = config.get("steam_appid")
@@ -1014,7 +1016,7 @@ def start_stream(game_name: str,
     monitor_thread = None
     if enable_monitor:
         stream_start_time = datetime.now()
-        monitor = StreamMonitor(obs_client, config, stream_start_time, session_count)
+        monitor = StreamMonitor(obs_manager, config, stream_start_time, session_count)
         monitor_thread = threading.Thread(target=monitor.run, daemon=True)
         monitor_thread.start()
         print("Stream monitor started")
@@ -1073,15 +1075,15 @@ def start_test_stream(
     # 3. Handle test modes
     if test_mode == "virtual_camera":
         # Virtual camera mode - no YouTube, just OBS virtual camera
+        obs_manager = OBSManager()
         obs_exe_path = os.getenv("OBS_EXE_PATH")
-        if not ensure_obs_running(obs_exe_path):
+        if not obs_manager.ensure_obs_running(obs_exe_path):
             return {
                 "success": False,
                 "error": "Failed to ensure OBS is running"
             }
         
-        obs_client = connect_obs()
-        if not obs_client:
+        if not obs_manager.connect():
             return {
                 "success": False,
                 "error": "Failed to connect to OBS"
@@ -1089,7 +1091,7 @@ def start_test_stream(
         
         # Start virtual camera
         try:
-            obs_client.call("StartVirtualCam")
+            obs_manager.client.start_virtual_cam()
             print("Started OBS virtual camera")
             return {
                 "success": True,
@@ -1130,7 +1132,11 @@ def start_test_stream(
         if result["success"]:
             # Auto-end after 120 seconds
             print("Test stream will auto-end in 120 seconds")
-            threading.Timer(120, lambda: stop_obs_stream(connect_obs())).start()
+            def auto_end():
+                obs_mgr = OBSManager()
+                if obs_mgr.connect():
+                    obs_mgr.stop_stream()
+            threading.Timer(120, auto_end).start()
         
         return result
     
@@ -1145,7 +1151,11 @@ def start_test_stream(
         if result["success"]:
             # Auto-end after 120 seconds
             print("Test stream will auto-end in 120 seconds")
-            threading.Timer(120, lambda: stop_obs_stream(connect_obs())).start()
+            def auto_end():
+                obs_mgr = OBSManager()
+                if obs_mgr.connect():
+                    obs_mgr.stop_stream()
+            threading.Timer(120, auto_end).start()
         
         return result
     

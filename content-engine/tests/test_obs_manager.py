@@ -1,0 +1,424 @@
+"""
+Tests for core/obs_manager.py
+"""
+
+import sys
+from pathlib import Path
+from unittest.mock import Mock, patch, MagicMock
+from datetime import datetime
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Mock obsws_python before importing
+sys.modules['obsws_python'] = MagicMock()
+sys.modules['obsws_python.obs'] = MagicMock()
+sys.modules['obsws_python.error'] = MagicMock()
+
+from core.obs_manager import OBSManager, RecordingStatus, StreamStats, build_obs_recording_path, format_recording_note, parse_stream_stats
+
+
+class TestOBSManager:
+    def test_init_default_params(self):
+        """OBSManager initializes with default parameters."""
+        obs_mgr = OBSManager()
+        assert obs_mgr.host == 'localhost'
+        assert obs_mgr.port == 4455
+        assert obs_mgr.password == ''
+        assert obs_mgr.client is None
+        assert obs_mgr.connected is False
+    
+    def test_init_custom_params(self):
+        """OBSManager initializes with custom parameters."""
+        obs_mgr = OBSManager(host='192.168.1.100', port=5555, password='secret')
+        assert obs_mgr.host == '192.168.1.100'
+        assert obs_mgr.port == 5555
+        assert obs_mgr.password == 'secret'
+    
+    @patch('core.obs_manager.obs')
+    def test_connect_success(self, mock_obs):
+        """connect() successfully establishes connection."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        obs_mgr = OBSManager()
+        result = obs_mgr.connect()
+        
+        assert result is True
+        assert obs_mgr.connected is True
+        assert obs_mgr.client == mock_client
+        mock_obs.ReqClient.assert_called_once()
+    
+    @patch('core.obs_manager.obs')
+    def test_connect_failure(self, mock_obs):
+        """connect() returns False on connection failure."""
+        mock_obs.ReqClient.side_effect = Exception("Connection refused")
+        
+        obs_mgr = OBSManager()
+        result = obs_mgr.connect()
+        
+        assert result is False
+        assert obs_mgr.connected is False
+    
+    def test_disconnect(self):
+        """disconnect() closes connection."""
+        obs_mgr = OBSManager()
+        obs_mgr.client = Mock()
+        obs_mgr.connected = True
+        
+        obs_mgr.disconnect()
+        
+        assert obs_mgr.client is None
+        assert obs_mgr.connected is False
+    
+    def test_is_connected(self):
+        """is_connected() returns connection status."""
+        obs_mgr = OBSManager()
+        assert obs_mgr.is_connected() is False
+        
+        obs_mgr.connected = True
+        assert obs_mgr.is_connected() is True
+    
+    @patch('core.obs_manager.psutil')
+    def test_ensure_obs_running_already_running(self, mock_psutil):
+        """ensure_obs_running() returns True if OBS already running."""
+        mock_proc = Mock()
+        mock_proc.info = {'name': 'obs64.exe'}
+        mock_psutil.process_iter.return_value = [mock_proc]
+        
+        obs_mgr = OBSManager()
+        result = obs_mgr.ensure_obs_running()
+        
+        assert result is True
+    
+    @patch('core.obs_manager.psutil')
+    @patch('core.obs_manager.subprocess')
+    @patch('core.obs_manager.Path')
+    def test_ensure_obs_running_launch_success(self, mock_path, mock_subprocess, mock_psutil):
+        """ensure_obs_running() launches OBS successfully."""
+        # OBS not running initially
+        mock_psutil.process_iter.return_value = []
+        
+        # OBS path exists
+        mock_path_obj = Mock()
+        mock_path_obj.exists.return_value = True
+        mock_path.return_value = mock_path_obj
+        
+        # Launch succeeds
+        mock_subprocess.Popen.return_value = None
+        
+        # OBS starts after 1 second
+        mock_proc = Mock()
+        mock_proc.info = {'name': 'obs64.exe'}
+        mock_psutil.process_iter.side_effect = [[], [mock_proc]]
+        
+        obs_mgr = OBSManager()
+        result = obs_mgr.ensure_obs_running()
+        
+        assert result is True
+    
+    @patch('core.obs_manager.obs')
+    def test_switch_scene_success(self, mock_obs):
+        """switch_scene() switches scene successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.switch_scene("Gaming")
+        
+        assert result is True
+        mock_client.set_current_program_scene.assert_called_once_with("Gaming")
+    
+    def test_switch_scene_not_connected(self):
+        """switch_scene() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.switch_scene("Gaming")
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_list_scenes_success(self, mock_obs):
+        """list_scenes() returns list of scene names."""
+        mock_client = Mock()
+        mock_scene_list = Mock()
+        mock_scene1 = Mock()
+        mock_scene1.scene_name = "Gaming"
+        mock_scene2 = Mock()
+        mock_scene2.scene_name = "Starting Soon"
+        mock_scene_list.scenes = [mock_scene1, mock_scene2]
+        mock_client.get_scene_list.return_value = mock_scene_list
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        scenes = obs_mgr.list_scenes()
+        
+        assert scenes == ["Gaming", "Starting Soon"]
+    
+    def test_list_scenes_not_connected(self):
+        """list_scenes() returns empty list when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        scenes = obs_mgr.list_scenes()
+        
+        assert scenes == []
+    
+    @patch('core.obs_manager.obs')
+    def test_start_recording_success(self, mock_obs):
+        """start_recording() starts recording successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.start_recording()
+        
+        assert result is True
+        mock_client.start_record.assert_called_once()
+    
+    def test_start_recording_not_connected(self):
+        """start_recording() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.start_recording()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_stop_recording_success(self, mock_obs):
+        """stop_recording() stops recording and returns file path."""
+        mock_client = Mock()
+        mock_settings = Mock()
+        mock_settings.output_settings = {'path': 'C:/Videos/test.mp4'}
+        mock_client.get_output_settings.return_value = mock_settings
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        file_path = obs_mgr.stop_recording()
+        
+        assert file_path == 'C:/Videos/test.mp4'
+        mock_client.get_output_settings.assert_called_once_with('simple_file_output')
+        mock_client.stop_record.assert_called_once()
+    
+    def test_stop_recording_not_connected(self):
+        """stop_recording() returns None when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        file_path = obs_mgr.stop_recording()
+        
+        assert file_path is None
+    
+    @patch('core.obs_manager.obs')
+    def test_pause_recording_success(self, mock_obs):
+        """pause_recording() pauses recording successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.pause_recording()
+        
+        assert result is True
+        mock_client.pause_record.assert_called_once()
+    
+    def test_pause_recording_not_connected(self):
+        """pause_recording() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.pause_recording()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_resume_recording_success(self, mock_obs):
+        """resume_recording() resumes recording successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.resume_recording()
+        
+        assert result is True
+        mock_client.resume_record.assert_called_once()
+    
+    def test_resume_recording_not_connected(self):
+        """resume_recording() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.resume_recording()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_is_recording_true(self, mock_obs):
+        """is_recording() returns True when recording active."""
+        mock_client = Mock()
+        mock_status = Mock()
+        mock_status.output_active = True
+        mock_client.get_record_status.return_value = mock_status
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.is_recording()
+        
+        assert result is True
+    
+    @patch('core.obs_manager.obs')
+    def test_is_recording_false(self, mock_obs):
+        """is_recording() returns False when not recording."""
+        mock_client = Mock()
+        mock_status = Mock()
+        mock_status.output_active = False
+        mock_client.get_record_status.return_value = mock_status
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.is_recording()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_start_stream_success(self, mock_obs):
+        """start_stream() starts streaming successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.start_stream()
+        
+        assert result is True
+        mock_client.start_stream.assert_called_once()
+    
+    def test_start_stream_not_connected(self):
+        """start_stream() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.start_stream()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_stop_stream_success(self, mock_obs):
+        """stop_stream() stops streaming successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.stop_stream()
+        
+        assert result is True
+        mock_client.stop_stream.assert_called_once()
+    
+    def test_stop_stream_not_connected(self):
+        """stop_stream() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.stop_stream()
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_mute_source_success(self, mock_obs):
+        """mute_source() mutes source successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.mute_source("Mic/Audio")
+        
+        assert result is True
+        mock_client.set_input_mute.assert_called_once_with(input_name="Mic/Audio", input_muted=True)
+    
+    def test_mute_source_not_connected(self):
+        """mute_source() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.mute_source("Mic/Audio")
+        
+        assert result is False
+    
+    @patch('core.obs_manager.obs')
+    def test_unmute_source_success(self, mock_obs):
+        """unmute_source() unmutes source successfully."""
+        mock_client = Mock()
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.unmute_source("Mic/Audio")
+        
+        assert result is True
+        mock_client.set_input_mute.assert_called_once_with(input_name="Mic/Audio", input_muted=False)
+    
+    def test_unmute_source_not_connected(self):
+        """unmute_source() returns False when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        result = obs_mgr.unmute_source("Mic/Audio")
+        
+        assert result is False
+
+
+class TestPureFunctions:
+    def test_build_obs_recording_path(self):
+        """build_obs_recording_path() formats recording path correctly."""
+        dt = datetime(2026, 5, 23, 20, 30, 45)
+        path = build_obs_recording_path("Dorfromantik", dt)
+        
+        assert path == "Dorfromantik_20260523_203045.mp4"
+    
+    def test_format_recording_note(self):
+        """format_recording_note() formats note correctly."""
+        dt = datetime(2026, 5, 23, 20, 30, 45)
+        note = format_recording_note("C:/Videos/test.mp4", dt)
+        
+        assert "# OBS Recording: C:/Videos/test.mp4 at 2026-05-23 20:30:45" in note
+    
+    def test_parse_stream_stats(self):
+        """parse_stream_stats() parses stats correctly."""
+        raw_response = {
+            'output_bitrate': 5000,
+            'output_dropped_frames': 10,
+            'output_total_frames': 1000,
+            'output_duration': 120.5
+        }
+        
+        stats = parse_stream_stats(raw_response)
+        
+        assert stats['bitrate'] == 5000
+        assert stats['dropped_frames'] == 10
+        assert stats['total_frames'] == 1000
+        assert stats['duration'] == 120.5
+    
+    def test_parse_stream_stats_empty(self):
+        """parse_stream_stats() handles empty response."""
+        raw_response = {}
+        
+        stats = parse_stream_stats(raw_response)
+        
+        assert stats['bitrate'] == 0
+        assert stats['dropped_frames'] == 0
+        assert stats['total_frames'] == 0
+        assert stats['duration'] == 0

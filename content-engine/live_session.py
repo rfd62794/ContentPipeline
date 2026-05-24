@@ -26,6 +26,7 @@ if os.path.exists(content_engine_path):
 
 from review_session import format_timestamp, transcribe
 from stream_launcher import load_game_registry, is_game_running, get_active_window_title, is_game_focused, launch_game
+from core.obs_manager import OBSManager, build_obs_recording_path, format_recording_note
 
 TEMP_WAV = os.path.join("sessions", ".tmp_live_recording.wav")
 
@@ -192,6 +193,7 @@ def main() -> None:
     parser.add_argument("--game", required=True, help="Game name (must match registry entry)")
     parser.add_argument("--output-dir", default="sessions", dest="output_dir")
     parser.add_argument("--model", default="base")
+    parser.add_argument("--record", action="store_true", help="Enable OBS video recording")
     args = parser.parse_args()
     
     # Load game registry
@@ -243,6 +245,48 @@ def main() -> None:
     session_filename = f"{args.game}_live_{timestamp}.txt"
     session_path = os.path.join(args.output_dir, session_filename)
     
+    # Setup OBS recording if --record flag
+    obs_manager = None
+    recording_path = None
+    if args.record:
+        try:
+            sys.stdout.write("Initializing OBS recording...\n")
+            sys.stdout.flush()
+        except OSError:
+            pass
+        
+        obs_manager = OBSManager()
+        if not obs_manager.ensure_obs_running():
+            try:
+                sys.stdout.write("Failed to ensure OBS is running\n")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            sys.exit(1)
+        
+        if not obs_manager.connect():
+            try:
+                sys.stdout.write("Failed to connect to OBS\n")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            sys.exit(1)
+        
+        if not obs_manager.start_recording():
+            try:
+                sys.stdout.write("Failed to start OBS recording\n")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            sys.exit(1)
+        
+        recording_path = build_obs_recording_path(args.game, now)
+        try:
+            sys.stdout.write(f"OBS recording started: {recording_path}\n")
+            sys.stdout.flush()
+        except OSError:
+            pass
+    
     # Setup monitoring
     stop_event = threading.Event()
     monitor = LiveSessionMonitor(process_name, args.game, stop_event)
@@ -269,6 +313,30 @@ def main() -> None:
         if monitor_thread.is_alive():
             monitor_thread.join(timeout=2)
         
+        # Stop OBS recording if active
+        if obs_manager and args.record:
+            try:
+                sys.stdout.write("Stopping OBS recording...\n")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            
+            obs_recording_path = obs_manager.stop_recording()
+            if obs_recording_path:
+                try:
+                    sys.stdout.write(f"OBS recording saved: {obs_recording_path}\n")
+                    sys.stdout.flush()
+                except OSError:
+                    pass
+            else:
+                try:
+                    sys.stdout.write("No OBS recording to save\n")
+                    sys.stdout.flush()
+                except OSError:
+                    pass
+            
+            obs_manager.disconnect()
+        
         # Transcribe if recording completed (game close is normal stop)
         if os.path.exists(TEMP_WAV):
             print("Transcribing audio...")
@@ -285,6 +353,12 @@ def main() -> None:
                 # Build session file
                 session_dt = datetime.datetime.now()
                 header = build_session_header(args.game, session_dt, duration_str, args.model)
+                
+                # Add OBS recording note if applicable
+                if args.record and recording_path:
+                    recording_note = format_recording_note(recording_path, now)
+                    header = f"{header}\n{recording_note}"
+                
                 transcript = build_live_transcript(header, segments)
                 
                 # Write session file
