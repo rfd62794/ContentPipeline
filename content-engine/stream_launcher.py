@@ -370,20 +370,28 @@ def add_game_capture_source(obs_client, scene_name: str, window_title: str, sour
     try:
         from obswebsocket import requests
         
+        print(f"[GAME CAPTURE] Starting process for scene: {scene_name}")
+        print(f"[GAME CAPTURE] Target window: {window_title}")
+        print(f"[GAME CAPTURE] Source name: {source_name}")
+        
         # Remove existing source if it exists
         req = requests.GetSceneItemList(sceneName=scene_name)
         response = obs_client.call(req)
+        print(f"[GAME CAPTURE] Current scene items: {len(response.datain['sceneItems'])}")
+        
         for item in response.datain['sceneItems']:
+            print(f"[GAME CAPTURE] Found item: {item['sourceName']}")
             if item['sourceName'] == source_name:
                 req = requests.RemoveSceneItem(
                     sceneName=scene_name,
                     sceneItemId=item['sceneItemId']
                 )
                 obs_client.call(req)
-                print(f"Removed existing {source_name} from {scene_name}")
+                print(f"[GAME CAPTURE] Removed existing {source_name} from {scene_name}")
                 break
         
         # Create the Game Capture source
+        print(f"[GAME CAPTURE] Creating new Game Capture source...")
         req = requests.CreateInput(
             sceneName=scene_name,
             inputName=source_name,
@@ -391,9 +399,10 @@ def add_game_capture_source(obs_client, scene_name: str, window_title: str, sour
             sceneItemEnabled=True
         )
         response = obs_client.call(req)
-        print(f"Created {source_name} in {scene_name}")
+        print(f"[GAME CAPTURE] Created {source_name} in {scene_name}")
         
         # Set source settings to capture specific window
+        print(f"[GAME CAPTURE] Setting capture mode to 'window'...")
         req = requests.SetInputSettings(
             inputName=source_name,
             inputSettings={
@@ -403,9 +412,10 @@ def add_game_capture_source(obs_client, scene_name: str, window_title: str, sour
             }
         )
         response = obs_client.call(req)
-        print(f"Set {source_name} to capture window: {window_title}")
+        print(f"[GAME CAPTURE] Set {source_name} to capture window: {window_title}")
         
         # Position full screen
+        print(f"[GAME CAPTURE] Positioning source full screen...")
         req = requests.GetSceneItemList(sceneName=scene_name)
         response = obs_client.call(req)
         for item in response.datain['sceneItems']:
@@ -422,13 +432,16 @@ def add_game_capture_source(obs_client, scene_name: str, window_title: str, sour
                     }
                 )
                 obs_client.call(req)
-                print(f"Positioned {source_name} full screen")
+                print(f"[GAME CAPTURE] Positioned {source_name} at (0, 0) with scale 1.0")
                 break
         
+        print(f"[GAME CAPTURE] SUCCESS: Game Capture source configured")
         return True
         
     except Exception as e:
-        print(f"Error adding game capture source: {e}")
+        print(f"[GAME CAPTURE] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -694,7 +707,9 @@ def connect_obs() -> object:
 def switch_obs_scene(obs_client: object, scene_name: str) -> None:
     """Switch OBS to named scene."""
     try:
-        obs_client.call("SetCurrentScene", {"sceneName": scene_name})
+        from obswebsocket import requests
+        req = requests.SetCurrentProgramScene(sceneName=scene_name)
+        obs_client.call(req)
         print(f"Switched OBS to scene: {scene_name}")
     except Exception as e:
         print(f"Error switching OBS scene: {e}")
@@ -703,7 +718,9 @@ def switch_obs_scene(obs_client: object, scene_name: str) -> None:
 def start_obs_stream(obs_client: object) -> None:
     """Start OBS streaming output."""
     try:
-        obs_client.call("StartStopStreaming")
+        from obswebsocket import requests
+        req = requests.StartStopStreaming()
+        obs_client.call(req)
         print("Started OBS streaming")
     except Exception as e:
         print(f"Error starting OBS stream: {e}")
@@ -712,7 +729,9 @@ def start_obs_stream(obs_client: object) -> None:
 def stop_obs_stream(obs_client: object) -> None:
     """Stop OBS streaming output."""
     try:
-        obs_client.call("StartStopStreaming")
+        from obswebsocket import requests
+        req = requests.StartStopStreaming()
+        obs_client.call(req)
         print("Stopped OBS streaming")
     except Exception as e:
         print(f"Error stopping OBS stream: {e}")
@@ -721,7 +740,9 @@ def stop_obs_stream(obs_client: object) -> None:
 def mute_obs_mic(obs_client: object, mic_source: str) -> None:
     """Mute OBS microphone source."""
     try:
-        obs_client.call("SetMute", {"source": mic_source, "mute": True})
+        from obswebsocket import requests
+        req = requests.SetInputMute(inputName=mic_source, inputMuted=True)
+        obs_client.call(req)
         print(f"Muted OBS mic: {mic_source}")
     except Exception as e:
         print(f"Error muting OBS mic: {e}")
@@ -730,7 +751,9 @@ def mute_obs_mic(obs_client: object, mic_source: str) -> None:
 def unmute_obs_mic(obs_client: object, mic_source: str) -> None:
     """Unmute OBS microphone source."""
     try:
-        obs_client.call("SetMute", {"source": mic_source, "mute": False})
+        from obswebsocket import requests
+        req = requests.SetInputMute(inputName=mic_source, inputMuted=False)
+        obs_client.call(req)
         print(f"Unmuted OBS mic: {mic_source}")
     except Exception as e:
         print(f"Error unmuting OBS mic: {e}")
