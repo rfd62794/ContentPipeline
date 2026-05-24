@@ -1,0 +1,35 @@
+name: scritchy_scratchy_1_jackpot
+source: C:/Users/cheat/Videos/Scritchy Scratchy/2026-05-24 01-36-00.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+music_volume: 0.20
+voice: false
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "4:14"
+    clip_end: "4:39"
+    duration: 25
+    line: "Penny 1%. Dollar 19%. Money bag 80%."
+
+  - clip_start: "4:39"
+    clip_end: "4:46"
+    duration: 7
+    line: "0.2% — the Mega Jackpot."
+
+  - clip_start: "8:29"
+    clip_end: "8:37"
+    duration: 8
+    line: "Definitely feeds that dopamine."
+
+  - clip_start: "11:33"
+    clip_end: "11:38"
+    duration: 5
+    line: null
+
+  - clip_start: "11:38"
+    clip_end: "11:44"
+    duration: 6
+    line: "2.5 million."

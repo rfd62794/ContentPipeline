@@ -62,7 +62,7 @@ def apply_text_stacking(segments: List[Dict[str, Any]], max_visible_lines: int =
     
     for segment in segments:
         # Add current line to accumulated lines
-        current_line = segment["segment_text"]
+        current_line = segment["segment_text"] or ""
         accumulated_lines.append(current_line)
         
         # Keep only last N lines (sliding window)
