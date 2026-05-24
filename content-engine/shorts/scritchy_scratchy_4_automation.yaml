@@ -1,0 +1,35 @@
+name: scritchy_scratchy_4_automation
+source: C:/Users/cheat/Videos/Scritchy Scratchy/2026-05-24 01-36-00.mp4
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "6:38"
+    clip_end: "6:42"
+    duration: 4
+    line: "He stays fed, scratching for you."
+
+  - clip_start: "7:36"
+    clip_end: "7:40"
+    duration: 4
+    line: "The fan pushes them down."
+
+  - clip_start: "8:39"
+    clip_end: "8:43"
+    duration: 4
+    line: "Oop. Fan died."
+
+  - clip_start: "14:41"
+    clip_end: "14:46"
+    duration: 5
+    line: "Only I can scratch those."
+
+  - clip_start: "11:10"
+    clip_end: "11:14"
+    duration: 4
+    line: "It all loops back in."
