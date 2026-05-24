@@ -182,10 +182,10 @@ class OBSManager:
                 logger.error("OBS executable not found in common paths")
                 return False
         
-        # Launch OBS
+        # Launch OBS from its installation directory to find locale files
         logger.info(f"Launching OBS from {exe_path}")
         try:
-            subprocess.Popen([str(exe_path)], shell=True)
+            subprocess.Popen([str(exe_path)], cwd=str(exe_path.parent), shell=True)
         except Exception as e:
             logger.error(f"Error launching OBS: {e}")
             return False
@@ -196,6 +196,9 @@ class OBSManager:
             for proc in psutil.process_iter(['name']):
                 if proc.info['name'] and 'obs' in proc.info['name'].lower():
                     logger.info(f"OBS detected after {i+1} seconds")
+                    # Give WebSocket server additional time to initialize
+                    logger.info("Waiting for WebSocket server to initialize...")
+                    time.sleep(3)
                     return True
         
         logger.error("OBS did not start within 10 seconds")

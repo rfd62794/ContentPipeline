@@ -101,6 +101,7 @@ class TestOBSManager:
         # OBS path exists
         mock_path_obj = Mock()
         mock_path_obj.exists.return_value = True
+        mock_path_obj.parent = "C:/Program Files/obs-studio/bin/64bit"
         mock_path.return_value = mock_path_obj
         
         # Launch succeeds
@@ -115,6 +116,10 @@ class TestOBSManager:
         result = obs_mgr.ensure_obs_running()
         
         assert result is True
+        # Verify Popen was called with cwd parameter
+        mock_subprocess.Popen.assert_called_once()
+        call_kwargs = mock_subprocess.Popen.call_args[1]
+        assert 'cwd' in call_kwargs
     
     @patch('core.obs_manager.obs')
     def test_switch_scene_success(self, mock_obs):
