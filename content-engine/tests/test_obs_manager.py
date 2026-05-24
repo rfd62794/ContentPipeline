@@ -78,25 +78,25 @@ class TestOBSManager:
         obs_mgr.connected = True
         assert obs_mgr.is_connected() is True
     
-    @patch('core.obs_manager.psutil')
-    def test_ensure_obs_running_already_running(self, mock_psutil):
+    @patch('psutil.process_iter')
+    def test_ensure_obs_running_already_running(self, mock_process_iter):
         """ensure_obs_running() returns True if OBS already running."""
         mock_proc = Mock()
         mock_proc.info = {'name': 'obs64.exe'}
-        mock_psutil.process_iter.return_value = [mock_proc]
+        mock_process_iter.return_value = iter([mock_proc])
         
         obs_mgr = OBSManager()
         result = obs_mgr.ensure_obs_running()
         
         assert result is True
     
-    @patch('core.obs_manager.psutil')
+    @patch('psutil.process_iter')
     @patch('core.obs_manager.subprocess')
     @patch('core.obs_manager.Path')
     def test_ensure_obs_running_launch_success(self, mock_path, mock_subprocess, mock_psutil):
         """ensure_obs_running() launches OBS successfully."""
         # OBS not running initially
-        mock_psutil.process_iter.return_value = []
+        mock_psutil.return_value = iter([])
         
         # OBS path exists
         mock_path_obj = Mock()
@@ -109,7 +109,7 @@ class TestOBSManager:
         # OBS starts after 1 second
         mock_proc = Mock()
         mock_proc.info = {'name': 'obs64.exe'}
-        mock_psutil.process_iter.side_effect = [[], [mock_proc]]
+        mock_psutil.side_effect = [iter([]), iter([mock_proc])]
         
         obs_mgr = OBSManager()
         result = obs_mgr.ensure_obs_running()
@@ -380,6 +380,142 @@ class TestOBSManager:
         
         assert result is False
 
+
+
+    @patch('core.obs_manager.obs')
+    def test_start_recording_already_active(self, mock_obs):
+        """start_recording() returns False when recording already active."""
+        mock_client = Mock()
+        mock_error = Mock()
+        mock_error.__str__ = lambda self: "500 Internal Server Error"
+        mock_obs.error.OBSSDKRequestError = Exception
+        mock_client.start_record.side_effect = Exception("500 Internal Server Error")
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.start_recording()
+        
+        assert result is False
+        mock_client.start_record.assert_called_once()
+    
+    @patch('core.obs_manager.obs')
+    def test_stop_recording_no_active_recording(self, mock_obs):
+        """stop_recording() returns None when no recording active."""
+        mock_client = Mock()
+        mock_settings = Mock()
+        mock_settings.output_settings = {'path': 'C:/Videos/test.mp4'}
+        mock_client.get_output_settings.return_value = mock_settings
+        mock_error = Mock()
+        mock_error.__str__ = lambda self: "500 Internal Server Error"
+        mock_obs.error.OBSSDKRequestError = Exception
+        mock_client.stop_record.side_effect = Exception("500 Internal Server Error")
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        file_path = obs_mgr.stop_recording()
+        
+        assert file_path is None
+        mock_client.get_output_settings.assert_called_once_with('simple_file_output')
+        mock_client.stop_record.assert_called_once()
+    
+    @patch('core.obs_manager.obs')
+    def test_pause_recording_no_active_recording(self, mock_obs):
+        """pause_recording() returns False when no recording active."""
+        mock_client = Mock()
+        mock_error = Mock()
+        mock_error.__str__ = lambda self: "500 Internal Server Error"
+        mock_obs.error.OBSSDKRequestError = Exception
+        mock_client.pause_record.side_effect = Exception("500 Internal Server Error")
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.pause_recording()
+        
+        assert result is False
+        mock_client.pause_record.assert_called_once()
+    
+    @patch('core.obs_manager.obs')
+    def test_resume_recording_not_paused(self, mock_obs):
+        """resume_recording() returns False when recording not paused."""
+        mock_client = Mock()
+        mock_error = Mock()
+        mock_error.__str__ = lambda self: "500 Internal Server Error"
+        mock_obs.error.OBSSDKRequestError = Exception
+        mock_client.resume_record.side_effect = Exception("500 Internal Server Error")
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        result = obs_mgr.resume_recording()
+        
+        assert result is False
+        mock_client.resume_record.assert_called_once()
+    
+    @patch('core.obs_manager.obs')
+    def test_get_status(self, mock_obs):
+        """get_recording_status() returns dict with expected keys."""
+        mock_client = Mock()
+        mock_status = Mock()
+        mock_status.output_active = True
+        mock_status.output_bytes = 1024000
+        mock_status.output_duration = 30.5
+        mock_status.output_timecode = "00:00:30:500"
+        mock_client.get_record_status.return_value = mock_status
+        
+        obs_mgr = OBSManager()
+        obs_mgr.client = mock_client
+        obs_mgr.connected = True
+        
+        status = obs_mgr.get_recording_status()
+        
+        assert status is not None
+        assert status.active is True
+        assert status.bytes_written == 1024000
+        assert status.duration_seconds == 30.5
+        assert status.timecode == "00:00:30:500"
+    
+    def test_get_status_not_connected(self):
+        """get_recording_status() returns None when not connected."""
+        obs_mgr = OBSManager()
+        obs_mgr.connected = False
+        
+        status = obs_mgr.get_recording_status()
+        
+        assert status is None
+    
+    @patch('core.obs_manager.obs')
+    def test_context_manager(self, mock_obs):
+        """OBSManager works as context manager."""
+        mock_client = Mock()
+        mock_obs.ReqClient.return_value = mock_client
+        
+        with OBSManager() as obs_mgr:
+            assert obs_mgr.connected is True
+            assert obs_mgr.client == mock_client
+        
+        assert obs_mgr.connected is False
+        assert obs_mgr.client is None
+    
+    def test_recording_status_creation(self):
+        """RecordingStatus dataclass has expected fields."""
+        status = RecordingStatus(
+            active=True,
+            bytes_written=1024000,
+            duration_seconds=30.5,
+            timecode="00:00:30:500"
+        )
+        
+        assert status.active is True
+        assert status.bytes_written == 1024000
+        assert status.duration_seconds == 30.5
+        assert status.timecode == "00:00:30:500"
 
 class TestPureFunctions:
     def test_build_obs_recording_path(self):
