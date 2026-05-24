@@ -20,7 +20,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from review_session import format_timestamp, transcribe
-from stream_launcher import load_game_registry, is_game_running, get_active_window_title, is_game_focused
+from stream_launcher import load_game_registry, is_game_running, get_active_window_title, is_game_focused, launch_game
 
 TEMP_WAV = os.path.join("sessions", ".tmp_live_recording.wav")
 
@@ -34,6 +34,16 @@ def get_process_name_for_game(game_name: str, registry: dict) -> Optional[str]:
         window_title = entry.get("window_title", "")
         if game_name.lower() in exe_name.lower() or game_name.lower() in window_title.lower():
             return exe_name
+    return None
+
+
+def get_appid_for_game(game_name: str, registry: dict) -> Optional[int]:
+    """Get Steam appid from registry for the given game name."""
+    for appid_str, entry in registry.items():
+        exe_name = entry.get("exe_name", "")
+        window_title = entry.get("window_title", "")
+        if game_name.lower() in exe_name.lower() or game_name.lower() in window_title.lower():
+            return int(appid_str)
     return None
 
 
@@ -157,18 +167,37 @@ def main() -> None:
         print("Error: Game registry is empty. Run stream_launcher.py first to populate registry.", file=sys.stderr)
         sys.exit(1)
     
-    # Get process name for game
+    # Get process name and appid for game
     process_name = get_process_name_for_game(args.game, registry)
+    appid = get_appid_for_game(args.game, registry)
+    
     if not process_name:
         print(f"Error: Game '{args.game}' not found in registry. Available games: {list(registry.keys())}", file=sys.stderr)
         sys.exit(1)
     
-    print(f"Found process name for {args.game}: {process_name}")
-    
-    # Verify game is running
-    if not is_game_running(process_name):
-        print(f"Error: Game is not running. Expected process: {process_name}", file=sys.stderr)
+    if not appid:
+        print(f"Error: Could not find appid for '{args.game}'", file=sys.stderr)
         sys.exit(1)
+    
+    print(f"Found process name for {args.game}: {process_name}")
+    print(f"Found appid for {args.game}: {appid}")
+    
+    # Verify game is running, launch if not
+    if not is_game_running(process_name):
+        print(f"Game is not running. Launching {args.game}...")
+        launch_game(appid)
+        print("Waiting for game to start...")
+        
+        # Wait for game to start (up to 30 seconds)
+        import time as time_module
+        for i in range(30):
+            time_module.sleep(1)
+            if is_game_running(process_name):
+                print(f"Game started after {i+1} seconds")
+                break
+        else:
+            print(f"Error: Game did not start within 30 seconds", file=sys.stderr)
+            sys.exit(1)
     
     print(f"Game is running: {process_name}")
     
