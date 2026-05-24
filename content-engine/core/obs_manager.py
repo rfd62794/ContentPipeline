@@ -50,6 +50,11 @@ from dataclasses import dataclass
 from datetime import datetime
 
 try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
     import obsws_python as obs
 except ImportError:
     obs = None
@@ -151,7 +156,9 @@ class OBSManager:
         Returns:
             True if OBS is ready, False if launch failed or timed out.
         """
-        import psutil
+        if psutil is None:
+            logger.error("psutil not available, cannot check OBS status")
+            return False
         
         # Check if OBS is already running
         for proc in psutil.process_iter(['name']):

@@ -95,7 +95,18 @@ class TestProcessWatcher:
     def test_watch_stops_recording(self, mock_is_running):
         """watch() calls obs.stop_recording() when process gone."""
         # Simulate process starting then stopping
-        mock_is_running.side_effect = [False, True, False]
+        # Use a callable to avoid StopIteration
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         obs = Mock()
         obs.start_recording.return_value = None
@@ -121,7 +132,18 @@ class TestProcessWatcher:
     def test_watch_returns_filepath(self, mock_is_running):
         """watch() returns string from obs.stop_recording()."""
         # Simulate process starting then stopping
-        mock_is_running.side_effect = [False, True, False]
+        # Use a callable to avoid StopIteration
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         expected_filepath = "/path/to/recording.mp4"
         obs = Mock()
@@ -207,11 +229,24 @@ class TestProcessWatcher:
         # Should return raw_path unchanged
         assert result == raw_path
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    @patch('core.process_watcher.ProcessWatcher.is_running')
     def test_watch_pauses_on_focus_loss(self, mock_is_running):
         """watch() calls obs.pause_record() when focus lost."""
-        # Simulate process running, then focus lost, then process ends
-        mock_is_running.side_effect = [True, True, True, False]
+        # Simulate process starting, running, focus lost, then process ends
+        # State transitions: WAITING (False) -> RECORDING (True) -> RECORDING (True, focus lost) -> DONE (False)
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            elif call_count[0] == 3:
+                return True   # RECORDING: still running, focus lost
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         obs = Mock()
         obs.start_recording.return_value = None
@@ -220,7 +255,7 @@ class TestProcessWatcher:
         obs.resume_record.return_value = None
         
         focus_watcher = Mock()
-        focus_watcher.is_process_focused.side_effect = [True, False, False, False]
+        focus_watcher.is_process_focused.side_effect = [True, True, False, False, False, False]
         
         logger = Mock()
         watcher = ProcessWatcher(obs=obs, logger=logger)
@@ -232,21 +267,32 @@ class TestProcessWatcher:
         thread = threading.Thread(target=run_watch)
         thread.start()
         
-        # Wait for watch to detect focus loss and pause
-        time.sleep(0.3)
-        
-        # Stop the watch
-        watcher.stop()
+        # Wait for watch to complete
         thread.join(timeout=2)
         
         # Should have called pause_record when focus lost
         obs.pause_record.assert_called_once()
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    @patch('core.process_watcher.ProcessWatcher.is_running')
     def test_watch_resumes_on_focus_gain(self, mock_is_running):
         """watch() calls obs.resume_record() when focus regained."""
-        # Simulate process running, focus lost, focus regained, then process ends
-        mock_is_running.side_effect = [True, True, True, True, False]
+        # Simulate process starting, running, focus lost, focus regained, then process ends
+        # State transitions: WAITING (False) -> RECORDING (True) -> RECORDING (True, focus lost) -> RECORDING (True, focus regained) -> DONE (False)
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            elif call_count[0] == 3:
+                return True   # RECORDING: still running, focus lost
+            elif call_count[0] == 4:
+                return True   # RECORDING: still running, focus regained
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         obs = Mock()
         obs.start_recording.return_value = None
@@ -255,7 +301,7 @@ class TestProcessWatcher:
         obs.resume_record.return_value = None
         
         focus_watcher = Mock()
-        focus_watcher.is_process_focused.side_effect = [True, False, True, True, False]
+        focus_watcher.is_process_focused.side_effect = [True, True, False, True, False, False, False]
         
         logger = Mock()
         watcher = ProcessWatcher(obs=obs, logger=logger)
@@ -267,22 +313,29 @@ class TestProcessWatcher:
         thread = threading.Thread(target=run_watch)
         thread.start()
         
-        # Wait for watch to detect focus changes
-        time.sleep(0.4)
-        
-        # Stop the watch
-        watcher.stop()
+        # Wait for watch to complete
         thread.join(timeout=2)
         
         # Should have called both pause and resume
         obs.pause_record.assert_called_once()
         obs.resume_record.assert_called_once()
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    @patch('core.process_watcher.ProcessWatcher.is_running')
     def test_watch_no_focus_watcher_unchanged(self, mock_is_running):
         """watch() with focus_watcher=None behaves identically to pre-S4."""
         # Simulate process running then stopping
-        mock_is_running.side_effect = [False, True, False]
+        # Use a callable to avoid StopIteration
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         obs = Mock()
         obs.start_recording.return_value = None
@@ -306,11 +359,24 @@ class TestProcessWatcher:
         obs.resume_record.assert_not_called()
         obs.stop_recording.assert_called_once()
     
-    @patch('tests.test_process_watcher.ProcessWatcher.is_running')
+    @patch('core.process_watcher.ProcessWatcher.is_running')
     def test_watch_resume_before_stop_if_paused(self, mock_is_running):
         """watch() calls resume then stop when game closes while paused."""
-        # Simulate process running, focus lost, then process ends while paused
-        mock_is_running.side_effect = [True, True, True, False]
+        # Simulate process starting, running, focus lost, then process ends while paused
+        # State transitions: WAITING (False) -> RECORDING (True) -> RECORDING (True, focus lost) -> DONE (False)
+        call_count = [0]
+        def is_running_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False  # WAITING: process not running
+            elif call_count[0] == 2:
+                return True   # WAITING: process detected
+            elif call_count[0] == 3:
+                return True   # RECORDING: still running, focus lost
+            else:
+                return False  # RECORDING: process gone
+        
+        mock_is_running.side_effect = is_running_side_effect
         
         obs = Mock()
         obs.start_recording.return_value = None
@@ -319,7 +385,7 @@ class TestProcessWatcher:
         obs.resume_record.return_value = None
         
         focus_watcher = Mock()
-        focus_watcher.is_process_focused.side_effect = [True, False, False, False]
+        focus_watcher.is_process_focused.side_effect = [True, True, False, False, False, False]
         
         logger = Mock()
         watcher = ProcessWatcher(obs=obs, logger=logger)

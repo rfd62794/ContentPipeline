@@ -14,6 +14,12 @@ sys.modules['obsws_python'] = MagicMock()
 sys.modules['obsws_python.obs'] = MagicMock()
 sys.modules['obsws_python.error'] = MagicMock()
 
+# Mock psutil if not available
+try:
+    import psutil
+except ImportError:
+    sys.modules['psutil'] = MagicMock()
+
 from core.obs_manager import OBSManager, RecordingStatus, StreamStats, build_obs_recording_path, format_recording_note, parse_stream_stats
 
 
@@ -96,7 +102,7 @@ class TestOBSManager:
     def test_ensure_obs_running_launch_success(self, mock_path, mock_subprocess, mock_psutil):
         """ensure_obs_running() launches OBS successfully."""
         # OBS not running initially
-        mock_psutil.process_iter.return_value = []
+        mock_psutil.process_iter.side_effect = [[], [Mock(info={'name': 'obs64.exe'})]]
         
         # OBS path exists
         mock_path_obj = Mock()
@@ -105,11 +111,6 @@ class TestOBSManager:
         
         # Launch succeeds
         mock_subprocess.Popen.return_value = None
-        
-        # OBS starts after 1 second
-        mock_proc = Mock()
-        mock_proc.info = {'name': 'obs64.exe'}
-        mock_psutil.process_iter.side_effect = [[], [mock_proc]]
         
         obs_mgr = OBSManager()
         result = obs_mgr.ensure_obs_running()
