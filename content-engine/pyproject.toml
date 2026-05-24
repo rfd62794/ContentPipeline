@@ -24,6 +24,8 @@ dependencies = [
     "obsws-python>=1.8.0",
     "edge-tts>=6.1.0",
     "pytest-asyncio>=0.21.0",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
 ]
 
 [project.optional-dependencies]
