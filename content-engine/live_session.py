@@ -31,25 +31,60 @@ from core.obs_manager import OBSManager, build_obs_recording_path, format_record
 TEMP_WAV = os.path.join("sessions", ".tmp_live_recording.wav")
 
 
+def normalize_game_name(name: str) -> str:
+    """Normalize game name for fuzzy matching: lowercase, remove spaces/special chars."""
+    import re
+    # Remove .exe extension if present
+    name = name.replace(".exe", "")
+    # Convert to lowercase
+    name = name.lower()
+    # Remove spaces and special characters, keep alphanumeric only
+    name = re.sub(r'[^a-z0-9]', '', name)
+    return name
+
+
 def get_process_name_for_game(game_name: str, registry: dict) -> Optional[str]:
-    """Get process name from registry for the given game name."""
+    """Get process name from registry for the given game name with fuzzy matching."""
+    normalized_input = normalize_game_name(game_name)
+    
     # Search registry for matching game name
     for appid_str, entry in registry.items():
-        # Check if exe_name or window_title contains game name
         exe_name = entry.get("exe_name", "")
         window_title = entry.get("window_title", "")
+        
+        # Try exact match first (case-insensitive)
         if game_name.lower() in exe_name.lower() or game_name.lower() in window_title.lower():
             return exe_name
+        
+        # Try fuzzy match using normalized names
+        normalized_exe = normalize_game_name(exe_name)
+        normalized_window = normalize_game_name(window_title)
+        
+        if normalized_input in normalized_exe or normalized_input in normalized_window:
+            return exe_name
+    
     return None
 
 
 def get_appid_for_game(game_name: str, registry: dict) -> Optional[int]:
-    """Get Steam appid from registry for the given game name."""
+    """Get Steam appid from registry for the given game name with fuzzy matching."""
+    normalized_input = normalize_game_name(game_name)
+    
     for appid_str, entry in registry.items():
         exe_name = entry.get("exe_name", "")
         window_title = entry.get("window_title", "")
+        
+        # Try exact match first (case-insensitive)
         if game_name.lower() in exe_name.lower() or game_name.lower() in window_title.lower():
             return int(appid_str)
+        
+        # Try fuzzy match using normalized names
+        normalized_exe = normalize_game_name(exe_name)
+        normalized_window = normalize_game_name(window_title)
+        
+        if normalized_input in normalized_exe or normalized_input in normalized_window:
+            return int(appid_str)
+    
     return None
 
 

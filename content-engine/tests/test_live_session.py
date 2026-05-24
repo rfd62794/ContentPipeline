@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from live_session import (
     build_session_header,
     build_live_transcript,
-    get_process_name_for_game
+    get_process_name_for_game,
+    normalize_game_name
 )
 
 
@@ -120,3 +121,40 @@ class TestGetProcessNameForGame:
         result = get_process_name_for_game("Awesome Game", registry)
         
         assert result == "game.exe"
+    def test_get_process_name_fuzzy_match(self):
+        """Fuzzy match: 'Scritchy Scratchy' matches 'ScritchyScratchy.exe'."""
+        registry = {
+            "123": {"exe_name": "ScritchyScratchy.exe", "window_title": "Scritchy Scratchy"}
+        }
+        
+        result = get_process_name_for_game("Scritchy Scratchy", registry)
+        
+        assert result == "ScritchyScratchy.exe"
+
+
+class TestNormalizeGameName:
+    """Tests for normalize_game_name function."""
+    
+    def test_normalize_game_name_basic(self):
+        """Normalizes game name by removing spaces and special chars."""
+        result = normalize_game_name("Scritchy Scratchy")
+        
+        assert result == "scritchyscratchy"
+    
+    def test_normalize_game_name_with_exe(self):
+        """Removes .exe extension."""
+        result = normalize_game_name("Game.exe")
+        
+        assert result == "game"
+    
+    def test_normalize_game_name_special_chars(self):
+        """Removes special characters."""
+        result = normalize_game_name("Game-Name_123!")
+        
+        assert result == "gamename123"
+    
+    def test_normalize_game_name_case_insensitive(self):
+        """Converts to lowercase."""
+        result = normalize_game_name("UPPERCASE")
+        
+        assert result == "uppercase"
