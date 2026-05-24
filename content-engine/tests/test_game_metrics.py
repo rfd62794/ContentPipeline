@@ -471,7 +471,7 @@ class TestGameMetricsClientInit:
     def test_init_default_cache_dir(self):
         """Test initialization with default cache directory."""
         
-        with patch('game_metrics.build_service'):
+        with patch('core.youtube_auth.build_service'):
             client = GameMetricsClient()
         
         # Should use absolute path from CACHE_FILE.parent
@@ -482,7 +482,7 @@ class TestGameMetricsClientInit:
     def test_init_custom_cache_dir(self):
         """Test initialization with custom cache directory."""
         
-        with patch('game_metrics.build_service'):
+        with patch('core.youtube_auth.build_service'):
             client = GameMetricsClient(cache_dir='/custom/cache')
         
         # Windows converts forward slashes to backslashes
@@ -503,7 +503,7 @@ class TestGameMetricsClientCache:
         cache_data = {'12345': {'top_video_views': 50000}}
         
         with patch('builtins.open', mock_open(read_data=json.dumps(cache_data))):
-            with patch('game_metrics.build_service'):
+            with patch('core.youtube_auth.build_service'):
                 client = GameMetricsClient()
                 result = client.load_cache()
         
@@ -517,7 +517,7 @@ class TestGameMetricsClientCache:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir) / "nonexistent_cache"
             
-            with patch('game_metrics.build_service'):
+            with patch('core.youtube_auth.build_service'):
                 client = GameMetricsClient(cache_dir=str(cache_dir))
                 result = client.load_cache()
             
@@ -533,7 +533,7 @@ class TestGameMetricsClientCache:
         cache_data = {'12345': {'top_video_views': 50000}}
         
         with patch('builtins.open', mock_open()) as mock_file:
-            with patch('game_metrics.build_service'):
+            with patch('core.youtube_auth.build_service'):
                 client = GameMetricsClient()
                 client.save_cache(cache_data)
         
@@ -579,7 +579,7 @@ class TestGameMetricsClientSearch:
         mock_youtube.search().list().execute.return_value = mock_search_response
         mock_youtube.videos().list().execute.return_value = mock_videos_response
         
-        with patch('game_metrics.build_service', return_value=mock_youtube):
+        with patch('core.youtube_auth.build_service', return_value=mock_youtube):
             client = GameMetricsClient()
             result = client.search_youtube_for_game('Test Game')
         
@@ -604,7 +604,7 @@ class TestGameMetricsClientSearch:
         mock_youtube = MagicMock()
         mock_youtube.search().list().execute.return_value = {'items': []}
         
-        with patch('game_metrics.build_service', return_value=mock_youtube):
+        with patch('core.youtube_auth.build_service', return_value=mock_youtube):
             client = GameMetricsClient()
             result = client.search_youtube_for_game('Unknown Game')
         
