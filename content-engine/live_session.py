@@ -92,7 +92,11 @@ def record_audio(output_path: str, stop_event: threading.Event, samplerate: int 
             print(f"Recording status: {status}", file=sys.stderr)
         audio_frames.append(indata.copy())
     
-    print("Recording. Talk naturally. Ctrl+C or close game to stop.")
+    try:
+        sys.stdout.write("Recording. Talk naturally. Ctrl+C or close game to stop.\n")
+        sys.stdout.flush()
+    except OSError:
+        pass
     # Start recording
     with sd.InputStream(samplerate=samplerate, channels=1, dtype=np.float32, callback=callback):
         # Record until stop event is set
@@ -118,13 +122,21 @@ class LiveSessionMonitor:
     
     def run(self):
         """Main monitoring loop. Runs in daemon thread."""
-        print(f"Monitor started for {self.game_name}")
+        try:
+            sys.stdout.write(f"Monitor started for {self.game_name}\n")
+            sys.stdout.flush()
+        except OSError:
+            pass
         
         while not self.stop_event.is_set():
             try:
                 # Check if game is still running
                 if not is_game_running(self.process_name):
-                    print(f"Game closed — stopping session")
+                    try:
+                        sys.stdout.write(f"Game closed — stopping session\n")
+                        sys.stdout.flush()
+                    except OSError:
+                        pass
                     self.game_closed = True
                     self.stop_event.set()
                     break
@@ -135,22 +147,38 @@ class LiveSessionMonitor:
                 
                 # Focus lost → log pause
                 if self.was_focused and not is_focused:
-                    print("[paused — game not focused]")
+                    try:
+                        sys.stdout.write("[paused — game not focused]\n")
+                        sys.stdout.flush()
+                    except OSError:
+                        pass
                     self.was_focused = False
                 
                 # Focus returned → log resume
                 elif not self.was_focused and is_focused:
-                    print("[resumed]")
+                    try:
+                        sys.stdout.write("[resumed]\n")
+                        sys.stdout.flush()
+                    except OSError:
+                        pass
                     self.was_focused = True
                 
                 # Sleep for 3 seconds before next check
                 time.sleep(3)
                 
             except Exception as e:
-                print(f"Monitor error: {e}")
+                try:
+                    sys.stdout.write(f"Monitor error: {e}\n")
+                    sys.stdout.flush()
+                except OSError:
+                    pass
                 time.sleep(3)
         
-        print("Monitor stopped")
+        try:
+            sys.stdout.write("Monitor stopped\n")
+            sys.stdout.flush()
+        except OSError:
+            pass
     
     def is_game_closed(self) -> bool:
         """Check if game was detected as closed."""
