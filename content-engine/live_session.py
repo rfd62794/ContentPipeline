@@ -301,15 +301,62 @@ def main() -> None:
         
         if not obs_manager.connect():
             try:
-                sys.stdout.write("Failed to connect to OBS\n")
+                sys.stdout.write("Failed to connect to OBS
+")
                 sys.stdout.flush()
             except OSError:
                 pass
             sys.exit(1)
         
+        # Switch to Gaming scene before recording
+        try:
+            sys.stdout.write("Switching OBS to Gaming scene...
+")
+            sys.stdout.flush()
+        except OSError:
+            pass
+        if not obs_manager.switch_scene("Gaming"):
+            try:
+                sys.stdout.write("Failed to switch to Gaming scene
+")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            sys.exit(1)
+        
+        # Add game capture source for the game window
+        try:
+            sys.stdout.write("Adding game capture source...
+")
+            sys.stdout.flush()
+        except OSError:
+            pass
+        
+        # Get window title from registry, fall back to game name
+        window_title = registry.get(str(appid), {}).get("window_title", args.game)
+        if not obs_manager.add_game_capture("Gaming", window_title, "Game Capture"):
+            try:
+                sys.stdout.write("Failed to add game capture source
+")
+                sys.stdout.flush()
+            except OSError:
+                pass
+            sys.exit(1)
+        
+        # Wait for source to initialize
+        try:
+            sys.stdout.write("Waiting for game capture to initialize...
+")
+            sys.stdout.flush()
+        except OSError:
+            pass
+        time.sleep(2)
+        
+        # Start recording
         if not obs_manager.start_recording():
             try:
-                sys.stdout.write("Failed to start OBS recording\n")
+                sys.stdout.write("Failed to start OBS recording
+")
                 sys.stdout.flush()
             except OSError:
                 pass
@@ -317,7 +364,8 @@ def main() -> None:
         
         recording_path = build_obs_recording_path(args.game, now)
         try:
-            sys.stdout.write(f"OBS recording started: {recording_path}\n")
+            sys.stdout.write(f"OBS recording started: {recording_path}
+")
             sys.stdout.flush()
         except OSError:
             pass
