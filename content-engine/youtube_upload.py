@@ -15,16 +15,18 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Google API imports
-try:
-    from googleapiclient.http import MediaFileUpload
-    from googleapiclient.errors import HttpError
-except ImportError:
-    print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-api-python-client google-auth-httplib2")
-    sys.exit(1)
 
-from core.youtube_auth import build_service
+# Google API imports
+_google_api_available = False
+_HttpError = None
+_MediaFileUpload = None
+try:
+    from googleapiclient.http import MediaFileUpload as _MediaFileUpload
+    from googleapiclient.errors import HttpError as _HttpError
+    from core.youtube_auth import build_service
+    _google_api_available = True
+except ImportError:
+    pass
 
 from metadata_builder import (
     load_short_yaml,
@@ -46,6 +48,8 @@ def get_authenticated_service():
     Returns:
         Authenticated YouTube service object.
     """
+    if not _google_api_available:
+        return None
     return build_service('youtube', 'v3', SCOPES)
 
 
@@ -106,10 +110,13 @@ def upload_video(service, video_path: str, metadata: Dict[str, Any]) -> str:
     Raises:
         HttpError: If upload fails after retries.
     """
+    if not _google_api_available or _MediaFileUpload is None:
+        return None
+    
     body = build_video_resource(metadata)
     
     # Create media upload object
-    media = MediaFileUpload(
+    media = _MediaFileUpload(
         video_path,
         chunksize=8 * 1024 * 1024,  # 8MB chunks
         resumable=True
@@ -135,10 +142,12 @@ def upload_video(service, video_path: str, metadata: Dict[str, Any]) -> str:
             
             return response['id']
         
-        except HttpError as e:
-            if attempt < max_retries - 1:
-                print(f'Upload failed (attempt {attempt + 1}/{max_retries}), retrying...')
-                continue
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                if attempt < max_retries - 1:
+                    print(f'Upload failed (attempt {attempt + 1}/{max_retries}), retrying...')
+                    continue
+                raise
             raise
 
 
@@ -349,9 +358,11 @@ def main() -> None:
                 set_schedule(service, video_id, schedule_iso)
                 print(f"Scheduled for: {schedule}")
     
-    except HttpError as e:
-        print(f"Error during upload: {e}")
-        sys.exit(1)
+    except Exception as e:
+        if _google_api_available and _HttpError and isinstance(e, _HttpError):
+            print(f"Error during upload: {e}")
+            sys.exit(1)
+        raise
 
 
 if __name__ == "__main__":
