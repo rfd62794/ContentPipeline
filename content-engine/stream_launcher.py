@@ -515,7 +515,7 @@ def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Option
         steam_lib = SteamLibrary(steam_path)
         
         # Get game info to find installdir
-        games = steam_lib.get_installed_games()
+        games = steam_lib.get_installed_only()
         game_info = None
         for game in games:
             if game.appid == steam_appid:
@@ -545,10 +545,51 @@ def find_game_exe(steam_appid: int, steam_path: Optional[Path] = None) -> Option
             print(f"No .exe files found in {install_dir}")
             return None
         
-        # 5. Return the largest .exe file and update registry
-        largest_exe = max(exe_files, key=lambda x: x[1])
-        exe_name = largest_exe[0]
-        print(f"Found game executable: {exe_name} ({largest_exe[1] / (1024*1024):.1f} MB)")
+        # Use fuzzy matching to find the game executable
+        # Priority: exact name match > partial match > largest file
+        game_name_lower = game_info.name.lower() if game_info.name else ""
+        
+        # First try exact match (case-insensitive)
+        for exe_name, size in exe_files:
+            if exe_name.lower() == game_name_lower + ".exe":
+                print(f"Found exact match: {exe_name} ({size / (1024*1024):.1f} MB)")
+                exe_name_result = exe_name
+                # Update registry with scan result
+                updated_registry = update_game_registry_entry(registry, steam_appid, exe_name_result, install_dir)
+                save_game_registry(updated_registry)
+                return exe_name_result
+        
+        # Second try partial match (exe name contains game name)
+        partial_matches = []
+        for exe_name, size in exe_files:
+            if game_name_lower and game_name_lower in exe_name.lower():
+                # Skip crash handlers and common non-game executables
+                if "crash" not in exe_name.lower() and "unity" not in exe_name.lower():
+                    partial_matches.append((exe_name, size))
+        
+        if partial_matches:
+            # Pick the largest partial match
+            best_match = max(partial_matches, key=lambda x: x[1])
+            exe_name_result = best_match[0]
+            print(f"Found partial match: {exe_name_result} ({best_match[1] / (1024*1024):.1f} MB)")
+            # Update registry with scan result
+            updated_registry = update_game_registry_entry(registry, steam_appid, exe_name_result, install_dir)
+            save_game_registry(updated_registry)
+            return exe_name_result
+        
+        # Fallback: largest file (excluding crash handlers)
+        non_crash_files = [(name, size) for name, size in exe_files 
+                          if "crash" not in name.lower() and "unity" not in name.lower()]
+        
+        if non_crash_files:
+            largest_exe = max(non_crash_files, key=lambda x: x[1])
+            exe_name = largest_exe[0]
+            print(f"Found largest non-crash executable: {exe_name} ({largest_exe[1] / (1024*1024):.1f} MB)")
+        else:
+            # Last resort: largest file including crash handlers
+            largest_exe = max(exe_files, key=lambda x: x[1])
+            exe_name = largest_exe[0]
+            print(f"Found largest executable (fallback): {exe_name} ({largest_exe[1] / (1024*1024):.1f} MB)")
         
         # Update registry with scan result
         updated_registry = update_game_registry_entry(registry, steam_appid, exe_name, install_dir)
