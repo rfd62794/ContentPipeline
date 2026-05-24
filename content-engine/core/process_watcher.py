@@ -105,7 +105,7 @@ class ProcessWatcher:
                         
                         # Resume before stopping if paused
                         if paused:
-                            if self.capture.resume_record():
+                            if self.capture.resume_recording():
                                 self.logger.info(f"ProcessWatcher: Recording resumed before stop")
                         
                         # Stop recording
@@ -124,12 +124,12 @@ class ProcessWatcher:
                         focused = focus_watcher.is_process_focused(process_name)
                         
                         if focused and paused:
-                            if self.capture.resume_record():
+                            if self.capture.resume_recording():
                                 self.logger.info(f"ProcessWatcher: Recording resumed — game regained focus")
                             paused = False
                         
                         elif not focused and not paused:
-                            if self.capture.pause_record():
+                            if self.capture.pause_recording():
                                 self.logger.info(f"ProcessWatcher: Recording paused — game lost focus")
                             paused = True
                 
