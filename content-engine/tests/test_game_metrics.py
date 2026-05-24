@@ -580,8 +580,10 @@ class TestGameMetricsClientSearch:
         mock_youtube.videos().list().execute.return_value = mock_videos_response
         
         with patch('core.youtube_auth.build_service', return_value=mock_youtube):
-            client = GameMetricsClient()
-            result = client.search_youtube_for_game('Test Game')
+            with patch('game_metrics._google_api_available', True):
+                client = GameMetricsClient()
+                client.youtube_service = mock_youtube  # Override the service directly
+                result = client.search_youtube_for_game('Test Game')
         
         assert result['top_video_views'] == 100000
         assert result['recent_upload_count'] == 2

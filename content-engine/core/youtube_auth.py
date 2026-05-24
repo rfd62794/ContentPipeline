@@ -13,24 +13,30 @@ Usage:
 
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 
+
+# Google API imports
+_google_api_available = False
+_Credentials = None
+_Request = None
+_default = None
+_build = None
 try:
-    from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
-    from google.auth import default
-    from googleapiclient.discovery import build
+    from google.oauth2.credentials import Credentials as _Credentials
+    from google.auth.transport.requests import Request as _Request
+    from google.auth import default as _default
+    from googleapiclient.discovery import build as _build
+    _google_api_available = True
 except ImportError:
-    print("Error: Google API libraries not installed.")
-    print("Run: pip install google-auth google-auth-oauthlib google-api-python-client")
-    sys.exit(1)
+    pass
 
 
 TOKEN_FILE = Path(__file__).resolve().parent.parent / ".youtube_token.json"
 CLIENT_SECRET_FILE = Path(__file__).resolve().parent.parent / "client_secret.json"
 
 
-def get_credentials(scopes: List[str]) -> Credentials:
+def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
     """
     Load Google OAuth credentials.
 
@@ -40,13 +46,16 @@ def get_credentials(scopes: List[str]) -> Credentials:
         scopes: List of OAuth scope strings required by the caller.
 
     Returns:
-        Valid Credentials object.
+        Valid Credentials object, or None if Google API not available.
 
     Raises:
         RuntimeError: If no valid credentials can be obtained.
     """
+    if not _google_api_available:
+        return None
+    
     try:
-        credentials, _ = default(scopes=scopes)
+        credentials, _ = _default(scopes=scopes)
         return credentials
     except Exception:
         pass
@@ -58,15 +67,15 @@ def get_credentials(scopes: List[str]) -> Credentials:
             f"{TOKEN_FILE} exists."
         )
 
-    credentials = Credentials.from_authorized_user_file(str(TOKEN_FILE), scopes)
+    credentials = _Credentials.from_authorized_user_file(str(TOKEN_FILE), scopes)
     if credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
+        credentials.refresh(_Request())
         TOKEN_FILE.write_text(credentials.to_json(), encoding="utf-8")
 
     return credentials
 
 
-def build_service(api_name: str, api_version: str, scopes: List[str]):
+def build_service(api_name: str, api_version: str, scopes: List[str]) -> Optional[Any]:
     """
     Build and return an authenticated Google API service client.
 
@@ -76,7 +85,13 @@ def build_service(api_name: str, api_version: str, scopes: List[str]):
         scopes: List of OAuth scope strings.
 
     Returns:
-        Authenticated googleapiclient Resource object.
+        Authenticated googleapiclient Resource object, or None if Google API not available.
     """
+    if not _google_api_available:
+        return None
+    
     credentials = get_credentials(scopes)
-    return build(api_name, api_version, credentials=credentials)
+    if credentials is None:
+        return None
+    
+    return _build(api_name, api_version, credentials=credentials)

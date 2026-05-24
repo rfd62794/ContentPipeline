@@ -30,10 +30,11 @@ _google_api_available = False
 _HttpError = None
 try:
     from googleapiclient.errors import HttpError as _HttpError
-    from core.youtube_auth import build_service
     _google_api_available = True
 except ImportError:
     pass
+
+from core.youtube_auth import build_service
 
 
 # =============================================================================
