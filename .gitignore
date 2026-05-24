@@ -12,6 +12,13 @@ cache/***/__pycache__/
 content-engine/metrics_history.db
 content-engine/game_registry.json
 sessions/*.txt
+sessions/*.mp4
+sessions/*.tsv
+sessions/*.json
+sessions/*.yaml
+sessions/*.yml
+sessions/*.vtt
+sessions/*.srt
 
 # uv
 .venv/
