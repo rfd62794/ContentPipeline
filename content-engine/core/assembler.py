@@ -405,10 +405,21 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
         if has_voice:
             # Build a concatenated voice track: silence for gaps, voice clip where present
             voice_parts = []
+            padded_voice_files = []  # Track for cleanup
             for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
                 duration = seg.get("duration", 5.0)
                 if vp and Path(vp).exists():
-                    voice_parts.append(str(Path(vp)))
+                    # Pad voice clip to segment duration
+                    padded_voice_path = temp_dir / f"voice_{i}_padded.mp3"
+                    subprocess.run([
+                        get_ffmpeg_path(), "-y",
+                        "-i", str(Path(vp)),
+                        "-af", f"apad=whole_dur={duration}",
+                        "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                        str(padded_voice_path)
+                    ], capture_output=True, check=True)
+                    voice_parts.append(str(padded_voice_path))
+                    padded_voice_files.append(padded_voice_path)
                 else:
                     # Generate a silent MP3 clip of segment duration
                     silence_path = temp_dir / f"silence_{i}.mp3"
@@ -434,6 +445,10 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
                 "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
                 str(voice_track)
             ], capture_output=True, check=True)
+
+            # Cleanup padded voice files
+            for padded_file in padded_voice_files:
+                padded_file.unlink(missing_ok=True)
 
             # Mix: music (trimmed if needed) + voice at respective volumes
             voice_delay = config.get("voice_delay", 0.3)
