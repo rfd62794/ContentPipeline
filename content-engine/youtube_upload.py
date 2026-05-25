@@ -85,6 +85,13 @@ def build_video_resource(metadata: Dict[str, Any]) -> Dict[str, Any]:
         'privacyStatus': privacy,
         'selfDeclaredMadeForKids': metadata.get('made_for_kids', False)
     }
+
+    # Add schedule to status if present (for scheduling during upload)
+    schedule = metadata.get('schedule', '')
+    if schedule:
+        schedule_iso = format_schedule(schedule)
+        if schedule_iso:
+            status['publishAt'] = schedule_iso
     
     return {
         'snippet': snippet,
@@ -149,29 +156,6 @@ def upload_video(service, video_path: str, metadata: Dict[str, Any]) -> str:
                     continue
                 raise
             raise
-
-
-def set_schedule(service, video_id: str, schedule_iso: str) -> None:
-    """
-    Set video publish time. Called after upload if schedule present.
-    
-    Args:
-        service: Authenticated YouTube service object.
-        video_id: YouTube video ID.
-        schedule_iso: RFC 3339 formatted datetime string.
-    """
-    body = {
-        'id': video_id,
-        'status': {
-            'privacyStatus': 'private',
-            'publishAt': schedule_iso
-        }
-    }
-    
-    service.videos().update(
-        part='status',
-        body=body
-    ).execute()
 
 
 def print_metadata_table(metadata: Dict[str, Any], meta_source: Dict[str, str]) -> None:
@@ -359,17 +343,12 @@ def main() -> None:
         print(f"Video ID: {video_id}")
         print(f"URL: https://www.youtube.com/watch?v={video_id}")
 
-        # Set schedule if provided
+        # Schedule was set during upload if present
         schedule = resolved.get('schedule', '')
         if schedule:
-            print(f"Setting schedule for: {schedule}")
-            schedule_iso = format_schedule(schedule)
-            if schedule_iso:
-                print(f"Schedule ISO format: {schedule_iso}")
-                set_schedule(service, video_id, schedule_iso)
-                print(f"Scheduled for: {schedule}")
-            else:
-                print("Warning: Could not format schedule time")
+            print(f"Video scheduled for: {schedule}")
+        else:
+            print("Video published immediately")
     
     except Exception as e:
         if _google_api_available and _HttpError and isinstance(e, _HttpError):
