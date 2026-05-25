@@ -1,0 +1,31 @@
+# Metadata override layer for dune_awakening_11_speed_vs_storage
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Dune: Awakening — storage or speed"
+description: |
+  I could have taken the one with more storage. But this one has speed.
+
+  Dune: Awakening on Steam:
+  https://store.steampowered.com/app/1172710/Dune_Awakening/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+tags:
+  - dune awakening
+  - dune awakening gameplay
+  - dune awakening 2026
+  - dune awakening tips
+  - dune awakening vehicle
+  - dune awakening sand bike
+  - arrakis
+  - survival game 2026
+  - open world survival
+  - dune awakening stream
+  - steam survival
+privacy: "public"
+schedule: "2026-06-06T22:00:00"
+category_id: "20"
+made_for_kids: false

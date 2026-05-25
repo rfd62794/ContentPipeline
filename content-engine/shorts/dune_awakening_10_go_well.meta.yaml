@@ -1,0 +1,30 @@
+# Metadata override layer for dune_awakening_10_go_well
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Dune: Awakening — this can only go well for me"
+description: |
+  Famous last words on Arrakis.
+
+  Dune: Awakening on Steam:
+  https://store.steampowered.com/app/1172710/Dune_Awakening/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+tags:
+  - dune awakening
+  - dune awakening gameplay
+  - dune awakening 2026
+  - arrakis
+  - survival game 2026
+  - open world survival
+  - dune awakening stream
+  - steam survival
+  - dune awakening funny
+  - dune awakening quotes
+privacy: "public"
+schedule: "2026-06-05T22:00:00"
+category_id: "20"
+made_for_kids: false

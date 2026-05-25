@@ -258,6 +258,11 @@ def main() -> None:
         default=None,
         help='Path to Steam installation for metadata enrichment'
     )
+    parser.add_argument(
+        '--yes',
+        action='store_true',
+        help='Skip confirmation prompt and proceed with upload'
+    )
     
     args = parser.parse_args()
     
@@ -323,17 +328,18 @@ def main() -> None:
         sys.exit(1)
     
     # Find video file
-    video_path = f"output/{args.short}.mp4"
+    video_path = f"output/shorts/{args.short}.mp4"
     if not os.path.exists(video_path):
         print(f"Error: Video file not found: {video_path}")
         sys.exit(1)
     
-    # Confirmation prompt (mandatory)
+    # Confirmation prompt (mandatory unless --yes)
     print(f"\nVideo file: {video_path}")
-    response = input("Proceed with upload? [y/N]: ")
-    if response.lower() != 'y':
-        print("Upload cancelled.")
-        sys.exit(0)
+    if not args.yes:
+        response = input("Proceed with upload? [y/N]: ")
+        if response.lower() != 'y':
+            print("Upload cancelled.")
+            sys.exit(0)
     
     # Authenticate using gcloud ADC
     try:
