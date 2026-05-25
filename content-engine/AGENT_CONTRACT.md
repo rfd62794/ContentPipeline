@@ -157,3 +157,29 @@ Before merging any branch to `main`:
 - [ ] Director reviews changes
 - [ ] Director confirms stability
 - [ ] Merge performed by Director or with explicit Director approval
+
+---
+
+## 8. YouTube Upload Restrictions
+
+### 8.1 No Automatic Uploads
+
+**RULE:** The Agent is **NEVER** permitted to run `youtube_upload.py` without explicit Director approval for each upload.
+
+- The Agent may validate metadata, check file paths, and prepare uploads
+- The Agent may NOT execute the actual upload command
+- Each upload requires explicit Director confirmation before execution
+- No batch uploads. No scheduled uploads without Director approval per video.
+
+### 8.2 Upload Workflow
+
+When preparing YouTube uploads:
+1. Validate metadata using `metadata_builder.py`
+2. Verify video file exists in expected location
+3. Present upload details to Director for review
+4. **STOP** - Wait for explicit Director approval
+5. Only execute upload with explicit `--yes` flag after approval
+
+### 8.3 Violation Consequences
+
+Running `youtube_upload.py` without explicit approval is a contract violation and treated as a critical failure.

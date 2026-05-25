@@ -10,6 +10,7 @@ Pure functions only. No network calls. No file I/O beyond reading YAML.
 """
 
 import yaml
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -268,8 +269,13 @@ def format_schedule(schedule_str: str) -> Optional[str]:
     if not schedule_str:
         return None
     
+    # Check if already in RFC 3339 format with timezone offset
+    if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$', schedule_str):
+        return schedule_str
+    
     # Try parsing common formats
     formats = [
+        '%Y-%m-%dT%H:%M:%S%z',  # ISO format with T and timezone offset
         '%Y-%m-%dT%H:%M:%S',  # ISO format with T
         '%Y-%m-%d %H:%M:%S',  # Space separator
         '%Y-%m-%d %H:%M',     # Without seconds
