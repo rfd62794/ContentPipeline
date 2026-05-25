@@ -1,0 +1,30 @@
+# Metadata override layer for dune_awakening_8_my_house
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Dune: Awakening — why are you in my house"
+description: |
+  No shield. No warning. Just raiders in my base.
+
+  Dune: Awakening on Steam:
+  https://store.steampowered.com/app/1172710/Dune_Awakening/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+tags:
+  - dune awakening
+  - dune awakening gameplay
+  - dune awakening 2026
+  - dune awakening raid
+  - dune awakening base raid
+  - arrakis
+  - survival game 2026
+  - open world survival
+  - dune awakening stream
+  - steam survival
+privacy: "public"
+schedule: "2026-06-03T22:00:00"
+category_id: "20"
+made_for_kids: false

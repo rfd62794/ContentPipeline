@@ -1,0 +1,30 @@
+# Metadata override layer for dune_awakening_9_sandbikes
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Dune: Awakening — that's what happened to my sand bikes"
+description: |
+  Raids. Sandstorms. Now I know.
+
+  Dune: Awakening on Steam:
+  https://store.steampowered.com/app/1172710/Dune_Awakening/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+tags:
+  - dune awakening
+  - dune awakening gameplay
+  - dune awakening 2026
+  - dune awakening sand bike
+  - dune awakening tips
+  - arrakis
+  - survival game 2026
+  - open world survival
+  - dune awakening stream
+  - steam survival
+privacy: "public"
+schedule: "2026-06-04T22:00:00"
+category_id: "20"
+made_for_kids: false

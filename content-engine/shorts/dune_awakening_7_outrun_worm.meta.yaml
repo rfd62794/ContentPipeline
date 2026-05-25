@@ -1,0 +1,30 @@
+# Metadata override layer for dune_awakening_7_outrun_worm
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Dune: Awakening — can I outrun the worm"
+description: |
+  Probably the closest I've had to her.
+
+  Dune: Awakening on Steam:
+  https://store.steampowered.com/app/1172710/Dune_Awakening/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+tags:
+  - dune awakening
+  - dune awakening gameplay
+  - dune awakening 2026
+  - dune awakening sandworm
+  - arrakis
+  - survival game 2026
+  - open world survival
+  - dune awakening stream
+  - dune sandworm
+  - steam survival
+privacy: "public"
+schedule: "2026-06-02T22:00:00"
+category_id: "20"
+made_for_kids: false
