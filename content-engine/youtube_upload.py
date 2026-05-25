@@ -70,7 +70,7 @@ def build_video_resource(metadata: Dict[str, Any]) -> Dict[str, Any]:
         'unlisted': 'unlisted',
         'private': 'private'
     }
-    privacy = privacy_map.get(metadata.get('privacy', 'public'), 'public')
+    privacy = 'private' if metadata.get('schedule') else privacy_map.get(metadata.get('privacy', 'public'), 'public')
     
     # Build snippet
     snippet = {
