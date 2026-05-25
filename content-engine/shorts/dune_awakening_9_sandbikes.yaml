@@ -10,26 +10,21 @@ max_visible_lines: 5
 
 beats:
   - clip_start: "22:51"
-    clip_end: "22:55"
-    duration: 4
+    clip_end: "22:56"
+    duration: 5
     line: "I don't know these raids — annoying."
 
-  - clip_start: "22:55"
-    clip_end: "23:00"
+  - clip_start: "22:57"
+    clip_end: "23:02"
     duration: 5
     line: "I'm going to have to find a better base spot."
 
-  - clip_start: "23:15"
-    clip_end: "23:19"
-    duration: 4
-    line: "Discovery moment."
-
-  - clip_start: "23:25"
-    clip_end: "23:29"
-    duration: 4
+  - clip_start: "26:33"
+    clip_end: "26:36"
+    duration: 3
     line: "That's what happened to my sand bikes."
 
-  - clip_start: "23:39"
-    clip_end: "23:43"
+  - clip_start: "23:33"
+    clip_end: "23:37"
     duration: 4
     line: "Got it."

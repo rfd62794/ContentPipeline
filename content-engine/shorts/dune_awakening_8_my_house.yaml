@@ -9,22 +9,22 @@ stack_text: true
 max_visible_lines: 5
 
 beats:
-  - clip_start: "19:43"
-    clip_end: "19:47"
+  - clip_start: "19:42"
+    clip_end: "19:46"
     duration: 4
-    line: "Get off the bike. Get off the bike."
+    line: "Get off the bike."
 
-  - clip_start: "19:47"
-    clip_end: "19:51"
+  - clip_start: "19:46"
+    clip_end: "19:50"
     duration: 4
     line: "Get out of the beam."
 
-  - clip_start: "20:19"
-    clip_end: "20:23"
+  - clip_start: "20:23"
+    clip_end: "20:27"
     duration: 4
     line: "Fuck."
 
-  - clip_start: "20:27"
-    clip_end: "20:31"
+  - clip_start: "20:29"
+    clip_end: "20:33"
     duration: 4
     line: "Why are you in my house?"
