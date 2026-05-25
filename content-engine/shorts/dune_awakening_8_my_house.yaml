@@ -1,0 +1,30 @@
+name: dune_awakening_8_my_house
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-05-24 21-00-17.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "19:43"
+    clip_end: "19:47"
+    duration: 4
+    line: "Get off the bike. Get off the bike."
+
+  - clip_start: "19:47"
+    clip_end: "19:51"
+    duration: 4
+    line: "Get out of the beam."
+
+  - clip_start: "20:19"
+    clip_end: "20:23"
+    duration: 4
+    line: "Fuck."
+
+  - clip_start: "20:27"
+    clip_end: "20:31"
+    duration: 4
+    line: "Why are you in my house?"

@@ -1,0 +1,35 @@
+name: dune_awakening_7_outrun_worm
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-05-24 21-00-17.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "10:31"
+    clip_end: "10:35"
+    duration: 4
+    line: "Should I stop weaving and just go?"
+
+  - clip_start: "10:35"
+    clip_end: "10:39"
+    duration: 4
+    line: "Will I make it?"
+
+  - clip_start: "10:43"
+    clip_end: "10:47"
+    duration: 4
+    line: "Can I outrun the worm?"
+
+  - clip_start: "10:47"
+    clip_end: "10:51"
+    duration: 4
+    line: "That's probably the closest I've had to her."
+
+  - clip_start: "10:59"
+    clip_end: "11:03"
+    duration: 4
+    line: "I can just outrun her."

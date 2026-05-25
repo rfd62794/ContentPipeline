@@ -1,0 +1,30 @@
+name: dune_awakening_9_sandbikes
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-05-24 21-00-17.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "22:51"
+    clip_end: "22:55"
+    duration: 4
+    line: "I don't know these raids — annoying."
+
+  - clip_start: "22:55"
+    clip_end: "23:00"
+    duration: 5
+    line: "I'm going to have to find a better base spot."
+
+  - clip_start: "23:35"
+    clip_end: "23:39"
+    duration: 4
+    line: "That's what happened to my sand bikes."
+
+  - clip_start: "23:39"
+    clip_end: "23:43"
+    duration: 4
+    line: "Got it."
