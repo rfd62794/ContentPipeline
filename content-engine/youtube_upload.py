@@ -295,11 +295,21 @@ def main() -> None:
     
     # Find video file
     try:
-        video_path = f"output/shorts/{args.short}.mp4"
-        print(f"Checking for video file: {video_path}")
-        print(f"File exists: {os.path.exists(video_path)}")
-        if not os.path.exists(video_path):
-            print(f"Error: Video file not found: {video_path}")
+        # Check both locations for video file
+        video_path_primary = f"output/shorts/{args.short}.mp4"
+        video_path_secondary = f"C:/Users/cheat/Videos/Dune Awakening/{args.short}.mp4"
+
+        print(f"Checking for video file: {video_path_primary}")
+        if os.path.exists(video_path_primary):
+            video_path = video_path_primary
+            print("Video file found in output/shorts/")
+        elif os.path.exists(video_path_secondary):
+            video_path = video_path_secondary
+            print("Video file found in C:/Users/cheat/Videos/Dune Awakening/")
+        else:
+            print(f"Error: Video file not found in either location:")
+            print(f"  Checked: {video_path_primary}")
+            print(f"  Checked: {video_path_secondary}")
             sys.exit(1)
         print("Video file found")
     except Exception as e:
