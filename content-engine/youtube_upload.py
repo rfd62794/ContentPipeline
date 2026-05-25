@@ -177,35 +177,22 @@ def set_schedule(service, video_id: str, schedule_iso: str) -> None:
 def print_metadata_table(metadata: Dict[str, Any], meta_source: Dict[str, str]) -> None:
     """
     Print resolved metadata table showing which layer provided each field.
-    
+
     Args:
         metadata: Resolved metadata dict.
         meta_source: Dict mapping field names to source ('manual', 'auto', 'default').
     """
     print("\n=== Resolved Metadata ===\n")
-    
     print(f"Title: {metadata.get('title', '')}")
-    print(f"  Source: {meta_source.get('title', 'unknown')}\n")
-    
     print(f"Description: {metadata.get('description', '')[:100]}...")
-    print(f"  Source: {meta_source.get('description', 'unknown')}\n")
-    
     print(f"Tags: {', '.join(metadata.get('tags', []))}")
-    print(f"  Source: {meta_source.get('tags', 'unknown')}\n")
-    
     print(f"Privacy: {metadata.get('privacy', '')}")
-    print(f"  Source: {meta_source.get('privacy', 'unknown')}\n")
-    
     schedule = metadata.get('schedule', '')
     if schedule:
         print(f"Schedule: {schedule}")
-        print(f"  Source: {meta_source.get('schedule', 'unknown')}\n")
     else:
         print("Schedule: Publish immediately")
-        print(f"  Source: {meta_source.get('schedule', 'unknown')}\n")
-    
     print(f"Category ID: {metadata.get('category_id', '')}")
-    print(f"  Source: {meta_source.get('category_id', 'unknown')}\n")
 
 
 def determine_source(meta: Dict[str, Any], field: str, resolved_value: Any) -> str:
@@ -314,13 +301,8 @@ def main() -> None:
     }
     
     # Print metadata table
-    try:
-        print_metadata_table(resolved, meta_source)
-    except Exception as e:
-        print(f"Error printing metadata table: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    print_metadata_table(resolved, meta_source)
+    print()
     
     # Validate metadata
     try:
