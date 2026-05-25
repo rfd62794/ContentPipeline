@@ -13,6 +13,8 @@ description: |
 
   GitHub: github.com/rfd62794/ContentPipeline
   YouTube: @robertfloyddugger4516
+
+  #Shorts
 tags:
   - dune awakening
   - dune awakening gameplay
@@ -26,6 +28,6 @@ tags:
   - dune awakening stream
   - steam survival
 privacy: "public"
-schedule: "2026-06-06T22:00:00"
+schedule: "2026-06-06T22:00:00-04:00"
 category_id: "20"
 made_for_kids: false
