@@ -27,6 +27,7 @@ try:
     from google.auth.transport.requests import Request as _Request
     from google.auth import default as _default
     from googleapiclient.discovery import build as _build
+    from google_auth_oauthlib.flow import InstalledAppFlow
     _google_api_available = True
 except ImportError:
     pass
@@ -41,6 +42,7 @@ def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
     Load Google OAuth credentials.
 
     Tries ADC first; falls back to .youtube_token.json with auto-refresh.
+    If no token exists, uses client_secret.json for OAuth flow.
 
     Args:
         scopes: List of OAuth scope strings required by the caller.
@@ -60,19 +62,29 @@ def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
     except Exception:
         pass
 
-    if not TOKEN_FILE.exists():
-        raise RuntimeError(
-            f"No valid credentials found. Either run "
-            f"'gcloud auth application-default login' or ensure "
-            f"{TOKEN_FILE} exists."
-        )
+    if TOKEN_FILE.exists():
+        try:
+            credentials = _Credentials.from_authorized_user_file(str(TOKEN_FILE), scopes)
+            if credentials.expired and credentials.refresh_token:
+                credentials.refresh(_Request())
+                TOKEN_FILE.write_text(credentials.to_json(), encoding="utf-8")
+            return credentials
+        except Exception:
+            pass
 
-    credentials = _Credentials.from_authorized_user_file(str(TOKEN_FILE), scopes)
-    if credentials.expired and credentials.refresh_token:
-        credentials.refresh(_Request())
+    # If no valid token, use client_secret for OAuth flow
+    if CLIENT_SECRET_FILE.exists():
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET_FILE), scopes=scopes)
+        credentials = flow.run_local_server(port=8080)
         TOKEN_FILE.write_text(credentials.to_json(), encoding="utf-8")
+        return credentials
 
-    return credentials
+    raise RuntimeError(
+        f"No valid credentials found. Either run "
+        f"'gcloud auth application-default login' or ensure "
+        f"{CLIENT_SECRET_FILE} exists."
+    )
 
 
 def build_service(api_name: str, api_version: str, scopes: List[str]) -> Optional[Any]:
