@@ -317,29 +317,55 @@ def main() -> None:
     }
     
     # Print metadata table
-    print_metadata_table(resolved, meta_source)
+    try:
+        print_metadata_table(resolved, meta_source)
+    except Exception as e:
+        print(f"Error printing metadata table: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
     
     # Validate metadata
-    errors = validate_metadata(resolved)
-    if errors:
-        print("Validation errors:")
-        for error in errors:
-            print(f"  - {error}")
+    try:
+        errors = validate_metadata(resolved)
+        if errors:
+            print("Validation errors:")
+            for error in errors:
+                print(f"  - {error}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error validating metadata: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     
     # Find video file
-    video_path = f"output/shorts/{args.short}.mp4"
-    if not os.path.exists(video_path):
-        print(f"Error: Video file not found: {video_path}")
+    try:
+        video_path = f"output/shorts/{args.short}.mp4"
+        print(f"Checking for video file: {video_path}")
+        print(f"File exists: {os.path.exists(video_path)}")
+        if not os.path.exists(video_path):
+            print(f"Error: Video file not found: {video_path}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error checking video file: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     
     # Confirmation prompt (mandatory unless --yes)
-    print(f"\nVideo file: {video_path}")
-    if not args.yes:
-        response = input("Proceed with upload? [y/N]: ")
-        if response.lower() != 'y':
-            print("Upload cancelled.")
-            sys.exit(0)
+    try:
+        print(f"\nVideo file: {video_path}")
+        if not args.yes:
+            response = input("Proceed with upload? [y/N]: ")
+            if response.lower() != 'y':
+                print("Upload cancelled.")
+                sys.exit(0)
+    except Exception as e:
+        print(f"Error during confirmation: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
     
     # Authenticate using gcloud ADC
     try:
@@ -347,6 +373,8 @@ def main() -> None:
     except Exception as e:
         print(f"Error during authentication: {e}")
         print("Make sure gcloud auth application-default login has been run with YouTube upload scope.")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     
     # Upload

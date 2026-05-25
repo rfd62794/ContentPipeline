@@ -9,8 +9,8 @@ stack_text: true
 max_visible_lines: 5
 
 beats:
-  - clip_start: "16:21"
-    clip_end: "16:31"
+  - clip_start: "16:23"
+    clip_end: "16:33"
     duration: 10
     line: "Can I outrun the worm?"
 
