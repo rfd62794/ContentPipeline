@@ -182,17 +182,7 @@ def print_metadata_table(metadata: Dict[str, Any], meta_source: Dict[str, str]) 
         metadata: Resolved metadata dict.
         meta_source: Dict mapping field names to source ('manual', 'auto', 'default').
     """
-    print("\n=== Resolved Metadata ===\n")
-    print(f"Title: {metadata.get('title', '')}")
-    print(f"Description: {metadata.get('description', '')[:100]}...")
-    print(f"Tags: {', '.join(metadata.get('tags', []))}")
-    print(f"Privacy: {metadata.get('privacy', '')}")
-    schedule = metadata.get('schedule', '')
-    if schedule:
-        print(f"Schedule: {schedule}")
-    else:
-        print("Schedule: Publish immediately")
-    print(f"Category ID: {metadata.get('category_id', '')}")
+    pass
 
 
 def determine_source(meta: Dict[str, Any], field: str, resolved_value: Any) -> str:
@@ -301,8 +291,8 @@ def main() -> None:
     }
     
     # Print metadata table
-    print_metadata_table(resolved, meta_source)
-    print()
+    # print_metadata_table(resolved, meta_source)
+    # print()
     
     # Validate metadata
     try:
