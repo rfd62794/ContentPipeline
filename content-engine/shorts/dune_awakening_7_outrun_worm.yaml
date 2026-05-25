@@ -9,13 +9,13 @@ stack_text: true
 max_visible_lines: 5
 
 beats:
-  - clip_start: "10:31"
-    clip_end: "10:35"
+  - clip_start: "10:16"
+    clip_end: "10:20"
     duration: 4
     line: "Should I stop weaving and just go?"
 
-  - clip_start: "10:35"
-    clip_end: "10:39"
+  - clip_start: "10:20"
+    clip_end: "10:24"
     duration: 4
     line: "Will I make it?"
 

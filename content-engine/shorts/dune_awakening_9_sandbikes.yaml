@@ -19,8 +19,13 @@ beats:
     duration: 5
     line: "I'm going to have to find a better base spot."
 
-  - clip_start: "23:35"
-    clip_end: "23:39"
+  - clip_start: "23:15"
+    clip_end: "23:19"
+    duration: 4
+    line: "Discovery moment."
+
+  - clip_start: "23:25"
+    clip_end: "23:29"
     duration: 4
     line: "That's what happened to my sand bikes."
 

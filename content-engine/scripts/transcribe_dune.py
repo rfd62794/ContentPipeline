@@ -50,6 +50,8 @@ def main():
                         help="Whisper model size (default: medium)")
     parser.add_argument("--device", choices=["cpu", "cuda"],
                         help="Device for Whisper (default: auto-detect)")
+    parser.add_argument("--word-timestamps", action="store_true",
+                        help="Enable word-level timestamps for higher accuracy")
     args = parser.parse_args()
 
     # Validate video path exists
@@ -75,7 +77,7 @@ def main():
 
         # Transcribe
         print(f"Transcribing with Whisper {args.model} model on {device}...")
-        segments = transcribe(wav_path, args.model, device=device)
+        segments = transcribe(wav_path, args.model, device=device, word_timestamps=True)
 
         # Write timestamped transcription
         with open(output_timestamped, 'w', encoding='utf-8') as f:

@@ -160,12 +160,12 @@ def launch_vlc(video_path: str, start_time: int, vlc_path: str) -> subprocess.Po
     return process
 
 
-def transcribe(wav_path: str, model_name: str, device: str = "cpu") -> list:
+def transcribe(wav_path: str, model_name: str, device: str = "cpu", word_timestamps: bool = False) -> list:
     """Load whisper model. Transcribe wav_path. Return result['segments']."""
     import whisper
     
     model = whisper.load_model(model_name, device=device)
-    result = model.transcribe(wav_path)
+    result = model.transcribe(wav_path, word_timestamps=word_timestamps)
     return result["segments"]
 
 
