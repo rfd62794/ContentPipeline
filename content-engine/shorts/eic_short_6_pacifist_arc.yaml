@@ -1,0 +1,45 @@
+name: eic_short_6_pacifist_arc
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "0:59"
+    clip_end: "1:03"
+    duration: 4
+    line: "I'm not a fighter."
+
+  - clip_start: "1:30"
+    clip_end: "1:35"
+    duration: 5
+    line: "If you hit me, it's bad for you."
+
+  - clip_start: "4:25"
+    clip_end: "4:29"
+    duration: 4
+    line: "That worked itself out."
+
+  - clip_start: "7:56"
+    clip_end: "8:00"
+    duration: 4
+    line: "If I keep you close, you'll hit him."
+
+  - clip_start: "15:31"
+    clip_end: "15:36"
+    duration: 5
+    line: "You can turn people attacking you into allies."
+
+  - clip_start: "19:09"
+    clip_end: "19:13"
+    duration: 4
+    line: "Every time I get hit, it's worse for you."
+
+  - clip_start: "23:46"
+    clip_end: "23:50"
+    duration: 4
+    line: "It's gonna hurt you more than it's gonna hurt me."

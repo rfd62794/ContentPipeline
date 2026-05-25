@@ -1,0 +1,35 @@
+name: eic_short_8_nervous_win
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "0:04"
+    clip_end: "0:09"
+    duration: 5
+    line: "Getting over the nerves. I have no reason to be nervous."
+
+  - clip_start: "24:01"
+    clip_end: "24:05"
+    duration: 4
+    line: "This is a much longer stream than I planned for."
+
+  - clip_start: "24:04"
+    clip_end: "24:08"
+    duration: 4
+    line: "But the run is going."
+
+  - clip_start: "30:39"
+    clip_end: "30:43"
+    duration: 4
+    line: "Pressure two. Level 56."
+
+  - clip_start: "30:41"
+    clip_end: "30:45"
+    duration: 4
+    line: "Huge."

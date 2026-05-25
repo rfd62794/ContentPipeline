@@ -1,0 +1,40 @@
+name: eic_short_9_charm_discovery
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "7:56"
+    clip_end: "8:00"
+    duration: 4
+    line: "If I keep you close to me, you'll hit him."
+
+  - clip_start: "15:31"
+    clip_end: "15:36"
+    duration: 5
+    line: "You can turn people attacking you into allies."
+
+  - clip_start: "15:47"
+    clip_end: "15:51"
+    duration: 4
+    line: "Yep. Charmed. Perfect."
+
+  - clip_start: "20:37"
+    clip_end: "20:41"
+    duration: 4
+    line: "You poisoned yourself by hitting me."
+
+  - clip_start: "29:13"
+    clip_end: "29:17"
+    duration: 4
+    line: "Consuming food has a chance to charm enemies."
+
+  - clip_start: "29:20"
+    clip_end: "29:24"
+    duration: 4
+    line: "Crowd control."

@@ -1,0 +1,40 @@
+name: eic_short_11_boss_chaos
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "26:25"
+    clip_end: "26:29"
+    duration: 4
+    line: "A new challenger should arrive very soon."
+
+  - clip_start: "27:13"
+    clip_end: "27:17"
+    duration: 4
+    line: "It's a giant. Not a capybara, are you?"
+
+  - clip_start: "27:33"
+    clip_end: "27:37"
+    duration: 4
+    line: "Crab arm. Crab tentacles. Antlers."
+
+  - clip_start: "28:54"
+    clip_end: "28:58"
+    duration: 4
+    line: "This is just immense."
+
+  - clip_start: "30:15"
+    clip_end: "30:19"
+    duration: 4
+    line: "Level 56. This screen is just a mess."
+
+  - clip_start: "30:39"
+    clip_end: "30:43"
+    duration: 4
+    line: "Pressure two. Huge."

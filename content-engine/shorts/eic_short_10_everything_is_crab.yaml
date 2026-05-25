@@ -1,0 +1,30 @@
+name: eic_short_10_everything_is_crab
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "25:39"
+    clip_end: "25:43"
+    duration: 4
+    line: "There's a literal crab."
+
+  - clip_start: "25:43"
+    clip_end: "25:47"
+    duration: 4
+    line: "I don't think I've seen before."
+
+  - clip_start: "25:48"
+    clip_end: "25:52"
+    duration: 4
+    line: "Everything is crab."
+
+  - clip_start: "25:53"
+    clip_end: "25:57"
+    duration: 4
+    line: "Nothing. There's nobody out here."

@@ -1,0 +1,40 @@
+name: eic_short_7_chonky
+source: "C:/Users/cheat/Videos/Everything Is Crab/2026-05-25 13-08-48.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "7:39"
+    clip_end: "7:43"
+    duration: 4
+    line: "Chonky. Always chonky."
+
+  - clip_start: "10:47"
+    clip_end: "10:51"
+    duration: 4
+    line: "Gotta be chonky."
+
+  - clip_start: "16:37"
+    clip_end: "16:41"
+    duration: 4
+    line: "I'm trying to be chonky for true robustness."
+
+  - clip_start: "18:23"
+    clip_end: "18:27"
+    duration: 4
+    line: "Chonky's a really good one."
+
+  - clip_start: "22:18"
+    clip_end: "22:22"
+    duration: 4
+    line: "Just get as big as we can. Utterly huge."
+
+  - clip_start: "24:05"
+    clip_end: "24:09"
+    duration: 4
+    line: "I am super ultra chonky."
