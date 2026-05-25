@@ -162,17 +162,14 @@ def set_schedule(service, video_id: str, schedule_iso: str) -> None:
     """
     body = {
         'id': video_id,
-        'snippet': {
-            'scheduledPublishTime': schedule_iso
-        },
         'status': {
-            'privacyStatus': 'private',  # Must be private before scheduling
+            'privacyStatus': 'private',
             'publishAt': schedule_iso
         }
     }
     
     service.videos().update(
-        part='snippet,status',
+        part='status',
         body=body
     ).execute()
 
@@ -333,6 +330,7 @@ def main() -> None:
             for error in errors:
                 print(f"  - {error}")
             sys.exit(1)
+        print("Validation passed")
     except Exception as e:
         print(f"Error validating metadata: {e}")
         import traceback
@@ -347,6 +345,7 @@ def main() -> None:
         if not os.path.exists(video_path):
             print(f"Error: Video file not found: {video_path}")
             sys.exit(1)
+        print("Video file found")
     except Exception as e:
         print(f"Error checking video file: {e}")
         import traceback
@@ -361,6 +360,7 @@ def main() -> None:
             if response.lower() != 'y':
                 print("Upload cancelled.")
                 sys.exit(0)
+        print("Confirmation complete, proceeding to authentication")
     except Exception as e:
         print(f"Error during confirmation: {e}")
         import traceback
@@ -369,7 +369,9 @@ def main() -> None:
     
     # Authenticate using gcloud ADC
     try:
+        print("Starting authentication...")
         service = get_authenticated_service()
+        print("Authentication successful")
     except Exception as e:
         print(f"Error during authentication: {e}")
         print("Make sure gcloud auth application-default login has been run with YouTube upload scope.")
@@ -379,18 +381,23 @@ def main() -> None:
     
     # Upload
     try:
+        print("Starting upload...")
         video_id = upload_video(service, video_path, resolved)
         print(f"\nUpload successful!")
         print(f"Video ID: {video_id}")
         print(f"URL: https://www.youtube.com/watch?v={video_id}")
-        
+
         # Set schedule if provided
         schedule = resolved.get('schedule', '')
         if schedule:
+            print(f"Setting schedule for: {schedule}")
             schedule_iso = format_schedule(schedule)
             if schedule_iso:
+                print(f"Schedule ISO format: {schedule_iso}")
                 set_schedule(service, video_id, schedule_iso)
                 print(f"Scheduled for: {schedule}")
+            else:
+                print("Warning: Could not format schedule time")
     
     except Exception as e:
         if _google_api_available and _HttpError and isinstance(e, _HttpError):
