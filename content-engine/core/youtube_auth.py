@@ -33,7 +33,7 @@ except ImportError:
 
 
 TOKEN_FILE = Path(__file__).resolve().parent.parent / ".youtube_token.json"
-CLIENT_SECRET_FILE = Path(__file__).resolve().parent.parent / "client_secret.json"
+CLIENT_SECRET_FILE = Path(__file__).resolve().parent.parent.parent / "secrets" / "client_secret_871059870702-etom8bslm61ouukn3jfun9klcq9kk29o.apps.googleusercontent.com.json"
 
 
 def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
