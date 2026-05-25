@@ -50,8 +50,6 @@ def main():
                         help="Whisper model size (default: medium)")
     parser.add_argument("--device", choices=["cpu", "cuda"],
                         help="Device for Whisper (default: auto-detect)")
-    parser.add_argument("--word-timestamps", action="store_true",
-                        help="Enable word-level timestamps for higher accuracy")
     args = parser.parse_args()
 
     # Validate video path exists
@@ -75,24 +73,18 @@ def main():
         # Extract audio
         extract_audio(args.video_path, wav_path)
 
-        # Transcribe
+        # Transcribe with word timestamps enabled by default
         print(f"Transcribing with Whisper {args.model} model on {device}...")
-        segments = transcribe(wav_path, args.model, device=device, word_timestamps=args.word_timestamps)
+        segments = transcribe(wav_path, args.model, device=device, word_timestamps=True)
 
-        # Write timestamped transcription
+        # Write timestamped transcription (word-level)
         with open(output_timestamped, 'w', encoding='utf-8') as f:
-            if args.word_timestamps:
-                # Write word-level timestamps
-                for seg in segments:
-                    if 'words' in seg:
-                        for word in seg['words']:
-                            f.write(f"[{word['start']:.2f}] {word['word']}\n")
-                    else:
-                        # Fallback to segment-level if no word data
-                        f.write(f"[{seg['start']:.2f}] {seg['text']}\n")
-            else:
-                # Write segment-level timestamps
-                for seg in segments:
+            for seg in segments:
+                if 'words' in seg:
+                    for word in seg['words']:
+                        f.write(f"[{word['start']:.2f}] {word['word']}\n")
+                else:
+                    # Fallback to segment-level if no word data
                     f.write(f"[{seg['start']:.2f}] {seg['text']}\n")
         print(f"Saved timestamped transcription to {output_timestamped}")
 
