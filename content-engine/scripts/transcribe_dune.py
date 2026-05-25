@@ -77,12 +77,23 @@ def main():
 
         # Transcribe
         print(f"Transcribing with Whisper {args.model} model on {device}...")
-        segments = transcribe(wav_path, args.model, device=device, word_timestamps=True)
+        segments = transcribe(wav_path, args.model, device=device, word_timestamps=args.word_timestamps)
 
         # Write timestamped transcription
         with open(output_timestamped, 'w', encoding='utf-8') as f:
-            for seg in segments:
-                f.write(f"[{seg['start']:.2f}] {seg['text']}\n")
+            if args.word_timestamps:
+                # Write word-level timestamps
+                for seg in segments:
+                    if 'words' in seg:
+                        for word in seg['words']:
+                            f.write(f"[{word['start']:.2f}] {word['word']}\n")
+                    else:
+                        # Fallback to segment-level if no word data
+                        f.write(f"[{seg['start']:.2f}] {seg['text']}\n")
+            else:
+                # Write segment-level timestamps
+                for seg in segments:
+                    f.write(f"[{seg['start']:.2f}] {seg['text']}\n")
         print(f"Saved timestamped transcription to {output_timestamped}")
 
         # Write plain transcription
