@@ -1,0 +1,32 @@
+# Metadata override layer for eic_short_9_charm_discovery
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Everything is Crab — you can turn attackers into allies"
+description: |
+  That is invaluable.
+
+  Everything is Crab on Steam:
+  https://store.steampowered.com/app/3526710/Everything_is_Crab_The_Animal_Evolution_Roguelite/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - everything is crab
+  - everything is crab gameplay
+  - everything is crab charm
+  - everything is crab mechanic
+  - animal evolution roguelite
+  - evolution roguelike
+  - indie game 2026
+  - indie roguelite 2026
+  - creature evolution game
+  - everything is crab tips
+privacy: "public"
+schedule: "2026-06-02T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false
