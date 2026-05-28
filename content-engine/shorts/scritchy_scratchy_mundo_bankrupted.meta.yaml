@@ -1,0 +1,32 @@
+# Metadata override layer for scritchy_scratchy_mundo_bankrupted
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Scritchy Scratchy — Mundo bankrupted me"
+description: |
+  Unlocked a new helper cat. He taps tickets and cashes them in. Then immediately bankrupted me.
+
+  Scritchy Scratchy on Steam:
+  https://store.steampowered.com/app/3948120/Scritchy_Scratchy/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - scritchy scratchy
+  - scritchy scratchy gameplay
+  - idle game
+  - scratch ticket game
+  - idle clicker
+  - automation
+  - casual game
+  - indie game 2026
+  - steam indie game
+  - gaming shorts
+privacy: "public"
+schedule: "2026-06-14T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false

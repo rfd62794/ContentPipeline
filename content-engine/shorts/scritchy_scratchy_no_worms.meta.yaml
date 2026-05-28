@@ -1,0 +1,32 @@
+# Metadata override layer for scritchy_scratchy_no_worms
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Scritchy Scratchy — no worms no worms no worms"
+description: |
+  The apple tree ticket has a chance of a bad symbol. I found out the hard way.
+
+  Scritchy Scratchy on Steam:
+  https://store.steampowered.com/app/3948120/Scritchy_Scratchy/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - scritchy scratchy
+  - scritchy scratchy gameplay
+  - idle game
+  - scratch ticket game
+  - idle clicker
+  - casual game
+  - indie game 2026
+  - steam indie game
+  - gaming shorts
+  - scratch off game
+privacy: "public"
+schedule: "2026-06-08T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false

@@ -1,0 +1,32 @@
+# Metadata override layer for scritchy_scratchy_negative_ticket
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Scritchy Scratchy — that ticket came back negative"
+description: |
+  Negative 3.98. I trashed it. If you go into debt, you use the in-game phone to get a loan.
+
+  Scritchy Scratchy on Steam:
+  https://store.steampowered.com/app/3948120/Scritchy_Scratchy/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - scritchy scratchy
+  - scritchy scratchy gameplay
+  - idle game
+  - scratch ticket game
+  - idle clicker
+  - casual game
+  - indie game 2026
+  - steam indie game
+  - gaming shorts
+  - scratch off game
+privacy: "public"
+schedule: "2026-06-10T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false
