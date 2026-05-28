@@ -1,0 +1,24 @@
+name: scritchy_scratchy_negative_ticket
+source: "C:\\Users\\cheat\\Videos\\Scritchy Scratchy\\2026-05-27 21-38-58.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "9:14"
+    clip_end: "9:22"
+    duration: 8
+    line: "That ticket came back negative 3.98."
+
+  - clip_start: "9:22"
+    clip_end: "9:27"
+    duration: 5
+    line: "I'm not paying that through the mill. Trash it."
+
+  - clip_start: "9:27"
+    clip_end: "9:33"
+    duration: 6
+    line: "If you go into debt, you have to use the in-game phone to get a loan."

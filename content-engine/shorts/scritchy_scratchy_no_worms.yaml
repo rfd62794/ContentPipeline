@@ -1,0 +1,29 @@
+name: scritchy_scratchy_no_worms
+source: "C:\\Users\\cheat\\Videos\\Scritchy Scratchy\\2026-05-27 21-38-58.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "6:48"
+    clip_end: "6:57"
+    duration: 9
+    line: "I accidentally gave the bot an apple tree ticket."
+
+  - clip_start: "6:57"
+    clip_end: "7:04"
+    duration: 7
+    line: "Apple trees can have worms. Worms cost you money."
+
+  - clip_start: "7:04"
+    clip_end: "7:08"
+    duration: 4
+    line: "No worms. No worms. No worms."
+
+  - clip_start: "7:08"
+    clip_end: "7:10"
+    duration: 2
+    line: "Don't scratch it all the way. You don't take the hit."

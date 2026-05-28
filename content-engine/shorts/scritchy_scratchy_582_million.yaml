@@ -1,0 +1,29 @@
+name: scritchy_scratchy_582_million
+source: "C:\\Users\\cheat\\Videos\\Scritchy Scratchy\\2026-05-27 21-38-58.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "12:07"
+    clip_end: "12:15"
+    duration: 8
+    line: "Just hit the jackpot on catalog number two."
+
+  - clip_start: "12:15"
+    clip_end: "12:20"
+    duration: 5
+    line: "Super jackpot. 582 million."
+
+  - clip_start: "12:20"
+    clip_end: "12:28"
+    duration: 8
+    line: "That triggered three scratch luck upgrades at once."
+
+  - clip_start: "12:28"
+    clip_end: "12:34"
+    duration: 6
+    line: "Wow."
