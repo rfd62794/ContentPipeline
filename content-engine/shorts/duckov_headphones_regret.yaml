@@ -1,0 +1,29 @@
+name: duckov_headphones_regret
+source: "C:\\Users\\cheat\\Videos\\Escape From Duckov\\2026-05-26 21-24-35.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "4:38"
+    clip_end: "4:44"
+    duration: 6
+    line: "This is my first time playing this game with sound."
+
+  - clip_start: "4:44"
+    clip_end: "4:49"
+    duration: 5
+    line: "I don't usually use sound."
+
+  - clip_start: "14:00"
+    clip_end: "14:03"
+    duration: 3
+    line: "This music. I've never had sound."
+
+  - clip_start: "14:03"
+    clip_end: "14:05"
+    duration: 2
+    line: "I regret not playing with headphones before."

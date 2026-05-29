@@ -1,0 +1,33 @@
+# Metadata override layer for duckov_tarkov_context
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Escape From Duckov — it's Tarkov but single player"
+description: |
+  The developer built this as a love letter to Escape from Tarkov.
+  Same systems. Solo experience.
+
+  Escape From Duckov on Steam:
+  https://store.steampowered.com/app/2427550/Escape_From_Duckov/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - escape from duckov
+  - escape from duckov gameplay
+  - duckov
+  - extraction game
+  - pve extraction
+  - indie game 2026
+  - steam indie game
+  - single player extraction
+  - escape from tarkov
+  - gaming shorts
+privacy: "public"
+schedule: "2026-06-26T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false

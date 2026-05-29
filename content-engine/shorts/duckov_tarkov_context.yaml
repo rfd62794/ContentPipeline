@@ -1,0 +1,24 @@
+name: duckov_tarkov_context
+source: "C:\\Users\\cheat\\Videos\\Escape From Duckov\\2026-05-26 21-24-35.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "6:01"
+    clip_end: "6:07"
+    duration: 6
+    line: "The developer is a big fan of Escape from Tarkov."
+
+  - clip_start: "6:07"
+    clip_end: "6:10"
+    duration: 3
+    line: "So it takes a lot of things from Tarkov."
+
+  - clip_start: "6:10"
+    clip_end: "6:15"
+    duration: 5
+    line: "And makes it single player."
