@@ -1,0 +1,24 @@
+name: raccoin_second_tower
+source: "C:\\Users\\cheat\\Videos\\Raccoin\\2026-05-28 21-44-54.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "28:12"
+    clip_end: "28:20"
+    duration: 8
+    line: "There's a coin tower on the field."
+
+  - clip_start: "28:20"
+    clip_end: "28:28"
+    duration: 8
+    line: "How are you going to handle that?"
+
+  - clip_start: "28:28"
+    clip_end: "28:42"
+    duration: 14
+    line: "Build a second tower and push the second one into the first one."

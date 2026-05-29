@@ -1,0 +1,33 @@
+# Metadata override layer for raccoin_physics_observation
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Raccoin — the table clears itself if you wait long enough"
+description: |
+  Bankrupt with coins still on the field. Did nothing.
+  The friction did the work.
+
+  Raccoin on Steam:
+  https://store.steampowered.com/app/3017540/Raccoin/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - raccoin
+  - raccoin gameplay
+  - coin pusher roguelike
+  - roguelike indie game
+  - indie game 2026
+  - steam indie game
+  - coin pusher game
+  - arcade roguelike
+  - gaming shorts
+  - raccoin strategy
+privacy: "public"
+schedule: "2026-06-18T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false

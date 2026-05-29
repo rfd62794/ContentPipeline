@@ -1,0 +1,33 @@
+# Metadata override layer for raccoin_fishbone_discovery
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+
+title: "Raccoin — I could have removed it the entire time"
+description: |
+  The fishbone has a fragile tag. You can right click and remove it.
+  I did not know this until round 11.
+
+  Raccoin on Steam:
+  https://store.steampowered.com/app/3017540/Raccoin/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - raccoin
+  - raccoin gameplay
+  - coin pusher roguelike
+  - roguelike indie game
+  - indie game 2026
+  - steam indie game
+  - coin pusher game
+  - arcade roguelike
+  - gaming shorts
+  - raccoin tips
+privacy: "public"
+schedule: "2026-06-16T22:00:00-04:00"
+category_id: "20"
+made_for_kids: false

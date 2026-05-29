@@ -1,0 +1,24 @@
+name: raccoin_physics_observation
+source: "C:\\Users\\cheat\\Videos\\Raccoin\\2026-05-28 21-44-54.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "34:07"
+    clip_end: "34:15"
+    duration: 8
+    line: "Literally doing nothing. Bankrupt."
+
+  - clip_start: "34:15"
+    clip_end: "34:25"
+    duration: 10
+    line: "But the table is clearing itself. There's so much friction in the coins."
+
+  - clip_start: "34:25"
+    clip_end: "34:37"
+    duration: 12
+    line: "If you did nothing long enough, it's going to move something. It just might take a moment for them all to slip into place."

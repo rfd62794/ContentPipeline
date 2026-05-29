@@ -1,0 +1,29 @@
+name: raccoin_fishbone_discovery
+source: "C:\\Users\\cheat\\Videos\\Raccoin\\2026-05-28 21-44-54.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "24:05"
+    clip_end: "24:12"
+    duration: 7
+    line: "The fishbone has a fragile tag. Free to remove."
+
+  - clip_start: "24:12"
+    clip_end: "24:18"
+    duration: 6
+    line: "Right click. Remove."
+
+  - clip_start: "24:18"
+    clip_end: "24:26"
+    duration: 8
+    line: "I could have removed it the entire time."
+
+  - clip_start: "24:26"
+    clip_end: "24:30"
+    duration: 4
+    line: "Still learning this one."

@@ -1,0 +1,24 @@
+name: raccoin_near_miss
+source: "C:\\Users\\cheat\\Videos\\Raccoin\\2026-05-28 21-44-54.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "33:09"
+    clip_end: "33:18"
+    duration: 9
+    line: "19,934. So close to 20,000."
+
+  - clip_start: "33:18"
+    clip_end: "33:31"
+    duration: 13
+    line: "Doing nothing. The coins are slowly slipping and sliding on their own."
+
+  - clip_start: "33:31"
+    clip_end: "33:44"
+    duration: 13
+    line: "Is it really worth sitting here waiting for 20,000? No."
