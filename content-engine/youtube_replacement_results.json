@@ -1,9 +1,142 @@
 [
   {
     "short_id": "mlu_auto_tool",
-    "success": false,
+    "success": true,
     "old_video_id": null,
-    "new_video_id": null,
-    "error": "<HttpError 403 when requesting None returned \"Request had insufficient authentication scopes.\". Details: \"[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]\">"
+    "new_video_id": "qBqm7nhtk50",
+    "error": null
+  },
+  {
+    "short_id": "mlu_boss_cheese",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "sRIWwrCPgwc",
+    "error": null
+  },
+  {
+    "short_id": "mlu_designers_math",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "StS54003vdA",
+    "error": null
+  },
+  {
+    "short_id": "mlu_fishing_ddr",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "yfQYmPEynec",
+    "error": null
+  },
+  {
+    "short_id": "mlu_hidden_orb",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "t7xVKjIy3vc",
+    "error": null
+  },
+  {
+    "short_id": "mlu_map_opens",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "1CYegM9i6VE",
+    "error": null
+  },
+  {
+    "short_id": "mlu_mobile_vs_pc",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "Z6mRkS3SL3Y",
+    "error": null
+  },
+  {
+    "short_id": "mlu_passive_game",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "9XTYfefJuE0",
+    "error": null
+  },
+  {
+    "short_id": "mlu_purple_wall",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "WWJIlEzlA2A",
+    "error": null
+  },
+  {
+    "short_id": "mlu_respawn_timing",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "kipEzC8GifY",
+    "error": null
+  },
+  {
+    "short_id": "duckov_headphones_regret",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "RMnfpLnpzg8",
+    "error": null
+  },
+  {
+    "short_id": "duckov_tarkov_context",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "ZyWAmLvdH-c",
+    "error": null
+  },
+  {
+    "short_id": "raccoin_near_miss",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "W2_YUoUn5hA",
+    "error": null
+  },
+  {
+    "short_id": "raccoin_second_tower",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "MlUulTMcVKA",
+    "error": null
+  },
+  {
+    "short_id": "raccoin_physics_observation",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "58QL-MvrVsc",
+    "error": null
+  },
+  {
+    "short_id": "raccoin_fishbone_discovery",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "WLV62Gxkr_g",
+    "error": null
+  },
+  {
+    "short_id": "scritchy_scratchy_mundo_bankrupted",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "qB1XhfkB8KA",
+    "error": null
+  },
+  {
+    "short_id": "scritchy_scratchy_582_million",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "882--kWDxRI",
+    "error": null
+  },
+  {
+    "short_id": "scritchy_scratchy_negative_ticket",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "de4Hx_Y4boo",
+    "error": null
+  },
+  {
+    "short_id": "scritchy_scratchy_no_worms",
+    "success": true,
+    "old_video_id": null,
+    "new_video_id": "WEQ9rM-AyJM",
+    "error": null
   }
 ]
