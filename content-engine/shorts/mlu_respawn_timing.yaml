@@ -1,0 +1,24 @@
+name: mlu_respawn_timing
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "10:09"
+    clip_end: "10:18"
+    duration: 9
+    line: "That one just respawned behind me."
+
+  - clip_start: "10:18"
+    clip_end: "10:25"
+    duration: 7
+    line: "I think that's a quick turnover."
+
+  - clip_start: "10:25"
+    clip_end: "10:33"
+    duration: 8
+    line: "The game keeps feeding you resources so you never fully run out."

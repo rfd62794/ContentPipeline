@@ -1,0 +1,24 @@
+name: mlu_designers_math
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "1:01"
+    clip_end: "1:07"
+    duration: 6
+    line: "30 wood gives you two trees."
+
+  - clip_start: "1:07"
+    clip_end: "1:09"
+    duration: 2
+    line: "Each worth 15."
+
+  - clip_start: "1:09"
+    clip_end: "1:12"
+    duration: 3
+    line: "Gotta love designers who do math."

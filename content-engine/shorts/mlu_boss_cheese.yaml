@@ -1,0 +1,24 @@
+name: mlu_boss_cheese
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "22:48"
+    clip_end: "22:56"
+    duration: 8
+    line: "I am okay cheesing this boss."
+
+  - clip_start: "22:56"
+    clip_end: "23:05"
+    duration: 9
+    line: "Three hits in. Run away."
+
+  - clip_start: "23:05"
+    clip_end: "23:19"
+    duration: 14
+    line: "Give me my five crystals."

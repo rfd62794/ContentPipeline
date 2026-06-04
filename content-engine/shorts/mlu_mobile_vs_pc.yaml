@@ -1,0 +1,24 @@
+name: mlu_mobile_vs_pc
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "0:01"
+    clip_end: "0:08"
+    duration: 7
+    line: "I've played this on mobile."
+
+  - clip_start: "0:08"
+    clip_end: "0:17"
+    duration: 9
+    line: "They monetize everything with in-app purchases."
+
+  - clip_start: "0:17"
+    clip_end: "0:22"
+    duration: 5
+    line: "On PC — it's just there."

@@ -1,0 +1,24 @@
+name: mlu_map_opens
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "33:07"
+    clip_end: "33:12"
+    duration: 5
+    line: "Geez. This opened up."
+
+  - clip_start: "33:12"
+    clip_end: "33:18"
+    duration: 6
+    line: "There's a whole other area."
+
+  - clip_start: "33:18"
+    clip_end: "33:27"
+    duration: 9
+    line: "And I need purple crystal to get my upgrades to do whatever."

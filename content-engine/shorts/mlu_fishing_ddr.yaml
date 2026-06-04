@@ -1,0 +1,24 @@
+name: mlu_fishing_ddr
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "31:27"
+    clip_end: "31:34"
+    duration: 7
+    line: "Fishing. Directional buttons."
+
+  - clip_start: "31:34"
+    clip_end: "31:42"
+    duration: 8
+    line: "Left. Oh. Fish."
+
+  - clip_start: "31:42"
+    clip_end: "31:54"
+    duration: 12
+    line: "It's just directional timing. Like Dance Dance Revolution."

@@ -1,0 +1,19 @@
+name: mlu_auto_tool
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "3:08"
+    clip_end: "3:15"
+    duration: 7
+    line: "As long as I'm not using the space bar it picks the right tool automatically."
+
+  - clip_start: "3:15"
+    clip_end: "3:17"
+    duration: 2
+    line: "Interesting."

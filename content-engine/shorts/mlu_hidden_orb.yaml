@@ -1,0 +1,24 @@
+name: mlu_hidden_orb
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-03 18-50-40.mp4"
+attribution: null
+music_path: null
+music_volume: 0
+voice: true
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "25:25"
+    clip_end: "25:33"
+    duration: 8
+    line: "There are five. I only put four here."
+
+  - clip_start: "25:33"
+    clip_end: "25:36"
+    duration: 3
+    line: "That's funky."
+
+  - clip_start: "25:36"
+    clip_end: "25:43"
+    duration: 7
+    line: "So there's a hidden fifth one."
