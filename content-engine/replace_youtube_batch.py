@@ -78,11 +78,11 @@ def replace_short(short_id: str) -> dict:
             result["error"] = f"Video file not found: {video_path}"
             return result
         
-        # Authenticate YouTube
-        library = YouTubeLibrary()
+        # Authenticate YouTube (use upload scope for both operations)
         upload_service = get_authenticated_service()
+        library = YouTubeLibrary()
         
-        if not library.service or not upload_service:
+        if not upload_service:
             result["error"] = "YouTube authentication failed"
             return result
         
@@ -92,12 +92,13 @@ def replace_short(short_id: str) -> dict:
         
         if old_video_id:
             logger.info(f"Found existing video: {old_video_id}")
-            # Delete existing video
-            if library.delete_video(old_video_id):
+            # Delete existing video using upload service (has correct scope)
+            try:
+                upload_service.videos().delete(id=old_video_id).execute()
                 logger.info(f"Deleted old video: {old_video_id}")
                 result["old_video_id"] = old_video_id
-            else:
-                result["error"] = f"Failed to delete old video: {old_video_id}"
+            except Exception as e:
+                result["error"] = f"Failed to delete old video: {e}"
                 return result
         else:
             logger.warning(f"No existing video found with title: {title}")
