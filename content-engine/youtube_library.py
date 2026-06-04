@@ -258,6 +258,43 @@ class YouTubeLibrary:
         
         return playlists
 
+    def delete_video(self, video_id: str) -> bool:
+        """
+        Delete a video by ID. Only works for scheduled/private videos.
+        
+        Args:
+            video_id: YouTube video ID to delete.
+        
+        Returns:
+            True if deletion succeeded, False otherwise.
+        """
+        if not _google_api_available or self.service is None:
+            return False
+        
+        try:
+            self.service.videos().delete(id=video_id).execute()
+            return True
+        except Exception as e:
+            if _google_api_available and _HttpError and isinstance(e, _HttpError):
+                print(f"Error deleting video {video_id}: {e}")
+            return False
+
+    def find_video_by_title(self, title: str) -> Optional[str]:
+        """
+        Find a video ID by exact title match.
+        
+        Args:
+            title: Video title to search for.
+        
+        Returns:
+            Video ID if found, None otherwise.
+        """
+        videos = self.get_video_library()
+        for video in videos:
+            if video.title == title:
+                return video.video_id
+        return None
+
 
 # =============================================================================
 # Pure Functions for Parsing

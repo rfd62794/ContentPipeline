@@ -1,6 +1,82 @@
 [
   {
     "yaml": "shorts/mlu_auto_tool.yaml",
-    "success": false
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_boss_cheese.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_designers_math.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_fishing_ddr.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_hidden_orb.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_map_opens.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_mobile_vs_pc.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_passive_game.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_purple_wall.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/mlu_respawn_timing.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/duckov_headphones_regret.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/duckov_tarkov_context.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/raccoin_near_miss.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/raccoin_second_tower.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/raccoin_physics_observation.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/raccoin_fishbone_discovery.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/scritchy_scratchy_mundo_bankrupted.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/scritchy_scratchy_582_million.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/scritchy_scratchy_negative_ticket.yaml",
+    "success": true
+  },
+  {
+    "yaml": "shorts/scritchy_scratchy_no_worms.yaml",
+    "success": true
   }
 ]
