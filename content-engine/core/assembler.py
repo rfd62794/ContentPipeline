@@ -400,57 +400,60 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
     voice_paths = [seg.get("voice_path") for seg in segments]
     has_voice = any(vp and Path(vp).exists() for vp in voice_paths)
 
+    # Build concatenated voice track if voice is enabled
+    voice_track = None
+    if has_voice:
+        voice_parts = []
+        padded_voice_files = []  # Track for cleanup
+        for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
+            duration = seg.get("duration", 5.0)
+            if vp and Path(vp).exists():
+                # Pad voice clip to segment duration
+                padded_voice_path = temp_dir / f"voice_{i}_padded.mp3"
+                subprocess.run([
+                    get_ffmpeg_path(), "-y",
+                    "-i", str(Path(vp)),
+                    "-af", f"apad=whole_dur={duration}",
+                    "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                    str(padded_voice_path)
+                ], capture_output=True, check=True)
+                voice_parts.append(str(padded_voice_path))
+                padded_voice_files.append(padded_voice_path)
+            else:
+                # Generate a silent MP3 clip of segment duration
+                silence_path = temp_dir / f"silence_{i}.mp3"
+                subprocess.run([
+                    get_ffmpeg_path(), "-y",
+                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                    "-t", str(duration),
+                    "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+                    str(silence_path)
+                ], capture_output=True, check=True)
+                voice_parts.append(str(silence_path))
+
+        # Concatenate voice parts into one track
+        voice_concat_list = temp_dir / "voice_concat.txt"
+        with open(voice_concat_list, "w") as f:
+            for vp in voice_parts:
+                abs_path = str(Path(vp).resolve()).replace("\\", "/")
+                f.write(f"file '{abs_path}'\n")
+        voice_track = temp_dir / "voice_track.mp3"
+        subprocess.run([
+            get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0",
+            "-i", str(voice_concat_list),
+            "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
+            str(voice_track)
+        ], capture_output=True, check=True)
+
+        # Cleanup padded voice files
+        for padded_file in padded_voice_files:
+            padded_file.unlink(missing_ok=True)
+
+    # Audio mixing: four cases
     if music_path and Path(music_path).exists():
         music_input = Path(music_path)
         if has_voice:
-            # Build a concatenated voice track: silence for gaps, voice clip where present
-            voice_parts = []
-            padded_voice_files = []  # Track for cleanup
-            for i, (seg, vp) in enumerate(zip(segments, voice_paths)):
-                duration = seg.get("duration", 5.0)
-                if vp and Path(vp).exists():
-                    # Pad voice clip to segment duration
-                    padded_voice_path = temp_dir / f"voice_{i}_padded.mp3"
-                    subprocess.run([
-                        get_ffmpeg_path(), "-y",
-                        "-i", str(Path(vp)),
-                        "-af", f"apad=whole_dur={duration}",
-                        "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                        str(padded_voice_path)
-                    ], capture_output=True, check=True)
-                    voice_parts.append(str(padded_voice_path))
-                    padded_voice_files.append(padded_voice_path)
-                else:
-                    # Generate a silent MP3 clip of segment duration
-                    silence_path = temp_dir / f"silence_{i}.mp3"
-                    subprocess.run([
-                        get_ffmpeg_path(), "-y",
-                        "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                        "-t", str(duration),
-                        "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                        str(silence_path)
-                    ], capture_output=True, check=True)
-                    voice_parts.append(str(silence_path))
-
-            # Concatenate voice parts into one track
-            voice_concat_list = temp_dir / "voice_concat.txt"
-            with open(voice_concat_list, "w") as f:
-                for vp in voice_parts:
-                    abs_path = str(Path(vp).resolve()).replace("\\", "/")
-                    f.write(f"file '{abs_path}'\n")
-            voice_track = temp_dir / "voice_track.mp3"
-            subprocess.run([
-                get_ffmpeg_path(), "-y", "-f", "concat", "-safe", "0",
-                "-i", str(voice_concat_list),
-                "-acodec", "libmp3lame", "-ar", "44100", "-ac", "1",
-                str(voice_track)
-            ], capture_output=True, check=True)
-
-            # Cleanup padded voice files
-            for padded_file in padded_voice_files:
-                padded_file.unlink(missing_ok=True)
-
-            # Mix: music (trimmed if needed) + voice at respective volumes
+            # Music + voice
             voice_delay = config.get("voice_delay", 0.3)
             delay_ms = int(voice_delay * 1000)
             
@@ -474,7 +477,7 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
                 logger.error(f"FFmpeg Voice+Music Mix failed: {result_audio.stderr[-500:]}")
                 raise subprocess.CalledProcessError(result_audio.returncode, "ffmpeg_voice_music_mix", output=result_audio.stdout, stderr=result_audio.stderr)
         else:
-            # Music only (original path)
+            # Music only
             if music_start > 0:
                 filter_complex = f"[1:a]atrim=start={music_start},asetpts=PTS-STARTPTS,volume={music_volume}[audio]"
             else:
@@ -487,8 +490,19 @@ def _assemble_shorts(segments: List[Dict[str, Any]], output_path: Path, temp_dir
             if result_music.returncode != 0:
                 logger.error(f"FFmpeg Music Mix failed: {result_music.stderr[-500:]}")
                 raise subprocess.CalledProcessError(result_music.returncode, "ffmpeg_music_mix", output=result_music.stdout, stderr=result_music.stderr)
+    elif has_voice:
+        # Voice only (no music)
+        result_voice = subprocess.run([
+            get_ffmpeg_path(), "-y",
+            "-i", str(final), "-i", str(voice_track),
+            "-c:v", "copy", "-c:a", "aac",
+            "-map", "0:v", "-map", "1:a", "-shortest", str(output_path)
+        ], capture_output=True, text=True)
+        if result_voice.returncode != 0:
+            logger.error(f"FFmpeg Voice Mix failed: {result_voice.stderr[-500:]}")
+            raise subprocess.CalledProcessError(result_voice.returncode, "ffmpeg_voice_mix", output=result_voice.stdout, stderr=result_voice.stderr)
     else:
-        # No music, just copy the final video
+        # No music, no voice — silent video
         shutil.copy(str(final), str(output_path))
         if music_path:
             logger.warning(f"Music file not found: {music_path}, assembling without music")

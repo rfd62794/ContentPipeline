@@ -1,9 +1,11 @@
 name: raccoin_near_miss
 source: "C:\\Users\\cheat\\Videos\\Raccoin\\2026-05-28 21-44-54.mp4"
 attribution: null
-music_path: null
-music_volume: 0
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
 voice: true
+voice_name: Zira
+voice_volume: 0.50
 stack_text: true
 max_visible_lines: 5
 

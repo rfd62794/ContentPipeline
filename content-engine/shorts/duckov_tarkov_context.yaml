@@ -1,9 +1,11 @@
 name: duckov_tarkov_context
 source: "C:\\Users\\cheat\\Videos\\Escape From Duckov\\2026-05-26 21-24-35.mp4"
 attribution: null
-music_path: null
-music_volume: 0
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
 voice: true
+voice_name: Zira
+voice_volume: 0.50
 stack_text: true
 max_visible_lines: 5
 
