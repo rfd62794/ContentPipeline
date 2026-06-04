@@ -41,7 +41,7 @@ def verify_audio_track(video_path: Path) -> bool:
     """Verify MP4 has audio track using ffprobe."""
     try:
         result = subprocess.run(
-            ["ffmpeg.exe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "json", str(video_path)],
+            [".\\ffmpeg.exe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "json", str(video_path)],
             capture_output=True, text=True, check=True
         )
         streams = json.loads(result.stdout)
