@@ -1,0 +1,32 @@
+# Metadata override layer for mlu_auto_tool
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+title: "My Little Universe — it just picks the right tool automatically"
+description: |
+  As long as I'm not pressing space bar it picks the right tool.
+  Interesting.
+
+  My Little Universe on Steam:
+  https://store.steampowered.com/app/2328750/My_Little_Universe/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - my little universe
+  - my little universe pc
+  - my little universe steam
+  - indie game 2026
+  - casual indie game
+  - gaming shorts
+  - exploration game
+  - mining game
+  - saygames
+  - game mechanics
+privacy: "public"
+schedule: ""
+category_id: "20"
+made_for_kids: false

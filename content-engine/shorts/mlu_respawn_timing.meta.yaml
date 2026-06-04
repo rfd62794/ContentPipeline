@@ -1,0 +1,32 @@
+# Metadata override layer for mlu_respawn_timing
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+title: "My Little Universe — the resources respawn fast enough to never run out"
+description: |
+  That one just respawned behind me.
+  Quick turnover. The game keeps feeding you.
+
+  My Little Universe on Steam:
+  https://store.steampowered.com/app/2328750/My_Little_Universe/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - my little universe
+  - my little universe pc
+  - my little universe steam
+  - indie game 2026
+  - casual indie game
+  - gaming shorts
+  - exploration game
+  - mining game
+  - saygames
+  - game design
+privacy: "public"
+schedule: ""
+category_id: "20"
+made_for_kids: false

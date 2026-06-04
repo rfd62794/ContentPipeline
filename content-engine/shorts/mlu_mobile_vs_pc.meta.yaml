@@ -1,0 +1,32 @@
+# Metadata override layer for mlu_mobile_vs_pc
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+title: "My Little Universe — on mobile they charge for everything. On PC it's just there."
+description: |
+  I played this on mobile. They monetize everything with in-app purchases.
+  On PC — it's just there.
+
+  My Little Universe on Steam:
+  https://store.steampowered.com/app/2328750/My_Little_Universe/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - my little universe
+  - my little universe pc
+  - my little universe steam
+  - mobile vs pc gaming
+  - indie game 2026
+  - casual indie game
+  - exploration game
+  - mining game
+  - gaming shorts
+  - saygames
+privacy: "public"
+schedule: ""
+category_id: "20"
+made_for_kids: false

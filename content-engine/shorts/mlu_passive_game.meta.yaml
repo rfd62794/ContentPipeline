@@ -1,0 +1,32 @@
+# Metadata override layer for mlu_passive_game
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+title: "My Little Universe — this is a good passive game"
+description: |
+  You just collect resources to continue expanding the map.
+  The progression is pretty okay paced.
+
+  My Little Universe on Steam:
+  https://store.steampowered.com/app/2328750/My_Little_Universe/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - my little universe
+  - my little universe pc
+  - my little universe steam
+  - indie game 2026
+  - casual indie game
+  - idle game
+  - passive game
+  - gaming shorts
+  - exploration game
+  - saygames
+privacy: "public"
+schedule: ""
+category_id: "20"
+made_for_kids: false

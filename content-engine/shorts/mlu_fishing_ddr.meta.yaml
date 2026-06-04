@@ -1,0 +1,33 @@
+# Metadata override layer for mlu_fishing_ddr
+# Layer 3 — manual fields always win
+# Set auto_generate: true to use Layer 1 when manual fields absent
+
+auto_generate: false
+title: "My Little Universe — the fishing mechanic is just Dance Dance Revolution"
+description: |
+  Fishing. Directional buttons.
+  Left. Oh. Fish.
+  It's just directional timing like Dance Dance Revolution.
+
+  My Little Universe on Steam:
+  https://store.steampowered.com/app/2328750/My_Little_Universe/
+
+  GitHub: github.com/rfd62794/ContentPipeline
+  YouTube: @robertfloyddugger4516
+
+  #Shorts
+tags:
+  - my little universe
+  - my little universe pc
+  - my little universe steam
+  - my little universe fishing
+  - indie game 2026
+  - casual indie game
+  - gaming shorts
+  - exploration game
+  - mining game
+  - saygames
+privacy: "public"
+schedule: ""
+category_id: "20"
+made_for_kids: false
