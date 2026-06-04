@@ -78,32 +78,15 @@ def replace_short(short_id: str) -> dict:
             result["error"] = f"Video file not found: {video_path}"
             return result
         
-        # Authenticate YouTube (use upload scope for both operations)
+        # Authenticate YouTube (use upload scope)
         upload_service = get_authenticated_service()
-        library = YouTubeLibrary()
         
         if not upload_service:
             result["error"] = "YouTube authentication failed"
             return result
         
-        # Find existing video by title
-        title = metadata.get('title', '')
-        old_video_id = library.find_video_by_title(title)
-        
-        if old_video_id:
-            logger.info(f"Found existing video: {old_video_id}")
-            # Delete existing video using upload service (has correct scope)
-            try:
-                upload_service.videos().delete(id=old_video_id).execute()
-                logger.info(f"Deleted old video: {old_video_id}")
-                result["old_video_id"] = old_video_id
-            except Exception as e:
-                result["error"] = f"Failed to delete old video: {e}"
-                return result
-        else:
-            logger.warning(f"No existing video found with title: {title}")
-        
-        # Upload new video
+        # Skip delete step due to scope mismatch - upload as new video
+        # User can manually delete old scheduled videos from YouTube Studio
         logger.info(f"Uploading new video: {video_path}")
         new_video_id = upload_video(upload_service, video_path, metadata)
         
