@@ -1,0 +1,26 @@
+name: fishinc_not_illegal
+source: "C:\\Users\\cheat\\Videos\\Fish Inc\\2026-06-04 19-04-25.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "2:03"
+    clip_end: "2:08"
+    duration: 5
+    line: "Fishing license."
+
+  - clip_start: "2:08"
+    clip_end: "2:10"
+    duration: 2
+    line: "Legally allowed to fish."
+
+  - clip_start: "2:10"
+    clip_end: "2:14"
+    duration: 4
+    line: "So I wasn't legal before."
