@@ -36,9 +36,9 @@ def detect_device() -> str:
     """Auto-detect if CUDA is available, default to CPU."""
     try:
         import torch
-        if torch.cuda.is_available():
+        if hasattr(torch, 'cuda') and torch.cuda.is_available():
             return "cuda"
-    except ImportError:
+    except (ImportError, AttributeError):
         pass
     return "cpu"
 
