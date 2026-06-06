@@ -1,0 +1,21 @@
+name: mlu2_spacesuit_surprise
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-06 18-43-56.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "26:52"
+    clip_end: "26:56"
+    duration: 4
+    line: "I have a spacesuit."
+
+  - clip_start: "26:56"
+    clip_end: "27:00"
+    duration: 4
+    line: "God, I just unlocked a spacesuit."

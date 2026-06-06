@@ -1,0 +1,31 @@
+name: mlu2_nine_planets_dlc
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-06 18-43-56.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "27:29"
+    clip_end: "27:33"
+    duration: 4
+    line: "Nine rings."
+
+  - clip_start: "27:33"
+    clip_end: "27:37"
+    duration: 4
+    line: "And also nine planets."
+
+  - clip_start: "27:37"
+    clip_end: "27:41"
+    duration: 4
+    line: "And then there's the DLC."
+
+  - clip_start: "27:41"
+    clip_end: "27:45"
+    duration: 4
+    line: "Oh, it's free."

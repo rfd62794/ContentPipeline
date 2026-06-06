@@ -1,0 +1,26 @@
+name: mlu2_lava_surrounds
+source: "C:\\Users\\cheat\\Videos\\My Little Universe\\2026-06-06 18-43-56.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "22:33"
+    clip_end: "22:38"
+    duration: 5
+    line: "There's a person and now there's lava surrounding me."
+
+  - clip_start: "22:38"
+    clip_end: "22:40"
+    duration: 2
+    line: "Are you kidding?"
+
+  - clip_start: "22:40"
+    clip_end: "22:42"
+    duration: 2
+    line: "Nope."
