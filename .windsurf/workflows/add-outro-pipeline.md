@@ -13,17 +13,19 @@ Add an `add_outro` flag to the short YAML schema and `produce_short.py` pipeline
 ## Requirements
 
 1. **YAML schema** — add optional field `add_outro: bool` (default: `false`)
-2. **Outro config** — add an `OUTRO_CONFIG` block in `produce_short.py` (or a shared config file) containing:
-   - `clip_source`: the source video path (same as the short's `source`)
-   - `clip_start` / `clip_end`: timestamp of the CTA clip in the recording
-   - `duration`: beat duration in seconds
+2. **Outro beat construction** — when `add_outro: true`, derive the outro beat from the last beat in the list:
+   - `clip_start`: last beat's `clip_end`
+   - `clip_end`: last beat's `clip_end` + `outro_duration` seconds (default: 4)
+   - `clip_end` must be clamped to the actual source video duration — do not crash or produce corrupt output if the extension exceeds file length
    - `line`: "Like and subscribe if you're enjoying the ride."
-3. **Pipeline injection** — after loading beats from YAML, if `add_outro: true`, append the outro beat to the beat list before processing
-4. **Per-game outro support** — consider a `outro_clip` field that overrides the default outro, allowing different CTA clips per game session
+   - No separate timestamp config needed — works with any source video automatically
+3. **Pipeline injection** — after loading beats from YAML, if `add_outro: true`, append the constructed outro beat to the beat list before processing
+4. **Per-game outro override** — optional `outro_clip` field on the short YAML overrides the auto-constructed outro with an explicit `clip_start`/`clip_end`/`line`, for cases where a specific gameplay moment is preferred for the CTA
 5. **Tests** — add unit tests in `tests/test_shorts_voice.py` or a new `tests/test_shorts_outro.py` covering:
    - `add_outro: false` leaves beat list unchanged
-   - `add_outro: true` appends the outro beat as the final entry
+   - `add_outro: true` appends the outro beat as the final entry with correct `clip_start` derived from last beat's `clip_end`
    - Outro beat inherits voice settings from the short config
+   - When `clip_end + outro_duration` exceeds source video length, `clip_end` is clamped to file duration rather than crashing
 
 ## Acceptance Criteria
 
