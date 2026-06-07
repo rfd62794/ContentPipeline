@@ -1,0 +1,31 @@
+name: eic_weaker_more_damage
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-07 15-02-31.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "0:17"
+    clip_end: "0:22"
+    duration: 5
+    line: "Nearby enemies take 50% increased damage."
+
+  - clip_start: "0:22"
+    clip_end: "0:30"
+    duration: 8
+    line: "I'm weaker. But I also do more damage."
+
+  - clip_start: "0:30"
+    clip_end: "0:36"
+    duration: 6
+    line: "We will try that."
+
+  - clip_start: "0:36"
+    clip_end: "0:40"
+    duration: 4
+    line: "Like and subscribe if you're enjoying the ride."

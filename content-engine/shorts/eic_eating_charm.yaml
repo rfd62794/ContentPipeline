@@ -1,0 +1,31 @@
+name: eic_eating_charm
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-07 15-02-31.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "8:36"
+    clip_end: "8:41"
+    duration: 5
+    line: "Eating has a chance to charm them all."
+
+  - clip_start: "8:41"
+    clip_end: "8:45"
+    duration: 4
+    line: "I charmed."
+
+  - clip_start: "8:45"
+    clip_end: "8:48"
+    duration: 3
+    line: "He's not a great ally."
+
+  - clip_start: "8:48"
+    clip_end: "8:52"
+    duration: 4
+    line: "Like and subscribe if you're enjoying the ride."

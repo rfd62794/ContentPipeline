@@ -1,0 +1,31 @@
+name: eic_trunk_both_ends
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-07 15-02-31.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "10:31"
+    clip_end: "10:37"
+    duration: 6
+    line: "It stopped being something I could recognize."
+
+  - clip_start: "10:37"
+    clip_end: "10:44"
+    duration: 7
+    line: "The elephant trunk almost leans to the snake tail."
+
+  - clip_start: "10:44"
+    clip_end: "10:47"
+    duration: 3
+    line: "It just looks like coming out of both ends."
+
+  - clip_start: "10:47"
+    clip_end: "10:51"
+    duration: 4
+    line: "Like and subscribe if you're enjoying the ride."

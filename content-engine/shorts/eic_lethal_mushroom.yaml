@@ -1,0 +1,31 @@
+name: eic_lethal_mushroom
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-07 15-02-31.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+
+beats:
+  - clip_start: "11:53"
+    clip_end: "11:57"
+    duration: 4
+    line: "That was a lethal mushroom."
+
+  - clip_start: "11:57"
+    clip_end: "11:59"
+    duration: 2
+    line: "You're kidding me."
+
+  - clip_start: "11:59"
+    clip_end: "12:01"
+    duration: 2
+    line: "Oh my goodness. That was close."
+
+  - clip_start: "12:01"
+    clip_end: "12:05"
+    duration: 4
+    line: "Like and subscribe if you're enjoying the ride."
