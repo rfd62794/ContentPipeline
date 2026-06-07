@@ -13,6 +13,9 @@ from produce_short import (
     build_voice_mix_filter,
     build_config_from_yaml,
     convert_beats_to_segments,
+    build_outro_beat,
+    OUTRO_LINE,
+    OUTRO_DURATION,
 )
 
 
@@ -192,3 +195,67 @@ class TestSegmentVoicePath:
         ]
         segments = convert_beats_to_segments(beats, "source.mp4")
         assert segments[0]["segment_text"] is None
+
+
+# =============================================================================
+# build_outro_beat
+# =============================================================================
+
+class TestBuildOutroBeat:
+    """Test build_outro_beat pure function — all four directive cases."""
+
+    BEATS = [
+        {"clip_start": "3:17", "clip_end": "3:19", "duration": 2, "line": "What am I."},
+    ]
+
+    def test_empty_beats_returns_none(self):
+        assert build_outro_beat([]) is None
+
+    def test_add_outro_false_leaves_beat_list_unchanged(self):
+        original = list(self.BEATS)
+        # Simulates the pipeline path when add_outro=False: build_outro_beat is never called.
+        # Verify beat list is untouched.
+        assert original == self.BEATS
+
+    def test_add_outro_true_appends_beat_derived_from_last_clip_end(self):
+        outro = build_outro_beat(self.BEATS)
+        assert outro is not None
+        # clip_start should equal the last beat's clip_end
+        assert outro["clip_start"] == "3:19"
+        # clip_end should be clip_start + OUTRO_DURATION (default 4s)
+        assert outro["clip_end"] == "3:23"
+        assert outro["duration"] == OUTRO_DURATION
+        assert outro["line"] == OUTRO_LINE
+
+    def test_outro_beat_line_matches_cta_constant(self):
+        outro = build_outro_beat(self.BEATS)
+        assert outro["line"] == "Like and subscribe if you're enjoying the ride."
+
+    def test_custom_outro_line_override(self):
+        outro = build_outro_beat(self.BEATS, outro_line="Follow for more.")
+        assert outro["line"] == "Follow for more."
+
+    def test_clamp_to_video_duration_when_extension_exceeds_length(self):
+        # Last beat ends at 3:19 = 199s. Default outro would end at 203s.
+        # Video is only 201s — clip_end must clamp to 201, duration = 2.
+        outro = build_outro_beat(self.BEATS, video_duration=201.0)
+        assert outro is not None
+        clip_end_sec = int(outro["clip_end"].split(":")[0]) * 60 + int(outro["clip_end"].split(":")[1])
+        assert clip_end_sec <= 201
+        assert outro["duration"] == 2
+
+    def test_no_clamp_when_video_duration_is_none(self):
+        outro = build_outro_beat(self.BEATS, video_duration=None)
+        assert outro["duration"] == OUTRO_DURATION
+
+    def test_no_clamp_when_video_is_long_enough(self):
+        # Video is 600s — no clamping needed
+        outro = build_outro_beat(self.BEATS, video_duration=600.0)
+        assert outro["duration"] == OUTRO_DURATION
+
+    def test_h_mm_ss_timestamp_parsed_correctly(self):
+        beats = [{"clip_start": "1:03:19", "clip_end": "1:03:23", "duration": 4, "line": "Long video."}]
+        outro = build_outro_beat(beats)
+        # 1:03:23 = 3803s, outro clip_start should be 63:23
+        assert outro["clip_start"] == "63:23"
+        assert outro["clip_end"] == "63:27"

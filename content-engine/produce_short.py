@@ -113,6 +113,104 @@ def build_config_from_yaml(yaml_config: Dict[str, Any]) -> Dict[str, Any]:
 # Pure Functions (Testable Without edge_tts or ffmpeg)
 # =============================================================================
 
+OUTRO_LINE = "Like and subscribe if you're enjoying the ride."
+OUTRO_DURATION = 4
+
+
+def _parse_timestamp(ts: str) -> float:
+    """
+    Parse a timestamp string (M:SS or H:MM:SS) into total seconds.
+
+    Args:
+        ts: Timestamp string e.g. "3:19" or "1:03:19".
+
+    Returns:
+        Total seconds as float.
+    """
+    parts = ts.split(":")
+    parts = [float(p) for p in parts]
+    if len(parts) == 2:
+        return parts[0] * 60 + parts[1]
+    elif len(parts) == 3:
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    return float(parts[0])
+
+
+def _format_timestamp(seconds: float) -> str:
+    """
+    Format total seconds back into M:SS string.
+
+    Args:
+        seconds: Total seconds.
+
+    Returns:
+        Timestamp string e.g. "3:23".
+    """
+    m = int(seconds // 60)
+    s = int(seconds % 60)
+    return f"{m}:{s:02d}"
+
+
+def get_video_duration(source_path: str) -> Optional[float]:
+    """
+    Get video duration in seconds via ffprobe.
+
+    Args:
+        source_path: Path to video file.
+
+    Returns:
+        Duration in seconds, or None if ffprobe fails.
+    """
+    import subprocess
+    from core.assembler import get_ffmpeg_path
+    ffprobe = get_ffmpeg_path().replace("ffmpeg", "ffprobe")
+    try:
+        result = subprocess.run(
+            [ffprobe, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", source_path],
+            capture_output=True, text=True, timeout=15
+        )
+        return float(result.stdout.strip())
+    except Exception:
+        return None
+
+
+def build_outro_beat(
+    beats: List[Dict[str, Any]],
+    video_duration: Optional[float] = None,
+    outro_duration: int = OUTRO_DURATION,
+    outro_line: str = OUTRO_LINE,
+) -> Optional[Dict[str, Any]]:
+    """
+    Build an outro beat derived from the last beat's clip_end.
+
+    clip_start = last beat's clip_end
+    clip_end   = clip_start + outro_duration, clamped to video_duration if known
+
+    Args:
+        beats: Beat list from YAML (must be non-empty).
+        video_duration: Total video length in seconds for clamping. None = no clamp.
+        outro_duration: Duration in seconds to extend past the last clip_end.
+        outro_line: CTA text for the outro beat.
+
+    Returns:
+        Outro beat dict, or None if beats is empty.
+    """
+    if not beats:
+        return None
+    last_beat = beats[-1]
+    clip_start_sec = _parse_timestamp(str(last_beat["clip_end"]))
+    clip_end_sec = clip_start_sec + outro_duration
+    if video_duration is not None:
+        clip_end_sec = min(clip_end_sec, video_duration)
+    return {
+        "clip_start": _format_timestamp(clip_start_sec),
+        "clip_end": _format_timestamp(clip_end_sec),
+        "duration": int(clip_end_sec - clip_start_sec),
+        "line": outro_line,
+    }
+
+
 def should_generate_voice(segment_text: Optional[str]) -> bool:
     """
     Return True if a voice clip should be generated for this segment's text.
@@ -207,15 +305,37 @@ def produce_short_from_yaml(yaml_path: Path):
     name = yaml_config["name"]
     source = yaml_config["source"]
     attribution = yaml_config.get("attribution")
-    beats = yaml_config["beats"]
+    beats = list(yaml_config["beats"])
     stack_text = yaml_config.get("stack_text", False)
     max_visible_lines = yaml_config.get("max_visible_lines", 5)
+    add_outro = yaml_config.get("add_outro", False)
+    outro_clip = yaml_config.get("outro_clip", None)
     
     logger.info(f"Producing short: {name}")
     logger.info(f"Source: {source}")
     logger.info(f"Attribution: {attribution if attribution else 'None'}")
     logger.info(f"Beats: {len(beats)}")
     logger.info(f"Stack text: {stack_text}")
+    logger.info(f"Add outro: {add_outro}")
+
+    # Inject outro beat if requested
+    if add_outro:
+        if outro_clip:
+            # Explicit override from YAML
+            beats.append(outro_clip)
+            logger.info(f"Outro injected from outro_clip override")
+        else:
+            # Auto-derive from last beat's clip_end
+            if not source.startswith("http"):
+                video_duration = get_video_duration(source)
+            else:
+                video_duration = None
+            outro = build_outro_beat(beats, video_duration)
+            if outro:
+                beats.append(outro)
+                logger.info(f"Outro injected: {outro['clip_start']} -> {outro['clip_end']} ({outro['duration']}s)")
+            else:
+                logger.warning("add_outro=true but no beats found — skipping outro")
     
     # Verify source exists (if local file)
     if not source.startswith("http"):
@@ -311,6 +431,7 @@ def produce_short_from_yaml(yaml_path: Path):
         raise
     
     logger.info(f"Short production complete: {output_path}")
+
 
 def main():
     """Main entry point."""
