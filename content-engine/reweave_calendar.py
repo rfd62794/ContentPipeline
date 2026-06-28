@@ -21,6 +21,7 @@ GAME_SLOTS = [
     ("FishingInc",  "Fishing Inc"),
     ("Dune",        "Dune: Awakening"),
     ("TurboShells", "TurboShells"),
+    ("HM",          "Hotline Miami"),
 ]
 
 EDT = timezone(timedelta(hours=-4))
