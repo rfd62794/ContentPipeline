@@ -1,0 +1,26 @@
+name: raccoin_4_forgot_prizes
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-27 23-44-28.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "16:24"
+    clip_end: "16:29"
+    duration: 5
+    line: "I forgot to use my prizes. Damn it."
+
+  - clip_start: "16:44"
+    clip_end: "16:49"
+    duration: 5
+    line: "I forgot to use my prizes."
+
+  - clip_start: "16:47"
+    clip_end: "16:51"
+    duration: 4
+    line: "Alright, that's my entire lesson."

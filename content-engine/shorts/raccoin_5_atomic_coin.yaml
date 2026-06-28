@@ -1,0 +1,26 @@
+name: raccoin_5_atomic_coin
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-27 23-44-28.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "7:57"
+    clip_end: "8:01"
+    duration: 4
+    line: "Throw everything that's bomb coin. Bombs away."
+
+  - clip_start: "8:01"
+    clip_end: "8:04"
+    duration: 3
+    line: "Nothing."
+
+  - clip_start: "8:04"
+    clip_end: "8:08"
+    duration: 4
+    line: "He wasn't triggered. It's atomic coin."
