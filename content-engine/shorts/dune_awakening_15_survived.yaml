@@ -1,0 +1,26 @@
+name: dune_awakening_15_survived
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-06-18 22-06-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "25:32"
+    clip_end: "25:36"
+    duration: 4
+    line: "Two days of power left."
+
+  - clip_start: "25:36"
+    clip_end: "25:40"
+    duration: 4
+    line: "Gone three weeks."
+
+  - clip_start: "25:40"
+    clip_end: "26:10"
+    duration: 4
+    line: "It survived."

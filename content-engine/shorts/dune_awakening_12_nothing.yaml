@@ -1,0 +1,31 @@
+name: dune_awakening_12_nothing
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-06-18 22-06-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "0:00"
+    clip_end: "0:04"
+    duration: 4
+    line: "Coming back after three weeks."
+
+  - clip_start: "0:04"
+    clip_end: "0:08"
+    duration: 4
+    line: "No base."
+
+  - clip_start: "0:08"
+    clip_end: "0:12"
+    duration: 4
+    line: "No bike."
+
+  - clip_start: "0:12"
+    clip_end: "0:25"
+    duration: 4
+    line: "Building from nothing."

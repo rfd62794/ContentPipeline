@@ -1,0 +1,33 @@
+name: af_humbled_me
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-27 18-40-58.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "0:01"
+    clip_end: "0:12"
+    duration: 11
+    line: "I played this on Xbox. Re-bought it on PC. Filing shaders. Nothing exciting."
+
+  - clip_start: "6:43"
+    clip_end: "6:49"
+    duration: 6
+    line: "Clearance insufficient. Clearance insufficient. Cool."
+
+  - clip_start: "25:57"
+    clip_end: "26:02"
+    duration: 5
+    line: "Can't see two feet without a flashlight. Hurt my leg. No splint."
+
+  - clip_start: "31:38"
+    clip_end: "31:43"
+    duration: 5
+    line: "Not hungry. But thirsty."

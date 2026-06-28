@@ -1,0 +1,33 @@
+name: af_i_chose_asthma
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-27 18-40-58.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "18:22"
+    clip_end: "18:27"
+    duration: 5
+    line: "Wrinkly brain meat."
+
+  - clip_start: "18:26"
+    clip_end: "18:31"
+    duration: 5
+    line: "Twice as likely to bleed. Can't hold it very long."
+
+  - clip_start: "20:07"
+    clip_end: "20:11"
+    duration: 4
+    line: "I do need asthma."
+
+  - clip_start: "20:21"
+    clip_end: "20:36"
+    duration: 15
+    line: "We're gonna asthma. Yeah. I was ready to become fatigued."

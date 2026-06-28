@@ -1,0 +1,26 @@
+name: dune_awakening_14_wide_open
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-06-18 22-06-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "1:38"
+    clip_end: "1:42"
+    duration: 4
+    line: "Base wide open."
+
+  - clip_start: "1:42"
+    clip_end: "1:46"
+    duration: 4
+    line: "No fuel cells. No sand bike."
+
+  - clip_start: "1:46"
+    clip_end: "2:00"
+    duration: 4
+    line: "Three weeks and it held though."

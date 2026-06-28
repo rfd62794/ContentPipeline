@@ -1,0 +1,27 @@
+name: eic_1_1_charmed_ally
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-25 20-59-28.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "3:04"
+    clip_end: "3:12"
+    duration: 8
+    line: "Oh look at all this food. Leave me alone. I'm eating."
+
+  - clip_start: "5:39"
+    clip_end: "5:44"
+    duration: 5
+    line: "Feeding has a chance to charm people. Yes."
+
+  - clip_start: "5:51"
+    clip_end: "5:57"
+    duration: 6
+    line: "I got a charmed ally. Thank you."

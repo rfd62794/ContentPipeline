@@ -1,0 +1,28 @@
+name: af_elevator_after_elevator
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-27 18-40-58.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "14:30"
+    clip_end: "14:35"
+    duration: 5
+    line: "Another elevator down."
+
+  - clip_start: "14:35"
+    clip_end: "14:44"
+    duration: 9
+    line: "Black Mesa and Aperture Science."
+
+  - clip_start: "14:44"
+    clip_end: "14:51"
+    duration: 7
+    line: "Elevator after elevator after elevator."

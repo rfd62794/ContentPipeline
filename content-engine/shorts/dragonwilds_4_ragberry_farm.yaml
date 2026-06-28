@@ -1,0 +1,26 @@
+name: dragonwilds_4_ragberry_farm
+source: "C:/Users/cheat/Videos/Runescape Dragonwilds/2026-06-25 19-29-15.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "24:35"
+    clip_end: "24:40"
+    duration: 5
+    line: "I could have a ragberry farm."
+
+  - clip_start: "27:17"
+    clip_end: "27:22"
+    duration: 5
+    line: "The seeds keep giving me more seeds."
+
+  - clip_start: "29:18"
+    clip_end: "29:24"
+    duration: 6
+    line: "If parent duty takes over."

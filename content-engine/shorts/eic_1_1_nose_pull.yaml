@@ -1,0 +1,27 @@
+name: eic_1_1_nose_pull
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-25 20-59-28.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "7:45"
+    clip_end: "7:50"
+    duration: 5
+    line: "I don't know what to call that."
+
+  - clip_start: "7:53"
+    clip_end: "7:57"
+    duration: 4
+    line: "Oh. You spiked. Yeah."
+
+  - clip_start: "8:03"
+    clip_end: "8:09"
+    duration: 6
+    line: "Oh. You pulled on my nose."

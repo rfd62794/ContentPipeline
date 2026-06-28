@@ -1,0 +1,27 @@
+name: eic_1_1_poisonous_mushroom
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-25 20-59-28.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "4:45"
+    clip_end: "4:52"
+    duration: 7
+    line: "Mushroom. Mushroom. Mushroom. Oh no."
+
+  - clip_start: "5:09"
+    clip_end: "5:16"
+    duration: 7
+    line: "I'm tripping. Something's wrong."
+
+  - clip_start: "5:20"
+    clip_end: "5:28"
+    duration: 8
+    line: "What's hurting me? The freaking mushroom I ate was a poisonous mushroom."

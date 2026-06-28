@@ -1,0 +1,31 @@
+name: dragonwilds_2_no_patience
+source: "C:/Users/cheat/Videos/Runescape Dragonwilds/2026-06-25 19-14-21.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "4:04"
+    clip_end: "4:09"
+    duration: 5
+    line: "You really have to grind your skills."
+
+  - clip_start: "4:09"
+    clip_end: "4:13"
+    duration: 4
+    line: "And I have no patience."
+
+  - clip_start: "2:15"
+    clip_end: "2:18"
+    duration: 3
+    line: "Sorry, cow."
+
+  - clip_start: "19:49"
+    clip_end: "19:52"
+    duration: 3
+    line: "I'm thirsty as shit."

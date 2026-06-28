@@ -75,7 +75,11 @@ def main():
 
         # Transcribe with word timestamps enabled by default
         print(f"Transcribing with Whisper {args.model} model on {device}...")
-        segments = transcribe(wav_path, args.model, device=device, word_timestamps=True)
+        try:
+            segments = transcribe(wav_path, args.model, device=device, word_timestamps=True)
+        except Exception as e:
+            print(f"Word timestamps failed, falling back to segment-level: {e}")
+            segments = transcribe(wav_path, args.model, device=device, word_timestamps=False)
 
         # Write timestamped transcription (word-level)
         with open(output_timestamped, 'w', encoding='utf-8') as f:

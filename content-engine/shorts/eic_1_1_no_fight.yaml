@@ -1,0 +1,27 @@
+name: eic_1_1_no_fight
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-25 20-59-28.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "3:19"
+    clip_end: "3:22"
+    duration: 3
+    line: "Leave me alone. You don't need me."
+
+  - clip_start: "10:02"
+    clip_end: "10:08"
+    duration: 6
+    line: "I don't need to pick a fight. But I did."
+
+  - clip_start: "10:09"
+    clip_end: "10:12"
+    duration: 3
+    line: "Keep moving."

@@ -1,0 +1,31 @@
+name: dragonwilds_3_found_a_place
+source: "C:/Users/cheat/Videos/Runescape Dragonwilds/2026-06-25 19-29-15.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "15:00"
+    clip_end: "15:08"
+    duration: 8
+    line: "I have to go up and around and fall to where I fell to."
+
+  - clip_start: "16:48"
+    clip_end: "16:52"
+    duration: 4
+    line: "I lost that guy with the baked potato."
+
+  - clip_start: "20:28"
+    clip_end: "20:34"
+    duration: 6
+    line: "I found a place, I did a thing."
+
+  - clip_start: "20:34"
+    clip_end: "20:40"
+    duration: 6
+    line: "And all I get is to go do another thing."

@@ -1,0 +1,27 @@
+name: eic_1_1_spines
+source: "C:\\Users\\cheat\\Videos\\Everything Is Crab\\2026-06-25 20-59-28.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_name: Zira
+voice_volume: 0.50
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "10:44"
+    clip_end: "10:51"
+    duration: 7
+    line: "Ah spines. I want reach so bad."
+
+  - clip_start: "12:26"
+    clip_end: "12:31"
+    duration: 5
+    line: "Keep going for spines."
+
+  - clip_start: "13:21"
+    clip_end: "13:28"
+    duration: 7
+    line: "Spines level 5. Reach level 2."

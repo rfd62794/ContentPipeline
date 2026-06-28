@@ -1,0 +1,26 @@
+name: dune_awakening_13_spawn
+source: "C:/Users/cheat/Videos/Dune Awakening/2026-06-18 22-06-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "1:08"
+    clip_end: "1:12"
+    duration: 4
+    line: "Not the worst spawn."
+
+  - clip_start: "1:12"
+    clip_end: "1:16"
+    duration: 4
+    line: "I'm at my proper base."
+
+  - clip_start: "1:16"
+    clip_end: "1:46"
+    duration: 4
+    line: "Then I saw the state it was in."
