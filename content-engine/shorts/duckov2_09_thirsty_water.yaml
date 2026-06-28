@@ -1,0 +1,16 @@
+name: duckov2_09_thirsty_water
+source: "C:/Users/cheat/Videos/Escape From Duckov/2026-06-28 13-44-26.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "9:25"
+    clip_end: "9:34"
+    duration: 9
+    line: "I'm thirsty. Another one that's stuck. They cannot get into water."

@@ -1,0 +1,16 @@
+name: af2_07_storage_upgrade
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-28 14-33-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "17:07"
+    clip_end: "17:32"
+    duration: 25
+    line: "Oh shit. I packaged this. That's a huge storage upgrade. I didn't realize how useful these were until way in."

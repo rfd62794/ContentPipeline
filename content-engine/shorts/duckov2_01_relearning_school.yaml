@@ -1,0 +1,20 @@
+name: duckov2_01_relearning_school
+source: "C:/Users/cheat/Videos/Escape From Duckov/2026-06-28 13-44-26.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "0:07"
+    clip_end: "0:14"
+    duration: 7
+    line: "I'm still re-learning this game. I felt like I knew it a little bit coming back to it. I just can't seem to remember it and they've made a change."
+  - clip_start: "0:36"
+    clip_end: "0:48"
+    duration: 12
+    line: "The fishing I have not touched. The games I have not touched. School bully and a weapon. That feels doable."

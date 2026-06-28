@@ -1,0 +1,16 @@
+name: turboshells_christmas_short
+source: "C:/Users/cheat/Videos/TurboShells/Screen Recording 2025-12-25 201710.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "0:00"
+    clip_end: "0:20"
+    duration: 20
+    line: "TurboShells. High-speed physics. Christmas Day."

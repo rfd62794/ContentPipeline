@@ -1,0 +1,20 @@
+name: duckov2_07_top_floor_math
+source: "C:/Users/cheat/Videos/Escape From Duckov/2026-06-28 13-44-26.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "5:55"
+    clip_end: "6:12"
+    duration: 17
+    line: "Top floor complete. There's so much to do here. It's just like... learn the math and then figure out how to do the stuff. Not get killed."
+  - clip_start: "8:13"
+    clip_end: "8:25"
+    duration: 12
+    line: "I'm going to get distracted. I want bubble zero, which is down south."

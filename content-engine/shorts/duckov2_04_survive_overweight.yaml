@@ -1,0 +1,20 @@
+name: duckov2_04_survive_overweight
+source: "C:/Users/cheat/Videos/Escape From Duckov/2026-06-28 13-44-26.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "2:33"
+    clip_end: "2:45"
+    duration: 12
+    line: "Somehow I could survive that. Definitely better than my usual run. Oh, it's so far and I am overweight."
+  - clip_start: "12:57"
+    clip_end: "13:09"
+    duration: 12
+    line: "Still standing. Probably killed."

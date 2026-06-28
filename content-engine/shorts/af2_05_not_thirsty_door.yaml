@@ -1,0 +1,20 @@
+name: af2_05_not_thirsty_door
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-28 14-33-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "3:15"
+    clip_end: "3:17"
+    duration: 2
+    line: "I'm not thirsty yet."
+  - clip_start: "5:27"
+    clip_end: "5:32"
+    duration: 5
+    line: "Can I close this door and leave you on the other side for a minute?"

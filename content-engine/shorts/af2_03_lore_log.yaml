@@ -1,0 +1,20 @@
+name: af2_03_lore_log
+source: "C:/Users/cheat/Videos/Abiotic Factor/2026-06-28 14-33-37.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_start: 0
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 5
+add_outro: true
+
+beats:
+  - clip_start: "11:57"
+    clip_end: "12:21"
+    duration: 24
+    line: "IS-171, the Carbuncle, is the larval form of IS-173 and almost certainly 178. Dr. Pennell speculates there may also be a fourth state we have not yet encountered. I believe she may be correct."
+  - clip_start: "12:21"
+    clip_end: "12:25"
+    duration: 4
+    line: "I'll go for that."
