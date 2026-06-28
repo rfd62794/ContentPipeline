@@ -1,0 +1,21 @@
+name: hm_05_im_sorry
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "4:34"
+    clip_end: "4:38"
+    duration: 4
+    line: "Do I need to flak you?"
+  - clip_start: "4:37"
+    clip_end: "4:38"
+    duration: 1
+    line: "I'm pretty sure I need to flak you."
+  - clip_start: "4:38"
+    clip_end: "4:39"
+    duration: 1
+    line: "I'm sorry."

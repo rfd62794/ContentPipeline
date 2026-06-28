@@ -1,0 +1,25 @@
+name: hm_02_but_i_hate_you
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "1:02"
+    clip_end: "1:08"
+    duration: 6
+    line: "I want to call the police."
+  - clip_start: "1:09"
+    clip_end: "1:20"
+    duration: 11
+    line: "You don't know who you are? Maybe we should leave it that way."
+  - clip_start: "1:22"
+    clip_end: "1:25"
+    duration: 3
+    line: "But I hate you."
+  - clip_start: "1:39"
+    clip_end: "1:45"
+    duration: 6
+    line: "As of lately, we've done some terrible things."

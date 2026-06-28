@@ -1,0 +1,21 @@
+name: hm_12_shotgun_door
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "11:28"
+    clip_end: "11:32"
+    duration: 4
+    line: "There's a shotgun in there. Good to know."
+  - clip_start: "16:07"
+    clip_end: "16:12"
+    duration: 5
+    line: "He didn't go through the door. Are you kidding me?"
+  - clip_start: "16:12"
+    clip_end: "16:14"
+    duration: 2
+    line: "Got to hit one of them with the door."

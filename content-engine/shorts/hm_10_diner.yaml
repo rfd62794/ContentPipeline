@@ -1,0 +1,25 @@
+name: hm_10_diner
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "7:23"
+    clip_end: "7:28"
+    duration: 5
+    line: "You seem really down over losing your girlfriend."
+  - clip_start: "7:29"
+    clip_end: "7:31"
+    duration: 2
+    line: "Your girlfriend's dead."
+  - clip_start: "7:32"
+    clip_end: "7:36"
+    duration: 4
+    line: "Maybe you should talk about something else."
+  - clip_start: "7:36"
+    clip_end: "7:38"
+    duration: 2
+    line: "It's on the house."

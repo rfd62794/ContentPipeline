@@ -1,0 +1,21 @@
+name: hm_18_close
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "18:04"
+    clip_end: "18:08"
+    duration: 4
+    line: "1989. My memory's showing up."
+  - clip_start: "19:31"
+    clip_end: "19:35"
+    duration: 4
+    line: "Maybe we're good to go."
+  - clip_start: "19:35"
+    clip_end: "19:39"
+    duration: 4
+    line: "If that was a short one, but that works."

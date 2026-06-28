@@ -1,0 +1,21 @@
+name: hm_11_discreet
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "8:32"
+    clip_end: "8:37"
+    duration: 5
+    line: "Make sure you have a long talk with them."
+  - clip_start: "8:37"
+    clip_end: "8:41"
+    duration: 4
+    line: "I don't need someone to get through to those rascals."
+  - clip_start: "8:44"
+    clip_end: "8:46"
+    duration: 2
+    line: "Please be discreet."

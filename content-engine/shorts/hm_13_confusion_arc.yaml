@@ -1,0 +1,21 @@
+name: hm_13_confusion_arc
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "12:10"
+    clip_end: "12:13"
+    duration: 3
+    line: "Okay, okay, okay. You've got to do it in that order."
+  - clip_start: "13:07"
+    clip_end: "13:09"
+    duration: 2
+    line: "Damn, I got him with a knife. Oh."
+  - clip_start: "13:22"
+    clip_end: "13:24"
+    duration: 2
+    line: "I did it and didn't realize what happened."

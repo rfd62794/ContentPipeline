@@ -1,0 +1,21 @@
+name: hm_17_shotgun_blocking
+source: "C:/Users/cheat/Videos/Hotline Miami/2026-06-28 19-04-05.mp4"
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "13:44"
+    clip_end: "13:47"
+    duration: 3
+    line: "Door blocking the bullets."
+  - clip_start: "13:47"
+    clip_end: "13:49"
+    duration: 2
+    line: "Shotgun blocking more amount of bullets."
+  - clip_start: "13:59"
+    clip_end: "14:01"
+    duration: 2
+    line: "He racked himself on the door."
