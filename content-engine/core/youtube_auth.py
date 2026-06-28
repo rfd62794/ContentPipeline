@@ -76,7 +76,7 @@ def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
     if CLIENT_SECRET_FILE.exists():
         from google_auth_oauthlib.flow import InstalledAppFlow
         flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET_FILE), scopes=scopes)
-        credentials = flow.run_local_server(port=8080)
+        credentials = flow.run_local_server(port=8081)
         TOKEN_FILE.write_text(credentials.to_json(), encoding="utf-8")
         return credentials
 
