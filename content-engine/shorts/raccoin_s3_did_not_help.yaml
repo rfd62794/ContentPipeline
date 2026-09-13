@@ -1,0 +1,24 @@
+name: raccoin_s3_did_not_help
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/sentimental_jazz.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "5:39"
+    clip_end: "5:50"
+    duration: 11
+    line: "I need a clean window."
+  - clip_start: "5:50"
+    clip_end: "5:59"
+    duration: 9
+    line: "It did not help enough."
+  - clip_start: "5:59"
+    clip_end: "6:11"
+    duration: 12
+    line: "I should have done that first."

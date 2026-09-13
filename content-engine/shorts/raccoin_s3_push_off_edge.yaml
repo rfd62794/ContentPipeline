@@ -1,0 +1,24 @@
+name: raccoin_s3_push_off_edge
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "3:46"
+    clip_end: "3:52"
+    duration: 6
+    line: "Target is 150. I only have 114."
+  - clip_start: "3:52"
+    clip_end: "3:58"
+    duration: 6
+    line: "Anything want to push off the edge?"
+  - clip_start: "3:58"
+    clip_end: "4:25"
+    duration: 27
+    line: "Come on, push me. Thank you. Good job."

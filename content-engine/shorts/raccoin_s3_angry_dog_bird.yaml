@@ -1,0 +1,24 @@
+name: raccoin_s3_angry_dog_bird
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "2:13"
+    clip_end: "2:16"
+    duration: 3
+    line: "Angry dog bird."
+  - clip_start: "2:18"
+    clip_end: "2:30"
+    duration: 12
+    line: "Five auto fills. Full streaming."
+  - clip_start: "2:30"
+    clip_end: "2:40"
+    duration: 10
+    line: "We'll get the angry dog bird and see what that's about."

@@ -1,0 +1,24 @@
+name: raccoin_s3_shrinking_spell
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/Pixelated_Passion.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "2:41"
+    clip_end: "2:59"
+    duration: 18
+    line: "Shrinking spell."
+  - clip_start: "2:59"
+    clip_end: "3:02"
+    duration: 3
+    line: "Get all my coins tiny."
+  - clip_start: "3:02"
+    clip_end: "3:08"
+    duration: 6
+    line: "Yeah of course I got hit."

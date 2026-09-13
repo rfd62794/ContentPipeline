@@ -1,0 +1,24 @@
+name: raccoin_s3_going_solo
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/lo_fi_chill.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "1:39"
+    clip_end: "1:48"
+    duration: 9
+    line: "Got a bunny coin."
+  - clip_start: "1:48"
+    clip_end: "2:00"
+    duration: 12
+    line: "Don't have another one."
+  - clip_start: "2:00"
+    clip_end: "2:12"
+    duration: 12
+    line: "Setting out there solo."

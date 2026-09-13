@@ -1,0 +1,28 @@
+name: raccoin_s3_not_a_good_run
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/sentimental_jazz.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "19:55"
+    clip_end: "20:01"
+    duration: 6
+    line: "57,000. 80,000."
+  - clip_start: "20:01"
+    clip_end: "20:08"
+    duration: 7
+    line: "So many tickets."
+  - clip_start: "20:08"
+    clip_end: "20:11"
+    duration: 3
+    line: "That's not going to happen."
+  - clip_start: "21:52"
+    clip_end: "22:10"
+    duration: 18
+    line: "That's almost our best score. Not a very good run."

@@ -1,0 +1,28 @@
+name: raccoin_s3_no_tower
+source: "C:/Users/cheat/Videos/Raccoin/2026-06-28 21-31-56.mp4"
+attribution: null
+music_path: assets/music/sentimental_jazz.mp3
+music_volume: 0.20
+voice: true
+voice_volume: 0.50
+voice_delay: 0.3
+stack_text: true
+max_visible_lines: 3
+add_outro: true
+beats:
+  - clip_start: "16:50"
+    clip_end: "17:00"
+    duration: 10
+    line: "I wanted the tower."
+  - clip_start: "17:00"
+    clip_end: "17:03"
+    duration: 3
+    line: "No tower."
+  - clip_start: "17:03"
+    clip_end: "17:06"
+    duration: 3
+    line: "That's okay."
+  - clip_start: "18:24"
+    clip_end: "18:36"
+    duration: 12
+    line: "Push me through. Nope."
