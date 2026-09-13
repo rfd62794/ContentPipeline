@@ -43,7 +43,7 @@ def is_short(duration: str) -> bool:
 
 def match_game(title: str) -> Optional[str]:
     for key, prefix in GAME_SLOTS:
-        if title.startswith(prefix):
+        if title.lower().startswith(prefix.lower()):
             return key
     return None
 

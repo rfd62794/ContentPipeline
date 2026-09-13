@@ -56,12 +56,6 @@ def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
     if not _google_api_available:
         return None
     
-    try:
-        credentials, _ = _default(scopes=scopes)
-        return credentials
-    except Exception:
-        pass
-
     if TOKEN_FILE.exists():
         try:
             credentials = _Credentials.from_authorized_user_file(str(TOKEN_FILE), scopes)
@@ -71,6 +65,12 @@ def get_credentials(scopes: List[str]) -> Optional[_Credentials]:
             return credentials
         except Exception:
             pass
+
+    try:
+        credentials, _ = _default(scopes=scopes)
+        return credentials
+    except Exception:
+        pass
 
     # If no valid token, use client_secret for OAuth flow
     if CLIENT_SECRET_FILE.exists():
