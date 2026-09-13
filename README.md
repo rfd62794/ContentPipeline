@@ -1,5 +1,27 @@
 # ContentPipeline
 
+> **Being retired (September 2026).** ContentPipeline (developed locally as
+> GameReviewAgent) is being folded into its successor, RFD_YT_Engine
+> ([project page](https://rfditservices.com/projects/rfd-yt-engine/)). Its
+> Short configs, session notes and OBS overlays have already moved there; this
+> repository will be archived once the successor fully replaces it.
+
+## Portfolio notes
+
+| | |
+|---|---|
+| **Status** | Being retired into RFD_YT_Engine |
+| **Built** | April – September 2026 · 513 commits |
+| **Size** | 139 Python files · 603 pytest test functions in 41 test files · ADRs in `content-engine/docs/adr/` |
+| **Successor** | [RFD_YT_Engine](https://rfditservices.com/projects/rfd-yt-engine/) |
+
+**What it demonstrates**
+- Turning a manual creative chore into a pipeline: a YAML beat sheet plus footage becomes a finished YouTube Short with timed text overlays and music, assembled with FFmpeg.
+- Automation around real tools: OBS WebSocket recording control with game-focus detection, and YouTube Data API clients for upload, channel library and analytics.
+- Design decisions recorded as ADRs and backed by tests.
+
+---
+
 A faceless content pipeline for game analysis Shorts. Give it a beat structure and a video file. It produces a YouTube Short.
 
 Built because manual video editing is friction. You see something interesting in a game, you want to share it, but the editing step stops you. This removes that step.
@@ -21,8 +43,8 @@ python content-engine/pipeline_watch.py --source "https://youtube.com/watch?v=xx
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/GameReviewAgent.git
-cd GameReviewAgent
+git clone https://github.com/rfd62794/ContentPipeline.git
+cd ContentPipeline
 
 # Install dependencies
 cd content-engine
@@ -201,7 +223,7 @@ beats:
 
 MIT License
 
-Copyright (c) 2026 GameReviewAgent
+Copyright (c) 2026 Robert Dugger
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
