@@ -1,16 +1,47 @@
-# ContentPipeline
+# ContentPipeline (retired)
 
-> **Being retired (September 2026).** ContentPipeline (developed locally as
-> GameReviewAgent) is being folded into its successor, RFD_YT_Engine
-> ([project page](https://rfditservices.com/projects/rfd-yt-engine/)). Its
-> Short configs, session notes and OBS overlays have already moved there; this
-> repository will be archived once the successor fully replaces it.
+> **Retired and archived (13 September 2026).** ContentPipeline (developed
+> locally as GameReviewAgent) has been replaced by its successor,
+> **RFD_YT_Engine** ([project page](https://rfditservices.com/projects/rfd-yt-engine/)).
+> This repository is read-only. Nothing here is maintained; use the engine.
+
+## Where each capability went
+
+Commands in the engine are run from the RFD_YT_Engine folder as
+`uv run python -m pipeline.interface <command>`.
+
+| GameReviewAgent | RFD_YT_Engine |
+|---|---|
+| `content-engine/produce_short.py`, `core/assembler.py` (beat YAML → Short, voice_delay, attribution, music_start/volume, voice_name, outro_clip) | `produce-short <yaml>` — `pipeline/interface/short_producer.py`, `pipeline/ingest/beat_yaml.py`, `pipeline/production/{voice,assembler}.py` |
+| `overlay_voice_to_mp4.py` (re-voice a rendered MP4) | `voice-over <yaml> <video>` |
+| `youtube_upload.py`, `metadata_builder.py` (publish from `.meta.yaml`) | `publish-short <name>` (dry run by default) — `pipeline/distribution/{video_resource,upload}.py` |
+| `upload_session.py` | `upload-session <yaml>` (dry run by default) |
+| `reweave_calendar.py` (re-date all private Shorts round-robin) | `redate-private-shorts` (preview by default) and MCP `redate_private_shorts` — `pipeline/scheduling/redate.py`; verified identical on the live channel |
+| `pipeline_watch.py` (record while the game runs) | `watch --game X.exe --scene S` — `pipeline/capture/` |
+| Transcription in `review_session.py` | `transcribe <video>` — `pipeline/ingest/transcription.py` |
+| `mcp_server.py` (`content-pipeline` MCP server) | `rfd-yt-engine` MCP server (`pipeline/interface/mcp_server.py`): `get_channel_summary` → `get_channel_analytics`, `get_youtube_analytics` → `get_youtube_analytics`, `get_installed_games`, `get_game_metrics`, `get_sale_info` → `detect_sale` |
+| `core/youtube_auth.py` | `infra/youtube.py` (one OAuth client) |
+| `youtube_library.py`, `youtube_analytics.py` | `pipeline/catalog/{youtube_data,youtube_metrics}.py` |
+| `steam_library.py`, `game_metrics.py` | `pipeline/catalog/{steam_data,game_metrics}.py` |
+| `core/obs_manager.py` | `infra/obs.py` |
+| `content-engine/overlays/*.html` (OBS browser sources) | `overlays/`, served by `run_overlay_server.py` at `http://127.0.0.1:8765/<file>.html` |
+| `content-engine/shorts/`, `sessions/`, `streams/`, `config/game_folders.json` | same folders in the engine |
+| `content-engine/assets/music/` | `assets/music/` (copied, gitignored) |
+| Local data: `game_registry.json`, `metrics_history.db`, `playtime_overrides.json`, `sessions/` transcripts, un-uploaded `output/shorts/*.mp4` | engine `data/gamereviewagent/` (gitignored) |
+
+**Not carried over** (unused since May–June 2026 or superseded):
+live commentary sessions (`live_session.py`), VLC review sessions
+(`review_session.py`), the full stream launcher and MCP `start_stream`
+(`stream_launcher.py`), yt-dlp clip sourcing (`core/clip_sourcer.py`,
+`core/clip_orchestrator.py`), metrics history and MCP
+`get_content_recommendations`, the P1–P7 AI long-form pipeline, and the
+one-off batch/check/debug scripts. They remain in this repository's history.
 
 ## Portfolio notes
 
 | | |
 |---|---|
-| **Status** | Being retired into RFD_YT_Engine |
+| **Status** | Retired into RFD_YT_Engine; archived |
 | **Built** | April – September 2026 · 513 commits |
 | **Size** | 139 Python files · 603 pytest test functions in 41 test files · ADRs in `content-engine/docs/adr/` |
 | **Successor** | [RFD_YT_Engine](https://rfditservices.com/projects/rfd-yt-engine/) |
@@ -19,205 +50,6 @@
 - Turning a manual creative chore into a pipeline: a YAML beat sheet plus footage becomes a finished YouTube Short with timed text overlays and music, assembled with FFmpeg.
 - Automation around real tools: OBS WebSocket recording control with game-focus detection, and YouTube Data API clients for upload, channel library and analytics.
 - Design decisions recorded as ADRs and backed by tests.
-
----
-
-A faceless content pipeline for game analysis Shorts. Give it a beat structure and a video file. It produces a YouTube Short.
-
-Built because manual video editing is friction. You see something interesting in a game, you want to share it, but the editing step stops you. This removes that step.
-
-## What it does
-
-```bash
-# Produce a Short from YAML config
-python content-engine/produce_short.py content-engine/shorts/eic_short_1_evolution.yaml
-
-# Watch your own game and auto-capture
-python content-engine/pipeline_watch.py --game "Everything is Crab.exe" --scene "Game_Capture"
-
-# Download clips from YouTube and assemble
-python content-engine/pipeline_watch.py --source "https://youtube.com/watch?v=xxx" --topic "mechanics"
-```
-
-## Quick Start
-
-```bash
-# Clone the repo
-git clone https://github.com/rfd62794/ContentPipeline.git
-cd ContentPipeline
-
-# Install dependencies
-cd content-engine
-pip install -r requirements.txt
-
-# Configure OBS WebSocket
-cp config.yaml.example config.yaml
-# Edit config.yaml with your OBS WebSocket credentials
-
-# Produce a test Short
-python produce_short.py shorts/eic_short_1_evolution.yaml
-```
-
-## Installation
-
-```bash
-# Python 3.14+ required
-python --version
-
-# Install FFmpeg (required for video processing)
-# Windows: Download from https://ffmpeg.org/download.html
-# Add to PATH
-
-# Install Python dependencies
-cd content-engine
-pip install -r requirements.txt
-
-# Configure OBS WebSocket (optional, for live capture)
-# Edit config.yaml:
-# obs_host: localhost
-# obs_port: 4455
-# obs_password: your_password
-```
-
-## Directory Structure
-
-```
-GameReviewAgent/
-├── content-engine/
-│   ├── core/
-│   │   ├── assembler.py          # Video assembly and text overlay
-│   │   ├── clip_sourcer.py      # YouTube clip download
-│   │   ├── obs_capture.py       # OBS WebSocket control
-│   │   ├── process_watcher.py   # Process monitoring
-│   │   └── ...
-│   ├── shorts/
-│   │   ├── eic_short_1_evolution.yaml
-│   │   ├── eic_short_2_predator.yaml
-│   │   └── ...
-│   ├── tests/
-│   │   ├── test_assembler.py
-│   │   ├── test_produce_short.py
-│   │   └── ...
-│   ├── config.yaml              # Main configuration
-│   ├── config/game_folders.json  # Game process mappings
-│   ├── produce_short.py         # YAML-driven short production
-│   ├── pipeline_watch.py        # Live capture pipeline
-│   └── requirements.txt
-├── README.md
-└── docs/
-    ├── adr/                     # Architecture Decision Records
-    ├── state/
-    │   └── current.md           # Current development state
-    └── sdd/                     # System Design Document
-```
-
-## Producing a Short
-
-```bash
-# Create a YAML config in shorts/ directory
-cat > shorts/my_short.yaml << EOF
-name: my_short
-source: /path/to/video.mp4
-attribution: null
-music_path: assets/music/Pixelated_Passion.mp3
-music_start: 0
-stack_text: false
-max_visible_lines: 5
-beats:
-  - clip_start: "0:10"
-    clip_end: "0:15"
-    duration: 5
-    line: "First observation"
-  - clip_start: "0:20"
-    clip_end: "0:25"
-    duration: 5
-    line: "Second observation"
-EOF
-
-# Produce the Short
-python produce_short.py shorts/my_short.yaml
-
-# Output appears in output/shorts/my_short.mp4
-```
-
-## Pipeline Watch (own-game capture)
-
-```bash
-# Basic capture with focus detection
-python pipeline_watch.py --game "Everything is Crab.exe" --scene "Game_Capture"
-
-# With game launch
-python pipeline_watch.py --game "Everything is Crab.exe" --launch --scene "Game_Capture"
-
-# With focus pause (pauses recording when game loses focus)
-python pipeline_watch.py --game "Everything is Crab.exe" --focus-pause --scene "Game_Capture"
-
-# Full pipeline with all options
-python pipeline_watch.py \
-  --game "Everything is Crab.exe" \
-  --launch \
-  --scene "Game_Capture" \
-  --focus-pause \
-  --topic "mechanics"
-```
-
-## YAML Schema Reference
-
-```yaml
-# Short name (used for output filename)
-name: short_name
-
-# Video source (local file path or YouTube URL)
-source: /path/to/video.mp4
-# OR
-source: https://www.youtube.com/watch?v=VIDEO_ID
-
-# Attribution text (null for own footage, string for third-party)
-attribution: null
-# OR
-attribution: "Gameplay via: CreatorName"
-
-# Background music path
-music_path: assets/music/Pixelated_Passion.mp3
-
-# Music start offset in seconds (optional, default: 0)
-music_start: 0
-
-# Enable text stacking with sliding window (optional, default: false)
-stack_text: false
-
-# Maximum visible lines when stacking (optional, default: 5)
-max_visible_lines: 5
-
-# Beat array — each beat is a video segment with text overlay
-beats:
-  # Video segment start timestamp (MM:SS or HH:MM:SS format)
-  - clip_start: "0:33"
-    
-    # Video segment end timestamp
-    clip_end: "0:35"
-    
-    # Segment duration in seconds (controls text timing)
-    duration: 2
-    
-    # Text line to display (supports \n for multiline)
-    line: "You feed."
-```
-
-## Backlog
-
-**Planned:**
-- Tower migration and remote trigger
-- YouTube publish (P9) — automated upload
-- Steam API integration — auto-populate game library
-- OBS auto-launch
-- Telegram bot trigger layer
-- GitHub Issues workflow
-
-**Deferred:**
-- Blur fill background (technical issue on Windows FFmpeg)
-- Aider integration — separate project
-- Live streaming support
 
 ## License
 
